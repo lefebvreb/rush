@@ -17,16 +17,18 @@ pub enum Square {
 }
 
 impl From<u32> for Square {
+    /// Undefined behaviour if i > 63
     #[inline]
     fn from(i: u32) -> Square {
-        unsafe { transmute(i as u8) }
+        unsafe {transmute(i as u8)}
     }
 }
 
 impl From<(u32, u32)> for Square {
+    // Undefined behaviour if xy.0 + 8*xy.1 > 63
     #[inline]
     fn from(xy: (u32, u32)) -> Square {
-        Square::from(xy.0 + 8 * xy.1)
+        Square::from(xy.0 + 8*xy.1)
     }
 }
 

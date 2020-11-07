@@ -51,13 +51,13 @@ impl Move {
 
     /// Create a new king side castle Move
     #[inline(always)]
-    pub const fn king_castle() -> Move {
+    pub const fn kingcastle() -> Move {
         Move(6)
     }
 
     /// Create a new queen side castle Move
     #[inline(always)]
-    pub const fn queen_castle() -> Move {
+    pub const fn queencastle() -> Move {
         Move(7)
     }
 }
@@ -69,7 +69,7 @@ impl Move {
 //#################################################################################################
 
 /// A convenient enum to manipulate moves
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(PartialEq, Debug)]
 pub enum MoveType {
     Quiet {          // 0
         from: Square,
@@ -209,10 +209,10 @@ mod tests {
             to: Square::D3,
         }, mv.into());
 
-        let mv = Move::king_castle();
+        let mv = Move::kingcastle();
         assert_eq!(MoveType::KingCastle, mv.into());
 
-        let mv = Move::queen_castle();
+        let mv = Move::queencastle();
         assert_eq!(MoveType::QueenCastle, mv.into());
     }
 }

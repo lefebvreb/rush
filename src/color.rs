@@ -8,7 +8,7 @@ pub enum Color {
 impl Color {
     /// List of colors, ordered by their values
     pub const COLORS: [Color; 2] = [
-        Color::White, Color::Black
+        Color::White, Color::Black,
     ];
 
     /// Give the opposite color of `self`
@@ -18,5 +18,11 @@ impl Color {
             Color::White => Color::Black,
             Color::Black => Color::White,
         }
+    }
+}
+
+impl Default for Color {
+    fn default() -> Self {
+        Color::White
     }
 }

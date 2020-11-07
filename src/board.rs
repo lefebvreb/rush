@@ -6,6 +6,7 @@ use crate::color::Color;
 use crate::piece::Piece;
 use crate::square::Square;
 
+/// Represent a complete chess board
 #[derive(Clone, Debug)]
 pub struct Board {
     bitboards: [[BitBoard; 6]; 2],
@@ -13,11 +14,13 @@ pub struct Board {
 }
 
 impl Board {
+    /// Return the BitBoard associated to that Color and Piece
     #[inline]
     pub const fn get_bitboard(&self, color: Color, piece: Piece) -> BitBoard {
         self.bitboards[color as usize][piece as usize]
     }
 
+    /// Return the Piece and it's Color present on that Square 
     #[inline]
     pub const fn get_piece(&self, square: Square) -> Option<(Color, Piece)> {
         self.mailbox[square as usize]
@@ -25,6 +28,7 @@ impl Board {
 }
 
 impl Default for Board {
+    /// Return a new Board with the default chess position
     fn default() -> Board {
         let bitboards = [[ // White bitboards
                 BitBoard::RANK_2,                 // Pawns

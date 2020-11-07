@@ -86,15 +86,14 @@ impl fmt::Debug for BitBoard {
 }
 
 impl fmt::Display for BitBoard {
-    /// When displaying the board like this it is rotated by 180°
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut bits = self.0.reverse_bits();
 
         writeln!(f, "┌BitBoard┐").unwrap();
         for _ in 0..8 {
-            let row = bits & 0xFF;
+            let rank = bits & 0xFF;
             bits = bits.wrapping_shr(8);
-            writeln!(f, "│{:08b}│", row).unwrap();
+            writeln!(f, "│{:08b}│", rank).unwrap();
         }
         writeln!(f, "└────────┘")
     }
