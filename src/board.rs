@@ -68,7 +68,7 @@ impl fmt::Display for Board {
 
         writeln!(f, " a b c d e f g h").unwrap();
         for y in (0..8).rev() {
-            write!(f, "{}", y+1).unwrap();
+            write!(f, "{} ", y+1).unwrap();
             for x in 0..8 {
                 if let Some((color, piece)) = self.mailbox[x + 8*y] {
                     write!(f, "{} ", CHARS[color as usize][piece as usize]).unwrap();

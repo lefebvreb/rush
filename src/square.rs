@@ -16,6 +16,18 @@ pub enum Square {
     A8 = 56, B8 = 57, C8 = 58, D8 = 59, E8 = 60, F8 = 61, G8 = 62, H8 = 63,
 }
 
+impl Square {
+    #[inline]
+    pub fn x(self) -> u32 {
+        (self as u32) & 0x3
+    }
+
+    #[inline]
+    pub fn y(self) -> u32 {
+        (self as u32).wrapping_shr(3)
+    }
+}
+
 impl From<u32> for Square {
     /// Undefined behaviour if i > 63
     #[inline]

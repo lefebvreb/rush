@@ -60,6 +60,7 @@ impl BitBoard {
 }
 
 impl Into<usize> for BitBoard {
+    #[inline]
     fn into(self) -> usize {
         self.0 as usize
     }
