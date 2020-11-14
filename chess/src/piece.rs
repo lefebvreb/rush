@@ -12,7 +12,7 @@ pub enum Piece {
 
 impl Piece {
     /// List of pieces, ordered by their values
-    pub const PIECES: [Piece; 6] = [
+    pub(crate) const PIECES: [Piece; 6] = [
         Piece::Pawn, Piece::Rook, Piece::Knight,
         Piece::Bishop, Piece::Queen, Piece::King,
     ];

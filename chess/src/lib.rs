@@ -58,6 +58,7 @@ TESTS
 
 */
 
+// Modules
 mod bitboard;
 mod bits;
 mod board;
@@ -68,3 +69,10 @@ mod moves;
 mod piece;
 mod ply;
 mod square;
+
+// Exports
+pub use board::Board;
+pub use game::Game;
+pub use moves::Move;
+pub use piece::Piece;
+pub use square::Square;

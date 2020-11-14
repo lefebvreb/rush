@@ -3,3 +3,12 @@ name = "interface"
 version = "0.1.0"
 authors = ["benjamin <benji.lef76@gmail.com>"]
 edition = "2018"
+
+[dependencies.chess]
+path = "../chess"
+
+[dependencies.engine]
+path = "../engine"
+
+[dependencies.miniquad]
+version = "0.2.55"
