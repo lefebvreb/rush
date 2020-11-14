@@ -1,7 +1,8 @@
 use crate::squares;
 use crate::bitboard::BitBoard;
 use crate::color::Color;
-use crate::moves::MoveType;
+use crate::moves::Move;
+use crate::ply::Ply;
 use crate::square::Square;
 
 /* ======== MEMO ===========
@@ -23,188 +24,153 @@ Dumb rules make ugly code sry
 
 ========================= */
 
-#[derive(Clone, PartialEq, Debug)]
-enum Status {
-    InitialPosition,
-    Captured,
-    Moved(u32),
-    Castled,
+/// Convenient struct to carry the availability of castling moves
+#[repr(u8)]
+#[derive(PartialEq, Debug)]
+pub enum CastleAvailability {
+    None,
+    KingSide,
+    QueenSide,
+    Both,
 }
 
-impl Default for Status {
-    fn default() -> Self {
-        Status::InitialPosition
-    }
-}
-
-#[derive(Clone, Debug, Default)]
-struct History {
-    len: u32,
-    plies: [u32; 6]
-}
-
-impl History {
-    #[inline]
-    pub fn push(&mut self, ply: u32) {
-        self.plies[self.len as usize] = ply;
-        self.len += 1;
-    }
-
-    #[inline]
-    pub fn is_last(&self, ply: u32) -> bool {
-        if self.len == 0 {
-            false
-        } else {
-            self.plies[(self.len - 1) as usize] == ply
-        }        
-    }
-
-    #[inline]
-    pub fn pop(&mut self) {
-        self.len -= 1;
-    }
-}
-
-#[derive(Clone, Debug, Default)]
+/// Used to remember and handle the castling privileges associated
+/// to each color
+#[derive(Clone, Debug)]
 pub struct CastleRights {
-    ply: u32,
-    queen_rooks: [Status; 2],
-    kings: [Status; 2],
-    king_rooks: [Status; 2],    
-    history: History,
+    kings: [bool; 2],
+    king_rooks: [bool; 2],  
+    queen_rooks: [bool; 2],  
+    history: Vec<Ply>,
 }
+
+//#################################################################################################
+//
+//                                    Implementation
+//
+//#################################################################################################
 
 impl CastleRights {
+    /// Return the castling abilities of a certain player, based on the monochrome
+    /// occupancy bitboard and the attack bitboard of the opponent.
     #[inline]
-    pub fn can_kingcastle(&self, color: Color, occ: BitBoard, atk: BitBoard) -> bool {
-        match color {
-            Color::White => {
-                self.kings[0] == Status::InitialPosition &&
-                self.king_rooks[0] == Status::InitialPosition &&                
-                (occ & squares!(Square::F1, Square::G1)).is_empty() &&
-                (atk & squares!(Square::E1, Square::F1, Square::G1)).is_empty()
-            }
-            Color::Black => {
-                self.kings[1] == Status::InitialPosition &&
-                self.king_rooks[1] == Status::InitialPosition &&                
-                (occ & squares!(Square::F8, Square::G8)).is_empty() &&
-                (atk & squares!(Square::E8, Square::F8, Square::G8)).is_empty()
-            }
+    pub fn get_availability(&self, color: Color, occ: BitBoard, atk: BitBoard) -> CastleAvailability {
+        match match color {
+            Color::White if self.kings[0] => {(
+                    self.king_rooks[0] &&                
+                    (occ & squares!(Square::F1, Square::G1)).is_empty() &&
+                    (atk & squares!(Square::E1, Square::F1, Square::G1)).is_empty(),
+                    self.queen_rooks[0] &&
+                    (occ & squares!(Square::B1, Square::C1, Square::D1)).is_empty() &&
+                    (atk & squares!(Square::B1, Square::C1, Square::D1, Square::E1)).is_empty(),
+            )}
+            Color::Black if self.kings[1] => {(
+                    self.king_rooks[1] &&                
+                    (occ & squares!(Square::F8, Square::G8)).is_empty() &&
+                    (atk & squares!(Square::E8, Square::F8, Square::G8)).is_empty(),
+                    self.queen_rooks[1] &&
+                    (occ & squares!(Square::B8, Square::C8, Square::D8)).is_empty() &&
+                    (atk & squares!(Square::B8, Square::C8, Square::D8, Square::E8)).is_empty(),
+            )}
+            _ => return CastleAvailability::None,
+        } {
+            (false, false) => CastleAvailability::None,
+            (true, false) => CastleAvailability::KingSide,
+            (false, true) => CastleAvailability::QueenSide,
+            (true, true) => CastleAvailability::Both,
         }
     }
 
+    /// Take into account the last move and modify the castling rights accordingly
     #[inline]
-    pub fn can_queencastle(&self, color: Color, occ: BitBoard, atk: BitBoard) -> bool {
-        match color {
-            Color::White => {
-                self.queen_rooks[0] == Status::InitialPosition &&
-                self.kings[0] == Status::InitialPosition &&
-                (occ & squares!(Square::B1, Square::C1, Square::D1)).is_empty() &&
-                (atk & squares!(Square::B1, Square::C1, Square::D1, Square::E1)).is_empty()
-            }
-            Color::Black => {
-                self.queen_rooks[1] == Status::InitialPosition &&
-                self.kings[1] == Status::InitialPosition &&
-                (occ & squares!(Square::B8, Square::C8, Square::D8)).is_empty() &&
-                (atk & squares!(Square::B8, Square::C8, Square::D8, Square::E8)).is_empty()
-            }
+    pub fn do_move(&mut self, color: Color, mv: Move, ply: Ply) {
+        let status = match mv {
+            Move::PromoteCapture {to: Square::A1, ..} | 
+            Move::PromoteCapture {to: Square::A8, ..} |
+            Move::Capture {from: Square::A1, ..} |
+            Move::Capture {from: Square::A8, ..} |
+            Move::Capture {to: Square::A1, ..} |
+            Move::Capture {to: Square::A8, ..} |
+            Move::Quiet {from: Square::A1, ..} |
+            Move::Quiet {from: Square::A8, ..} => 
+                &mut self.queen_rooks,
+            Move::PromoteCapture {to: Square::E1, ..} |
+            Move::PromoteCapture {to: Square::E8, ..} |
+            Move::Capture {from: Square::E1, ..} |
+            Move::Capture {from: Square::E8, ..} |
+            Move::Capture {to: Square::E1, ..} |
+            Move::Capture {to: Square::E8, ..} |
+            Move::Quiet {from: Square::E1, ..} |
+            Move::Quiet {from: Square::E8, ..} |       
+            Move::QueenCastle |
+            Move::KingCastle =>
+                &mut self.kings,
+            Move::PromoteCapture {to: Square::H1, ..} | 
+            Move::PromoteCapture {to: Square::H8, ..} |
+            Move::Capture {from: Square::H1, ..} |
+            Move::Capture {from: Square::H8, ..} |
+            Move::Capture {to: Square::H1, ..} |
+            Move::Capture {to: Square::H8, ..} |
+            Move::Quiet {from: Square::H1, ..} |
+            Move::Quiet {from: Square::H8, ..} => 
+                &mut self.king_rooks,            
+            _ => return,
+        };
+
+        if (*status)[color as usize] {
+            (*status)[color as usize] = false;
+            self.history.push(ply);
         }
     }
 
+    /// Undo the last move and modify the castling rights accordingly
     #[inline]
-    pub fn do_move(&mut self, color: Color, mv: &MoveType) {
-        macro_rules! status {
-            (moved $set: expr) => {
-                if $set[color as usize] == Status::InitialPosition {
-                    $set[color as usize] = Status::Moved(self.ply);
-                    self.history.push(self.ply);
-                }
-            };
-            (captured $set: expr) => {
-                if $set[color as usize] == Status::InitialPosition {
-                    $set[color as usize] = Status::Captured;
-                    self.history.push(self.ply);
-                }
-            };
-        }
-
-        match mv {
-            MoveType::Capture {from: Square::A1, ..} |
-            MoveType::Capture {from: Square::A8, ..} |
-            MoveType::Quiet {from: Square::A1, ..} |
-            MoveType::Quiet {from: Square::A8, ..} => 
-                status!(moved self.queen_rooks),
-            MoveType::Capture {from: Square::E1, ..} |
-            MoveType::Capture {from: Square::E8, ..} |
-            MoveType::Quiet {from: Square::E1, ..} |
-            MoveType::Quiet {from: Square::E8, ..} => 
-                status!(moved self.kings),
-            MoveType::Capture {from: Square::H1, ..} |
-            MoveType::Capture {from: Square::H8, ..} |
-            MoveType::Quiet {from: Square::H1, ..} |
-            MoveType::Quiet {from: Square::H8, ..} => 
-                status!(moved self.king_rooks),
-            MoveType::PromoteCapture {to: Square::A1, ..} | 
-            MoveType::PromoteCapture {to: Square::A8, ..} |
-            MoveType::Capture {to: Square::A1, ..} |
-            MoveType::Capture {to: Square::A8, ..} => 
-                status!(captured self.queen_rooks),
-            MoveType::PromoteCapture {to: Square::E1, ..} | 
-            MoveType::PromoteCapture {to: Square::E8, ..} |
-            MoveType::Capture {to: Square::E1, ..} |
-            MoveType::Capture {to: Square::E8, ..} => 
-                status!(captured self.kings),
-            MoveType::PromoteCapture {to: Square::H1, ..} | 
-            MoveType::PromoteCapture {to: Square::H8, ..} |
-            MoveType::Capture {to: Square::H1, ..} |
-            MoveType::Capture {to: Square::H8, ..} => 
-                status!(captured self.king_rooks),
-            MoveType::QueenCastle |
-            MoveType::KingCastle =>
-                self.kings[color as usize] = Status::Castled,
-            _ => (),
-        }
-
-        self.ply += 1;
-    }
-
-    #[inline]
-    pub fn undo_move(&mut self, color: Color, mv: &MoveType) {
-        self.ply -= 1;
-
-        if self.history.is_last(self.ply) {
-            match mv {
-                MoveType::PromoteCapture {to: Square::A1, ..} | 
-                MoveType::PromoteCapture {to: Square::A8, ..} |
-                MoveType::Capture {from: Square::A1, ..} |
-                MoveType::Capture {from: Square::A8, ..} |
-                MoveType::Capture {to: Square::A1, ..} |
-                MoveType::Capture {to: Square::A8, ..} |
-                MoveType::Quiet {from: Square::A1, ..} |
-                MoveType::Quiet {from: Square::A8, ..} => 
-                    self.queen_rooks[color as usize] = Status::InitialPosition,
-                MoveType::PromoteCapture {to: Square::E1, ..} |
-                MoveType::PromoteCapture {to: Square::E8, ..} |
-                MoveType::Capture {from: Square::E1, ..} |
-                MoveType::Capture {from: Square::E8, ..} |
-                MoveType::Capture {to: Square::E1, ..} |
-                MoveType::Capture {to: Square::E8, ..} |
-                MoveType::Quiet {from: Square::E1, ..} |
-                MoveType::Quiet {from: Square::E8, ..} |
-                MoveType::QueenCastle |
-                MoveType::KingCastle => 
-                    self.kings[color as usize] = Status::InitialPosition,
-                MoveType::PromoteCapture {to: Square::H1, ..} | 
-                MoveType::PromoteCapture {to: Square::H8, ..} |
-                MoveType::Capture {from: Square::H1, ..} |
-                MoveType::Capture {from: Square::H8, ..} |
-                MoveType::Capture {to: Square::H1, ..} |
-                MoveType::Capture {to: Square::H8, ..} |
-                MoveType::Quiet {from: Square::H1, ..} |
-                MoveType::Quiet {from: Square::H8, ..} => 
-                    self.king_rooks[color as usize] = Status::InitialPosition,
+    pub fn undo_move(&mut self, color: Color, mv: Move, ply: Ply) {
+        if self.history.last().map_or(false, |p| *p == ply) {
+            *match mv {
+                Move::PromoteCapture {to: Square::A1, ..} | 
+                Move::PromoteCapture {to: Square::A8, ..} |
+                Move::Capture {from: Square::A1, ..} |
+                Move::Capture {from: Square::A8, ..} |
+                Move::Capture {to: Square::A1, ..} |
+                Move::Capture {to: Square::A8, ..} |
+                Move::Quiet {from: Square::A1, ..} |
+                Move::Quiet {from: Square::A8, ..} => 
+                    &mut self.queen_rooks[color as usize],
+                Move::PromoteCapture {to: Square::E1, ..} |
+                Move::PromoteCapture {to: Square::E8, ..} |
+                Move::Capture {from: Square::E1, ..} |
+                Move::Capture {from: Square::E8, ..} |
+                Move::Capture {to: Square::E1, ..} |
+                Move::Capture {to: Square::E8, ..} |
+                Move::Quiet {from: Square::E1, ..} |
+                Move::Quiet {from: Square::E8, ..} |
+                Move::QueenCastle |
+                Move::KingCastle => 
+                    &mut self.kings[color as usize],
+                Move::PromoteCapture {to: Square::H1, ..} | 
+                Move::PromoteCapture {to: Square::H8, ..} |
+                Move::Capture {from: Square::H1, ..} |
+                Move::Capture {from: Square::H8, ..} |
+                Move::Capture {to: Square::H1, ..} |
+                Move::Capture {to: Square::H8, ..} |
+                Move::Quiet {from: Square::H1, ..} |
+                Move::Quiet {from: Square::H8, ..} => 
+                    &mut self.king_rooks[color as usize],
                 _ => unreachable!(),
-            }
+            } = true;
+        }
+    }
+}
+
+impl Default for CastleRights {
+    #[cold]
+    fn default() -> CastleRights {
+        CastleRights {
+            queen_rooks: [true; 2],
+            kings: [true; 2],
+            king_rooks: [true; 2],    
+            history: Vec::with_capacity(6),
         }
     }
 }

@@ -1,6 +1,7 @@
 use std::mem::transmute;
 
 use crate::bitboard::BitBoard;
+use crate::bits::SHIFTS;
 
 /// Represent a Square of the board
 #[repr(u8)]
@@ -17,12 +18,14 @@ pub enum Square {
 }
 
 impl Square {
-    #[inline]
+    /// Return the x coodinate of that square
+    #[inline(always)]
     pub fn x(self) -> u32 {
-        (self as u32) & 0x3
+        (self as u32) & 0x7
     }
 
-    #[inline]
+    /// Return the y coodinate of that square
+    #[inline(always)]
     pub fn y(self) -> u32 {
         (self as u32).wrapping_shr(3)
     }
@@ -47,6 +50,6 @@ impl From<(u32, u32)> for Square {
 impl Into<BitBoard> for Square {
     #[inline]
     fn into(self) -> BitBoard {
-        BitBoard(1u64 << self as u8)
+        BitBoard(SHIFTS[self as usize])
     }
 }

@@ -1,9 +1,10 @@
 use std::fmt;
-use std::ops::{Add, BitAnd, BitOr, BitXor, Mul, Not, Shl, Shr};
 
+use crate::bits::{pdep, pext};
 use crate::square::Square;
 
 /// Represent a 64 bits BitBoard
+#[repr(transparent)]
 #[derive(Copy, Clone, PartialEq)]
 pub struct BitBoard(pub u64);
 
@@ -33,9 +34,21 @@ impl BitBoard {
     pub const RANK_8: BitBoard = BitBoard(0xFF00000000000000);
 
     /// Return true if the BitBoard `self` is empty
-    #[inline]
+    #[inline(always)]
     pub const fn is_empty(self) -> bool {
         self.0 == 0
+    }
+
+    /// Return the pext of those two bitboards
+    #[inline(always)]
+    pub fn pext(self, mask: BitBoard) -> u64 {
+        pext(self.0, mask.0)
+    }
+
+    /// Return the pdep of those two bitboards
+    #[inline(always)]
+    pub fn pdep(self, mask: BitBoard) -> u64 {
+        pdep(self.0, mask.0)
     }
 
     /// Return an iterator over the bits of the BitBoard `self`
@@ -43,7 +56,7 @@ impl BitBoard {
     pub fn iter_squares(mut self) -> impl Iterator<Item = Square> {
         (0..self.0.count_ones()).map(move |_| {
             let lsb = self.0.trailing_zeros();
-            self.0 ^= 1u64 << lsb;
+            self &= self - BitBoard(1);
             Square::from(lsb)
         })
     }
@@ -52,9 +65,9 @@ impl BitBoard {
     #[inline]
     pub fn iter_bitboards(mut self) -> impl Iterator<Item = BitBoard> {
         (0..self.0.count_ones()).map(move |_| {
-            let lsb = 1u64 << self.0.trailing_zeros();
-            self.0 ^= lsb;
-            BitBoard(lsb)
+            let old = self;
+            self &= self - BitBoard(1);
+            old ^ self
         })
     }
 }
@@ -81,12 +94,14 @@ macro_rules! squares {
 //#################################################################################################
 
 impl fmt::Debug for BitBoard {
+    #[cold]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "BitBoard(0x{:X})", self.0)
     }
 }
 
 impl fmt::Display for BitBoard {
+    #[cold]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut bits = self.0.reverse_bits();
 
@@ -106,7 +121,7 @@ impl fmt::Display for BitBoard {
 //
 //#################################################################################################
 
-impl Add<BitBoard> for BitBoard {
+impl std::ops::Add<BitBoard> for BitBoard {
     type Output = BitBoard;
 
     #[inline]
@@ -115,7 +130,30 @@ impl Add<BitBoard> for BitBoard {
     }
 }
 
-impl Mul<BitBoard> for BitBoard {
+impl std::ops::AddAssign<BitBoard> for BitBoard {
+    #[inline]
+    fn add_assign(&mut self, rhs: BitBoard) {
+        self.0.add_assign(rhs.0)
+    }
+}
+
+impl std::ops::Sub<BitBoard> for BitBoard {
+    type Output = BitBoard;
+
+    #[inline]
+    fn sub(self, rhs: BitBoard) -> BitBoard {
+        BitBoard(self.0.wrapping_sub(rhs.0))
+    }
+}
+
+impl std::ops::SubAssign<BitBoard> for BitBoard {
+    #[inline]
+    fn sub_assign(&mut self, rhs: BitBoard) {
+        self.0.sub_assign(rhs.0)
+    }
+}
+
+impl std::ops::Mul<BitBoard> for BitBoard {
     type Output = BitBoard;
 
     #[inline]
@@ -124,7 +162,14 @@ impl Mul<BitBoard> for BitBoard {
     }
 }
 
-impl Not for BitBoard {
+impl std::ops::MulAssign<BitBoard> for BitBoard {
+    #[inline]
+    fn mul_assign(&mut self, rhs: BitBoard) {
+        self.0.mul_assign(rhs.0)
+    }
+}
+
+impl std::ops::Not for BitBoard {
     type Output = BitBoard;
 
     #[inline]
@@ -133,7 +178,16 @@ impl Not for BitBoard {
     }
 }
 
-impl BitAnd<BitBoard> for BitBoard {
+impl std::ops::Neg for BitBoard {
+    type Output = BitBoard;
+
+    #[inline]
+    fn neg(self) -> BitBoard {
+        BitBoard(self.0.wrapping_neg())
+    }
+}
+
+impl std::ops::BitAnd<BitBoard> for BitBoard {
     type Output = BitBoard;
 
     #[inline]
@@ -142,7 +196,14 @@ impl BitAnd<BitBoard> for BitBoard {
     }
 }
 
-impl BitOr<BitBoard> for BitBoard {
+impl std::ops::BitAndAssign<BitBoard> for BitBoard {
+    #[inline]
+    fn bitand_assign(&mut self, rhs: BitBoard) {
+        self.0.bitand_assign(rhs.0)
+    }
+}
+
+impl std::ops::BitOr<BitBoard> for BitBoard {
     type Output = BitBoard;
 
     #[inline]
@@ -151,7 +212,14 @@ impl BitOr<BitBoard> for BitBoard {
     }
 }
 
-impl BitXor<BitBoard> for BitBoard {
+impl std::ops::BitOrAssign<BitBoard> for BitBoard {
+    #[inline]
+    fn bitor_assign(&mut self, rhs: BitBoard) {
+        self.0.bitor_assign(rhs.0)
+    }
+}
+
+impl std::ops::BitXor<BitBoard> for BitBoard {
     type Output = BitBoard;
 
     #[inline]
@@ -160,7 +228,14 @@ impl BitXor<BitBoard> for BitBoard {
     }
 }
 
-impl Shl<u32> for BitBoard {
+impl std::ops::BitXorAssign<BitBoard> for BitBoard {
+    #[inline]
+    fn bitxor_assign(&mut self, rhs: BitBoard) {
+        self.0.bitxor_assign(rhs.0)
+    }
+}
+
+impl std::ops::Shl<u32> for BitBoard {
     type Output = BitBoard;
 
     #[inline]
@@ -169,11 +244,25 @@ impl Shl<u32> for BitBoard {
     }
 }
 
-impl Shr<u32> for BitBoard {
+impl std::ops::ShlAssign<BitBoard> for BitBoard {
+    #[inline]
+    fn shl_assign(&mut self, rhs: BitBoard) {
+        self.0.shl_assign(rhs.0)
+    }
+}
+
+impl std::ops::Shr<u32> for BitBoard {
     type Output = BitBoard;
 
     #[inline]
     fn shr(self, rhs: u32) -> BitBoard {
         BitBoard(self.0.wrapping_shr(rhs))
+    }
+}
+
+impl std::ops::ShrAssign<BitBoard> for BitBoard {
+    #[inline]
+    fn shr_assign(&mut self, rhs: BitBoard) {
+        self.0.shr_assign(rhs.0)
     }
 }

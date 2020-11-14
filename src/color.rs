@@ -22,6 +22,7 @@ impl Color {
 }
 
 impl Default for Color {
+    #[cold]
     fn default() -> Self {
         Color::White
     }

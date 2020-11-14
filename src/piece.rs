@@ -1,4 +1,5 @@
 /// Represent a piece
+#[repr(u8)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Piece {
     Pawn   = 0,
@@ -15,11 +16,4 @@ impl Piece {
         Piece::Pawn, Piece::Rook, Piece::Knight,
         Piece::Bishop, Piece::Queen, Piece::King,
     ];
-}
-
-impl From<u32> for Piece {
-    #[inline]
-    fn from(i: u32) -> Piece {
-        Piece::PIECES[i as usize]
-    }
 }
