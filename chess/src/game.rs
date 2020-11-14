@@ -28,7 +28,7 @@ impl Game {
 
     /// Revert the last move. Panic if there is no move in history
     #[inline]
-    pub fn undo_move(&mut self) {
+    pub(crate) fn undo_move(&mut self) {
         self.ply.decr();
 
         self.color = self.color.invert();
@@ -36,6 +36,16 @@ impl Game {
         
         self.castle_rights.undo_move(self.color, mv, self.ply);
         self.board.undo_move(self.color, mv);
+    }
+
+    #[inline]
+    pub fn get_board(&self) -> &Board {
+        &self.board
+    }
+
+    #[inline]
+    pub fn get_moves(&self) -> impl Iterator<Item = Move> {
+        vec![].into_iter()
     }
 }
 

@@ -16,13 +16,7 @@ use crate::square::Square;
 
 ========================= */
 
-
-
-/* ======== NOTE ===========
-
-Dumb rules make ugly code sry
-
-========================= */
+// Dumb rules make ugly code sry
 
 /// Convenient struct to carry the availability of castling moves
 #[repr(u8)]

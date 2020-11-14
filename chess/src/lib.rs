@@ -33,7 +33,6 @@
 IMPLEMENTATION
 
 - Create a check system
-- Refactor for clarity
 - Implement the gen_legal_moves function of Game as a state machine (seperate file ?)
 
 OPTIMISATIONS
@@ -43,6 +42,9 @@ OPTIMISATIONS
 TESTS
 
 - Castling system
+- Game
+- MoveGen (perft)
+- pext and pdep ?
 
 ========================= */
 

@@ -1,5 +1,6 @@
-[package]
-name = "chess_engine"
-version = "0.1.0"
-authors = ["benjamin <benji.lef76@gmail.com>"]
-edition = "2018"
+[workspace]
+members = [
+	"chess",
+	"interface",
+	"engine",
+]

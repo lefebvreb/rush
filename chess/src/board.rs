@@ -81,7 +81,7 @@ impl Board {
 
     /// Perform the move and modify the board accordingly
     #[inline]
-    pub fn do_move(&mut self, color: Color, mv: Move) {
+    pub(crate) fn do_move(&mut self, color: Color, mv: Move) {
         match mv {
             Move::Quiet {from, to} => {
                 let (color, piece) = self.remove_piece(from);
@@ -141,7 +141,7 @@ impl Board {
 
     /// Perform the move in reverse and modify the board accordingly
     #[inline]
-    pub fn undo_move(&mut self, color: Color, mv: Move) {
+    pub(crate) fn undo_move(&mut self, color: Color, mv: Move) {
         match mv {
             Move::Quiet {from, to} => {
                 let (color, piece) = self.remove_piece(to);
