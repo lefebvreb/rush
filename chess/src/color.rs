@@ -12,7 +12,7 @@ impl Color {
     ];
 
     /// Give the opposite color of `self`
-    #[inline]
+    #[inline(always)]
     pub const fn invert(self) -> Color {
         match self {
             Color::White => Color::Black,

@@ -5,7 +5,7 @@ use crate::bits::SHIFTS;
 
 /// Represent a Square of the board
 #[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Square {
     A1 =  0, B1 =  1, C1 =  2, D1 =  3, E1 =  4, F1 =  5, G1 =  6, H1 =  7,
     A2 =  8, B2 =  9, C2 = 10, D2 = 11, E2 = 12, F2 = 13, G2 = 14, H2 = 15, 
@@ -18,6 +18,17 @@ pub enum Square {
 }
 
 impl Square {
+    pub const SQUARES: [Square; 64] = [
+        Square::A1, Square::B1, Square::C1, Square::D1, Square::E1, Square::F1, Square::G1, Square::H1,
+        Square::A2, Square::B2, Square::C2, Square::D2, Square::E2, Square::F2, Square::G2, Square::H2,
+        Square::A3, Square::B3, Square::C3, Square::D3, Square::E3, Square::F3, Square::G3, Square::H3,
+        Square::A4, Square::B4, Square::C4, Square::D4, Square::E4, Square::F4, Square::G4, Square::H4,
+        Square::A5, Square::B5, Square::C5, Square::D5, Square::E5, Square::F5, Square::G5, Square::H5,
+        Square::A6, Square::B6, Square::C6, Square::D6, Square::E6, Square::F6, Square::G6, Square::H6,
+        Square::A7, Square::B7, Square::C7, Square::D7, Square::E7, Square::F7, Square::G7, Square::H7,
+        Square::A8, Square::B8, Square::C8, Square::D8, Square::E8, Square::F8, Square::G8, Square::H8,
+    ];
+
     /// Return the x coodinate of that square
     #[inline(always)]
     pub fn x(self) -> u32 {
@@ -33,7 +44,7 @@ impl Square {
 
 impl From<u32> for Square {
     /// Undefined behaviour if i > 63
-    #[inline]
+    #[inline(always)]
     fn from(i: u32) -> Square {
         unsafe {transmute(i as u8)}
     }
@@ -41,14 +52,14 @@ impl From<u32> for Square {
 
 impl From<(u32, u32)> for Square {
     // Undefined behaviour if xy.0 + 8*xy.1 > 63
-    #[inline]
+    #[inline(always)]
     fn from(xy: (u32, u32)) -> Square {
         Square::from(xy.0 + 8*xy.1)
     }
 }
 
 impl Into<BitBoard> for Square {
-    #[inline]
+    #[inline(always)]
     fn into(self) -> BitBoard {
         BitBoard(SHIFTS[self as usize])
     }

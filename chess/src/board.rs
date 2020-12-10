@@ -25,19 +25,19 @@ impl Board {
     // ===================================== Accessers =====================================
 
     /// Return the BitBoard associated to that Color and Piece
-    #[inline]
+    #[inline(always)]
     pub fn get_bitboard(&self, color: Color, piece: Piece) -> BitBoard {
         self.bitboards[color as usize][piece as usize]
     }
 
     /// Return the Piece and it's Color present on that Square 
-    #[inline]
+    #[inline(always)]
     pub fn get_piece(&self, square: Square) -> Option<(Color, Piece)> {
         self.mailbox[square as usize]
     }
 
     /// Return the occupancy BitBoard associated to that color
-    #[inline]
+    #[inline(always)]
     pub fn get_occupancy(&self, color: Color) -> BitBoard {
         self.occupancy[color as usize]
     }
@@ -136,6 +136,7 @@ impl Board {
                     self.set_piece(Color::Black, Piece::King, Square::B8);
                 }
             }
+            _ => (),
         }
     }
 
@@ -196,6 +197,7 @@ impl Board {
                     self.set_piece(Color::Black, Piece::King, Square::E8);
                 }
             }
+            _ => (),
         }
     }
 }

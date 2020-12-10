@@ -1,3 +1,6 @@
+use std::hint::unreachable_unchecked;
+
+use crate::color::Color;
 use crate::piece::Piece;
 use crate::square::Square;
 
@@ -35,4 +38,57 @@ pub enum Move {
     },
     KingCastle,
     QueenCastle,
+    None,
+}
+
+impl Move {
+    #[cold]
+    pub fn to(&self, color: Color) -> Square {
+        match self {
+            Move::Quiet {to, ..} | 
+            Move::Capture {to, ..} | 
+            Move::Promote {to, ..} | 
+            Move::PromoteCapture {to, ..} | 
+            Move::EnPassant {to, ..} | 
+            Move::DoublePush {to, ..} => *to,
+            Move::KingCastle => if color == Color::White {
+                Square::G1
+            } else {
+                Square::G8
+            }
+            Move::QueenCastle => if color == Color::White {
+                Square::C1
+            } else {
+                Square::C8
+            }
+            _ => unsafe {unreachable_unchecked()}
+        }
+    }
+
+    #[cold]
+    pub fn from(&self, color: Color) -> Square {
+        match self {
+            Move::Quiet {from, ..} | 
+            Move::Capture {from, ..} | 
+            Move::Promote {from, ..} | 
+            Move::PromoteCapture {from, ..} | 
+            Move::EnPassant {from, ..} | 
+            Move::DoublePush {from, ..} => *from,
+            Move::KingCastle | 
+            Move::QueenCastle => if color == Color::White {
+                Square::E1
+            } else {
+                Square::E8
+            }
+            _ => unsafe {unreachable_unchecked()}
+        }
+    }
+
+    #[inline(always)]
+    pub fn is_none(&self) -> bool {
+        match self {
+            Move::None => true,
+            _ => false,
+        }
+    }
 }

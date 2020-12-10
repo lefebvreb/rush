@@ -10,5 +10,5 @@ path = "../chess"
 [dependencies.engine]
 path = "../engine"
 
-[dependencies.miniquad]
-version = "0.2.55"
+[dependencies]
+macroquad = "0.3.0-alpha.11"

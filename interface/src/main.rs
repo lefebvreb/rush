@@ -1,22 +1,46 @@
 #![allow(dead_code, unused_variables, unused_macros)]
 
-use miniquad::conf::Conf;
-use miniquad::UserData;
+use macroquad::prelude::*;
+use macroquad::rand::srand;
+
+use std::time::SystemTime;
+
+mod assets;
+use assets::Assets;
+
+mod events;
+
+mod layout;
+
+mod render;
 
 mod state;
-use state::State;
+use state::App;
 
-const NAME: &'static str = concat!("Benji's chess engine v", env!("CARGO_PKG_VERSION"));
-const WIDTH: i32 = 720;
-const HEIGHT: i32 = 480;
-
-fn main() {
-    let conf = Conf {
-        window_title: NAME.to_string(),
-        window_width: WIDTH,
-        window_height: HEIGHT,
+fn window_conf() -> Conf {
+    Conf {
+        window_title: format!("Benji's chess engine v{}", env!("CARGO_PKG_VERSION")),
+        window_width: 768,
+        window_height: 640,
         ..Default::default()
-    };
+    }
+}
 
-    miniquad::start(conf, |ctx| UserData::owning(State::default(), ctx));
+#[macroquad::main(window_conf)]
+async fn main() {
+    srand(
+        SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+    );
+
+    let assets = Assets::load().await;
+    let mut state = App::default();
+
+    loop {
+        clear_background(WHITE);
+        state.act(&assets);
+        next_frame().await
+    }
 }

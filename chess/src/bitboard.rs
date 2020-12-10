@@ -52,7 +52,7 @@ impl BitBoard {
     }
 
     /// Return an iterator over the bits of the BitBoard `self`
-    #[inline]
+    #[inline(always)]
     pub fn iter_squares(mut self) -> impl Iterator<Item = Square> {
         (0..self.0.count_ones()).map(move |_| {
             let lsb = self.0.trailing_zeros();
@@ -62,7 +62,7 @@ impl BitBoard {
     }
 
     /// Return an iterator over the BitBoards of each bits of the BitBoard `self`
-    #[inline]
+    #[inline(always)]
     pub fn iter_bitboards(mut self) -> impl Iterator<Item = BitBoard> {
         (0..self.0.count_ones()).map(move |_| {
             let old = self;
@@ -73,7 +73,7 @@ impl BitBoard {
 }
 
 impl Into<usize> for BitBoard {
-    #[inline]
+    #[inline(always)]
     fn into(self) -> usize {
         self.0 as usize
     }
@@ -124,14 +124,14 @@ impl fmt::Display for BitBoard {
 impl std::ops::Add<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline]
+    #[inline(always)]
     fn add(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.wrapping_add(rhs.0))
     }
 }
 
 impl std::ops::AddAssign<BitBoard> for BitBoard {
-    #[inline]
+    #[inline(always)]
     fn add_assign(&mut self, rhs: BitBoard) {
         self.0.add_assign(rhs.0)
     }
@@ -140,14 +140,14 @@ impl std::ops::AddAssign<BitBoard> for BitBoard {
 impl std::ops::Sub<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline]
+    #[inline(always)]
     fn sub(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.wrapping_sub(rhs.0))
     }
 }
 
 impl std::ops::SubAssign<BitBoard> for BitBoard {
-    #[inline]
+    #[inline(always)]
     fn sub_assign(&mut self, rhs: BitBoard) {
         self.0.sub_assign(rhs.0)
     }
@@ -156,14 +156,14 @@ impl std::ops::SubAssign<BitBoard> for BitBoard {
 impl std::ops::Mul<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline]
+    #[inline(always)]
     fn mul(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.wrapping_mul(rhs.0))
     }
 }
 
 impl std::ops::MulAssign<BitBoard> for BitBoard {
-    #[inline]
+    #[inline(always)]
     fn mul_assign(&mut self, rhs: BitBoard) {
         self.0.mul_assign(rhs.0)
     }
@@ -172,7 +172,7 @@ impl std::ops::MulAssign<BitBoard> for BitBoard {
 impl std::ops::Not for BitBoard {
     type Output = BitBoard;
 
-    #[inline]
+    #[inline(always)]
     fn not(self) -> BitBoard {
         BitBoard(self.0.not())
     }
@@ -181,7 +181,7 @@ impl std::ops::Not for BitBoard {
 impl std::ops::Neg for BitBoard {
     type Output = BitBoard;
 
-    #[inline]
+    #[inline(always)]
     fn neg(self) -> BitBoard {
         BitBoard(self.0.wrapping_neg())
     }
@@ -190,14 +190,14 @@ impl std::ops::Neg for BitBoard {
 impl std::ops::BitAnd<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline]
+    #[inline(always)]
     fn bitand(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.bitand(rhs.0))
     }
 }
 
 impl std::ops::BitAndAssign<BitBoard> for BitBoard {
-    #[inline]
+    #[inline(always)]
     fn bitand_assign(&mut self, rhs: BitBoard) {
         self.0.bitand_assign(rhs.0)
     }
@@ -206,14 +206,14 @@ impl std::ops::BitAndAssign<BitBoard> for BitBoard {
 impl std::ops::BitOr<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline]
+    #[inline(always)]
     fn bitor(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.bitor(rhs.0))
     }
 }
 
 impl std::ops::BitOrAssign<BitBoard> for BitBoard {
-    #[inline]
+    #[inline(always)]
     fn bitor_assign(&mut self, rhs: BitBoard) {
         self.0.bitor_assign(rhs.0)
     }
@@ -222,14 +222,14 @@ impl std::ops::BitOrAssign<BitBoard> for BitBoard {
 impl std::ops::BitXor<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline]
+    #[inline(always)]
     fn bitxor(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.bitxor(rhs.0))
     }
 }
 
 impl std::ops::BitXorAssign<BitBoard> for BitBoard {
-    #[inline]
+    #[inline(always)]
     fn bitxor_assign(&mut self, rhs: BitBoard) {
         self.0.bitxor_assign(rhs.0)
     }
@@ -238,14 +238,14 @@ impl std::ops::BitXorAssign<BitBoard> for BitBoard {
 impl std::ops::Shl<u32> for BitBoard {
     type Output = BitBoard;
 
-    #[inline]
+    #[inline(always)]
     fn shl(self, rhs: u32) -> BitBoard {
         BitBoard(self.0.wrapping_shl(rhs))
     }
 }
 
 impl std::ops::ShlAssign<BitBoard> for BitBoard {
-    #[inline]
+    #[inline(always)]
     fn shl_assign(&mut self, rhs: BitBoard) {
         self.0.shl_assign(rhs.0)
     }
@@ -254,14 +254,14 @@ impl std::ops::ShlAssign<BitBoard> for BitBoard {
 impl std::ops::Shr<u32> for BitBoard {
     type Output = BitBoard;
 
-    #[inline]
+    #[inline(always)]
     fn shr(self, rhs: u32) -> BitBoard {
         BitBoard(self.0.wrapping_shr(rhs))
     }
 }
 
 impl std::ops::ShrAssign<BitBoard> for BitBoard {
-    #[inline]
+    #[inline(always)]
     fn shr_assign(&mut self, rhs: BitBoard) {
         self.0.shr_assign(rhs.0)
     }

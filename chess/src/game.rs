@@ -6,11 +6,11 @@ use crate::ply::Ply;
 
 #[derive(Debug)]
 pub struct Game {
-    board: Board,
-    castle_rights: CastleRights,
-    color: Color,
-    history: Vec<Move>,
-    ply: Ply,
+    pub(crate) board: Board,
+    pub(crate) castle_rights: CastleRights,
+    pub(crate) color: Color,
+    pub(crate) history: Vec<Move>,
+    pub(crate) ply: Ply,
 }
 
 impl Game {
@@ -38,14 +38,14 @@ impl Game {
         self.board.undo_move(self.color, mv);
     }
 
-    #[inline]
+    #[cold]
     pub fn get_board(&self) -> &Board {
         &self.board
     }
 
-    #[inline]
-    pub fn get_moves(&self) -> impl Iterator<Item = Move> {
-        vec![].into_iter()
+    #[cold]
+    pub fn get_color(&self) -> Color {
+        self.color
     }
 }
 

@@ -14,15 +14,15 @@
 
 /* ======== MEMO ===========
 
-       a b c d e f g h      
-     8 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 
-     7 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 
-     6 - - - - - - - - 
-     5 - - - - - - - - 
-     4 - - - - - - - - 
-     3 - - - - - - - - 
-     2 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 
-     1 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 
+  a b c d e f g h      
+8 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 
+7 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 
+6 - - - - - - - - 
+5 - - - - - - - - 
+4 - - - - - - - - 
+3 - - - - - - - - 
+2 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 
+1 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 
      
 ========================= */
 
@@ -32,7 +32,6 @@
 
 IMPLEMENTATION
 
-- Create a check system
 - Implement the gen_legal_moves function of Game as a state machine (seperate file ?)
 
 OPTIMISATIONS
@@ -41,24 +40,12 @@ OPTIMISATIONS
 
 TESTS
 
-- Castling system
-- Game
 - MoveGen (perft)
-- pext and pdep ?
 
 ========================= */
 
-/* Note on move generation
-
-- If twice in check -> move king away from atk
-- If once in check -> move king or capture attacker or block attacker
-- Else, do whatever you want as long as you don't leave the king in check
-  - Determine pinned pieces you can't move
-  - Can move the king as long as not in danger
-
-*/
-
 // Modules
+mod attacks;
 mod bitboard;
 mod bits;
 mod board;
@@ -66,13 +53,16 @@ mod castle_rights;
 mod color;
 mod game;
 mod moves;
+mod move_gen;
 mod piece;
 mod ply;
 mod square;
 
 // Exports
 pub use board::Board;
+pub use color::Color;
 pub use game::Game;
 pub use moves::Move;
+pub use move_gen::MoveGenerator;
 pub use piece::Piece;
 pub use square::Square;

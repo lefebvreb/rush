@@ -4,3 +4,6 @@ members = [
 	"interface",
 	"engine",
 ]
+
+[profile.dev.package.'*']
+opt-level = 3

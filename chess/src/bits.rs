@@ -10,56 +10,44 @@ pub const SHIFTS: [u64; 64] = {
     tab
 };
 
-/// Software version of the _pext_u64 instruction
-#[inline(always)]
-pub const fn software_pext(a: u64, mut mask: u64) -> u64 {
-    let (mut i, mut res) = (0, 0);
-
-    while mask != 0 {
-        let tmp = mask;
-        mask &= mask - 1;
-        if (mask ^ tmp) & a != 0 {
-            res |= SHIFTS[i];
-        }
-        i += 1;
-    }
-
-    res
-}
-
-/// Software version of the _pedp_u64 instruction
-#[inline(always)]
-pub const fn software_pdep(a: u64, mut mask: u64) -> u64 {
-    let (mut i, mut res) = (0, 0);
-
-    while mask != 0 {
-        let tmp = mask;
-        mask &= mask - 1;
-        if a & SHIFTS[i] != 0 {
-            res |= mask ^ tmp;
-        }
-        i += 1;
-    }
-
-    res
-}
-
 /// The best available implementation of the _pext_u64 instruction
 #[inline(always)]
-pub fn pext(a: u64, mask: u64) -> u64 {
+pub fn pext(a: u64, mut mask: u64) -> u64 {
     if is_x86_feature_detected!("bmi2") {
         unsafe {std::arch::x86_64::_pext_u64(a, mask)}
     } else {
-        software_pext(a, mask)
+        let (mut i, mut res) = (0, 0);
+
+        while mask != 0 {
+            let tmp = mask;
+            mask &= mask - 1;
+            if (mask ^ tmp) & a != 0 {
+                res |= SHIFTS[i];
+            }
+            i += 1;
+        }
+
+        res
     }
 }
 
 /// The best available implementation of the _pdep_u64 instruction
 #[inline(always)]
-pub fn pdep(a: u64, mask: u64) -> u64 {
+pub fn pdep(a: u64, mut mask: u64) -> u64 {
     if is_x86_feature_detected!("bmi2") {
         unsafe {std::arch::x86_64::_pdep_u64(a, mask)}
     } else {
-        software_pdep(a, mask)
+        let (mut i, mut res) = (0, 0);
+
+        while mask != 0 {
+            let tmp = mask;
+            mask &= mask - 1;
+            if a & SHIFTS[i] != 0 {
+                res |= mask ^ tmp;
+            }
+            i += 1;
+        }
+
+        res
     }
 }

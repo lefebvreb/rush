@@ -1,3 +1,5 @@
+use std::hint::unreachable_unchecked;
+
 use crate::squares;
 use crate::bitboard::BitBoard;
 use crate::color::Color;
@@ -151,7 +153,7 @@ impl CastleRights {
                 Move::Quiet {from: Square::H1, ..} |
                 Move::Quiet {from: Square::H8, ..} => 
                     &mut self.king_rooks[color as usize],
-                _ => unreachable!(),
+                _ => unsafe {unreachable_unchecked()},
             } = true;
         }
     }
