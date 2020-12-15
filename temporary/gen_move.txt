@@ -1,0 +1,50 @@
+Count how many checkers, and build up enemy attacks in the same time
+
+0? :
+    (Determine Pins)
+    EnPassant
+    PawnCaptures (+ Promotion)
+    KinghtCaptures
+    RookCaptures
+    BishopCaptures
+    QueenCaptures
+    KingCaptures
+    Castle
+    PawnQuiets (+ Promotion)
+    PawnDoublePush
+    KnightQuiets
+    RookQuiets
+    BishopQuiets
+    QueenQuiets
+    KingQuiets
+
+Non-sliding pinned pieces can't move
+Sliding pinned pieces can only move in the pin direction
+
+1? :
+	(Determine Pins)
+    EnPassant
+    PawnCaptures (+ Promotion)
+    KinghtCaptures
+    RookCaptures
+    BishopCaptures
+    QueenCaptures
+    KingCaptures
+    Castle
+    PawnQuiets (+ Promotion)
+    PawnDoublePush
+    KnightQuiets
+    RookQuiets
+    BishopQuiets
+    QueenQuiets
+    KingQuiets
+    KingCaptures
+    KingQuiets
+
+Non-sliding pinned pieces can't move
+Sliding pinned pieces can only move in the pin direction
+You need to block the checker (if it's sliding)
+
+2?
+    KingCaptures
+    KingQuiets

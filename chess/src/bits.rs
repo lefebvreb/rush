@@ -10,44 +10,50 @@ pub const SHIFTS: [u64; 64] = {
     tab
 };
 
-/// The best available implementation of the _pext_u64 instruction
+
 #[inline(always)]
-pub fn pext(a: u64, mut mask: u64) -> u64 {
-    if is_x86_feature_detected!("bmi2") {
-        unsafe {std::arch::x86_64::_pext_u64(a, mask)}
-    } else {
-        let (mut i, mut res) = (0, 0);
-
-        while mask != 0 {
-            let tmp = mask;
-            mask &= mask - 1;
-            if (mask ^ tmp) & a != 0 {
-                res |= SHIFTS[i];
-            }
-            i += 1;
-        }
-
-        res
-    }
+#[cfg(target_feature = "bmi2")]
+pub fn pext(a: u64, mask: u64) -> u64 {
+    unsafe {std::arch::x86_64::_pext_u64(a, mask)}
 }
 
-/// The best available implementation of the _pdep_u64 instruction
+/// Performs a parallel bits extract (pext)
 #[inline(always)]
-pub fn pdep(a: u64, mut mask: u64) -> u64 {
-    if is_x86_feature_detected!("bmi2") {
-        unsafe {std::arch::x86_64::_pdep_u64(a, mask)}
-    } else {
-        let (mut i, mut res) = (0, 0);
+#[cfg(not(target_feature = "bmi2"))]
+pub fn pext(a: u64, mut mask: u64) -> u64 {
+    let (mut i, mut res) = (0, 0);
 
-        while mask != 0 {
-            let tmp = mask;
-            mask &= mask - 1;
-            if a & SHIFTS[i] != 0 {
-                res |= mask ^ tmp;
-            }
-            i += 1;
+    while mask != 0 {
+        let tmp = mask;
+        mask &= mask - 1;
+        if (mask ^ tmp) & a != 0 {
+            res |= SHIFTS[i];
         }
-
-        res
+        i += 1;
     }
+
+    res
+}
+
+#[inline(always)]
+#[cfg(target_feature = "bmi2")]
+pub fn pdep(a: u64, mask: u64) -> u64 {
+    unsafe {std::arch::x86_64::_pdep_u64(a, mask)}
+}
+
+#[inline(always)]
+#[cfg(not(target_feature = "bmi2"))]
+pub fn pdep(a: u64, mut mask: u64) -> u64 {
+    let (mut i, mut res) = (0, 0);
+
+    while mask != 0 {
+        let tmp = mask;
+        mask &= mask - 1;
+        if a & SHIFTS[i] != 0 {
+            res |= mask ^ tmp;
+        }
+        i += 1;
+    }
+
+    res
 }

@@ -21,7 +21,7 @@ impl MoveGenerator {
     }
 
     #[cold]
-    pub fn to_vec(&mut self) -> Vec<Move> {
+    pub fn collect(&mut self) -> Vec<Move> {
         let mut res = Vec::new();
 
         loop {
