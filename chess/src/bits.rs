@@ -17,7 +17,7 @@ pub fn pext(a: u64, mask: u64) -> u64 {
     unsafe {std::arch::x86_64::_pext_u64(a, mask)}
 }
 
-/// Performs a parallel bits extract (pext)
+/// Performs a parallel bits extract (pext) witheout intrinsics (slow)
 #[inline(always)]
 #[cfg(not(target_feature = "bmi2"))]
 pub fn pext(a: u64, mut mask: u64) -> u64 {

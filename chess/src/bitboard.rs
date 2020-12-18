@@ -1,6 +1,5 @@
 use std::fmt;
 
-use crate::bits::{pdep, pext};
 use crate::square::Square;
 
 /// Represent a 64 bits BitBoard
@@ -39,18 +38,6 @@ impl BitBoard {
         self.0 == 0
     }
 
-    /// Return the pext of those two bitboards
-    #[inline(always)]
-    pub fn pext(self, mask: BitBoard) -> u64 {
-        pext(self.0, mask.0)
-    }
-
-    /// Return the pdep of those two bitboards
-    #[inline(always)]
-    pub fn pdep(self, mask: BitBoard) -> u64 {
-        pdep(self.0, mask.0)
-    }
-
     /// Return an iterator over the bits of the BitBoard `self`
     #[inline(always)]
     pub fn iter_squares(mut self) -> impl Iterator<Item = Square> {
@@ -69,6 +56,11 @@ impl BitBoard {
             self &= self - BitBoard(1);
             old ^ self
         })
+    }
+
+    #[inline(always)]
+    pub fn least_significant_bit(self) -> Square {
+        Square::from(self.0.trailing_zeros())
     }
 }
 

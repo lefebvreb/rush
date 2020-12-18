@@ -15,6 +15,23 @@ pub struct Board {
     occupancy: [BitBoard; 2],
 }
 
+/// Represent the state of a single square, with the attack and defend maps for.
+/// attack is the bitboard of the squares attacked by the piece
+/// defend is the bitboard of the pieces attacking that square
+#[repr(u8)]
+#[derive(Clone, Debug)]
+pub enum SquareInfo {
+    Occupied {
+        piece: Piece,
+        color: Color,
+        defend: BitBoard,
+        attack: BitBoard,
+    },
+    Unoccupied {
+        defend: BitBoard,
+    },
+}
+
 //#################################################################################################
 //
 //                                    Implementation
