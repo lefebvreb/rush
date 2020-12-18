@@ -1,8 +1,8 @@
 [workspace]
 members = [
 	"chess",
-	"interface",
 	"engine",
+	"server",
 ]
 
 [profile.dev.package.'*']

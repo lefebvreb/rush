@@ -13,9 +13,7 @@ use slider_attacks::SLIDER_ATTACKS;
 
 use crate::bitboard::BitBoard;
 use crate::bits::{pext, pdep};
-use crate::board::Board;
 use crate::color::Color;
-use crate::moves::Move;
 use crate::square::Square;
 
 //#################################################################################################
@@ -56,7 +54,7 @@ fn pawn_pushes(sq: Square, color: Color, free: BitBoard) -> (BitBoard, BitBoard)
     }
 }
 
-#[inline(always)]
+/*#[inline(always)]
 fn en_passant(board: &Board, color: Color, last_move: Move) -> (Move, Move) {
     match last_move {
         Move::DoublePush {to, ..} => {
@@ -64,7 +62,7 @@ fn en_passant(board: &Board, color: Color, last_move: Move) -> (Move, Move) {
         }
         _ => (Move::None, Move::None),
     }
-}
+}*/
 
 //#################################################################################################
 //
