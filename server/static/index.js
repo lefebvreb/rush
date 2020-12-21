@@ -1,10 +1,14 @@
 window.onload = function() {
     var canvas = document.getElementById("canvas"),
-    context = canvas.getContext("2d");
+    ctx = canvas.getContext("2d");
     
     var atlas = document.createElement("img");
     atlas.src = "atlas.png";
     atlas.onload = function() {
-        context.drawImage(atlas, 0, 0, 128, 128, 0, 0, 100, 100);
+        for (var y=0; y<8; y++) {
+            for (var x=0; x<8; x++) {
+                ctx.drawImage(atlas, 0, 0, 128, 128, x*64, y*64, 64, 64);
+            }
+        }
     }
 }
