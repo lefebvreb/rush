@@ -2,6 +2,7 @@ use std::fmt;
 use std::hint::unreachable_unchecked;
 
 use crate::squares;
+use crate::attacks::attacks;
 use crate::bitboard::BitBoard;
 use crate::color::Color;
 use crate::moves::Move;
@@ -33,6 +34,14 @@ impl Occupancy {
         }
         self.all ^= mask;
         self.free ^= mask;
+    }
+
+    #[inline(always)]
+    pub fn by_color(&self, color: Color) -> BitBoard {
+        match color {
+            Color::White => self.white,
+            Color::Black => self.black,
+        }
     }
 }
 
@@ -141,29 +150,59 @@ impl Board {
 
     #[inline(always)]
     fn update_attackers(&mut self, attack: BitBoard) {
-        for attacker in attack.iter_squares() {
-            todo!()
+        for from_bitboard in attack.iter_bitboards() {
+            // 1 - gen the new attack mask
+            // 2 - xor the old mask with the new one and xor the attack maps
+
+            let from = from_bitboard.least_significant_bit();
+
+            let (color, piece, defend, to_update) = match self.mailbox[from as usize] {
+                SquareInfo::Occupied {color, piece, ref mut defend, ..} => {
+                    let new_defend = attacks(color, piece, from, &self.occupancy);
+                    let to_update = *defend ^ new_defend;
+                    *defend = new_defend;
+                    (color, piece, defend, to_update)
+                },
+                _ => unsafe {unreachable_unchecked()},
+            };
+
+            for to in to_update.iter_squares() {
+                match self.mailbox[to as usize] {
+                    SquareInfo::Occupied {ref mut attack, ..} => *attack ^= from_bitboard,
+                    SquareInfo::Unoccupied {ref mut attack} => *attack ^= from_bitboard,
+                }
+            }
         }
     }
 
     #[inline(always)]
-    fn empty_mailbox(&mut self, color: Color, square: Square) {
-        let attack = match self.mailbox[square as usize] {
-            SquareInfo::Occupied {attack, ..} | SquareInfo::Unoccupied {attack} => attack
+    fn empty_mailbox(&mut self, color: Color, sq: Square) {
+        let attack = match self.mailbox[sq as usize] {
+            SquareInfo::Occupied {attack, ..} => {
+                self.mailbox[sq as usize] = SquareInfo::Unoccupied {attack};
+                self.update_attackers(attack);
+            },
+            _ => unsafe {unreachable_unchecked()},
         };
 
-        self.mailbox[square as usize] = SquareInfo::Unoccupied {attack: BitBoard(0)};
-
-        self.update_attackers(attack);
+        
     }
 
     #[inline(always)]
-    fn fill_mailbox(&mut self, color: Color, piece: Piece, square: Square) {
-        let attack = match self.mailbox[square as usize] {
+    fn fill_mailbox(&mut self, color: Color, piece: Piece, sq: Square) {
+        let attack = match self.mailbox[sq as usize] {
             SquareInfo::Occupied {attack, ..} | SquareInfo::Unoccupied {attack} => attack
         };
 
+        let (color, piece) = self.get_color_piece_unchecked(sq);
+        self.mailbox[sq as usize] = SquareInfo::Occupied {
+            piece,
+            color, 
+            attack: BitBoard(0), 
+            defend: BitBoard(0),
+        };
 
+        self.update_attackers(attack);
     }
 
     // ===================================== do & undo =====================================

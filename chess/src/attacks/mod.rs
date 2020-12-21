@@ -13,7 +13,9 @@ use slider_attacks::SLIDER_ATTACKS;
 
 use crate::bitboard::BitBoard;
 use crate::bits::{pext, pdep};
+use crate::board::Occupancy;
 use crate::color::Color;
+use crate::piece::Piece;
 use crate::square::Square;
 
 //#################################################################################################
@@ -24,32 +26,32 @@ use crate::square::Square;
 
 /// Return the attacks BitBoard of a Pawn of Color color located on square sq with Board occupancy occ
 #[inline(always)]
-fn pawn_attacks(sq: Square, color: Color, occ: BitBoard) -> BitBoard {
-    BitBoard(match color {
-        Color::White => WHITE_PAWN_ATTACKS[sq as usize],
-        Color::Black => BLACK_PAWN_ATTACKS[sq as usize],
-    }) & occ
+fn pawn_attacks(color: Color, sq: Square, occ: &Occupancy) -> BitBoard {
+    match color {
+        Color::White => BitBoard(WHITE_PAWN_ATTACKS[sq as usize]) & occ.black,
+        Color::Black => BitBoard(BLACK_PAWN_ATTACKS[sq as usize]) & occ.white,
+    }
 }
 
 /// Return the attacks BitBoard of a Pawn of Color color located on square sq with Board occupancy occ
 #[inline(always)]
-fn pawn_pushes(sq: Square, color: Color, free: BitBoard) -> (BitBoard, BitBoard) {
+fn pawn_pushes(color: Color, sq: Square, occ: &Occupancy) -> (BitBoard, BitBoard) {
     match color {
         Color::White => {
-            let single = BitBoard(WHITE_PAWN_PUSHES[sq as usize]) & free;
+            let single = BitBoard(WHITE_PAWN_PUSHES[sq as usize]) & occ.free;
             (single, BitBoard(if single.is_empty() {
                 0
             } else {
                 WHITE_PAWN_DOUBLE_PUSHES[sq as usize]
-            }) & free)
+            }) & occ.free)
         }
         Color::Black => {
-            let single = BitBoard(BLACK_PAWN_PUSHES[sq as usize]) & free;
+            let single = BitBoard(BLACK_PAWN_PUSHES[sq as usize]) & occ.free;
             (single, BitBoard(if single.is_empty() {
                 0
             } else {
                 BLACK_PAWN_DOUBLE_PUSHES[sq as usize]
-            }) & free)
+            }) & occ.free)
         }
     }
 }
@@ -72,22 +74,22 @@ fn en_passant(board: &Board, color: Color, last_move: Move) -> (Move, Move) {
 
 /// Return the attacks BitBoard of a Bishop located on square sq, with Board occupancy occ
 #[inline(always)]
-fn bishop_attacks(sq: Square, occ: BitBoard) -> BitBoard {
+fn bishop_attacks(color: Color, sq: Square, occ: &Occupancy) -> BitBoard {
     let bmi2 = BISHOP_BMI2[sq as usize];
-    BitBoard(pdep(SLIDER_ATTACKS[bmi2.0 + pext(occ.0, bmi2.1) as usize] as u64, bmi2.2))
+    BitBoard(pdep(SLIDER_ATTACKS[bmi2.0 + pext(occ.all.0, bmi2.1) as usize] as u64, bmi2.2)) & occ.by_color(color)
 }
 
 /// Return the attacks BitBoard of a Rook located on square sq, with Board occupancy occ
 #[inline(always)]
-fn rook_attacks(sq: Square, occ: BitBoard) -> BitBoard {
+fn rook_attacks(color: Color, sq: Square, occ: &Occupancy) -> BitBoard {
     let bmi2 = ROOK_BMI2[sq as usize];
-    BitBoard(pdep(SLIDER_ATTACKS[bmi2.0 + pext(occ.0, bmi2.1) as usize] as u64, bmi2.2))
+    BitBoard(pdep(SLIDER_ATTACKS[bmi2.0 + pext(occ.all.0, bmi2.1) as usize] as u64, bmi2.2)) & occ.by_color(color)
 }
 
 /// Return the attacks BitBoard of a Queen located on square sq, with Board occupancy occ
 #[inline(always)]
-fn queen_attacks(sq: Square, occ: BitBoard) -> BitBoard {
-    bishop_attacks(sq, occ) | rook_attacks(sq, occ)
+fn queen_attacks(color: Color, sq: Square, occ: &Occupancy) -> BitBoard {
+    bishop_attacks(color, sq, occ) | rook_attacks(color, sq, occ)
 }
 
 //#################################################################################################
@@ -98,12 +100,30 @@ fn queen_attacks(sq: Square, occ: BitBoard) -> BitBoard {
 
 /// Return the attacks BitBoard of a King located on square sq
 #[inline(always)]
-fn king_attacks(sq: Square) -> BitBoard {
-    BitBoard(KING_ATTACKS[sq as usize])
+fn king_attacks(color: Color, sq: Square, occ: &Occupancy) -> BitBoard {
+    BitBoard(KING_ATTACKS[sq as usize]) & occ.by_color(color)
 }
 
 /// Return the attacks BitBoard of a Knight located on square sq
 #[inline(always)]
-fn knight_attacks(sq: Square) -> BitBoard {
-    BitBoard(KNIGHT_ATTACKS[sq as usize])
+fn knight_attacks(color: Color, sq: Square, occ: &Occupancy) -> BitBoard {
+    BitBoard(KNIGHT_ATTACKS[sq as usize]) & occ.by_color(color)
+}
+
+//#################################################################################################
+//
+//                                 Generate attack
+//
+//#################################################################################################
+
+#[inline(always)]
+pub fn attacks(color: Color, piece: Piece, sq: Square, occ: &Occupancy) -> BitBoard {
+    match piece {
+        Piece::Pawn => pawn_attacks(color, sq, occ),
+        Piece::Rook => rook_attacks(color, sq, occ),
+        Piece::Knight => knight_attacks(color, sq, occ),
+        Piece::Bishop => bishop_attacks(color, sq, occ),
+        Piece::Queen => queen_attacks(color, sq, occ),
+        Piece::King => king_attacks(color, sq, occ),
+    }
 }
