@@ -4,6 +4,3 @@ members = [
 	"engine",
 	"server",
 ]
-
-[profile.dev.package.'*']
-opt-level = 3

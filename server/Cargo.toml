@@ -5,3 +5,7 @@ authors = ["benjamin <benji.lef76@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+actix = "0.10"
+actix-files = "0.3"
+actix-web = "3"
+actix-web-actors = "3"
