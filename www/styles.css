@@ -1,4 +1,7 @@
 canvas {
+    position: relative;
+    width: 75vmin;
+    height: 75vmin;
     margin: auto;
     position: absolute;
     top: 0;
