@@ -1,5 +1,4 @@
 use std::fmt;
-use std::hint::unreachable_unchecked;
 
 use crate::squares;
 use crate::attacks::attacks;
@@ -14,7 +13,7 @@ use crate::square::Square;
 pub struct Board {
     bitboards: [[BitBoard; 6]; 2],
     mailbox: [SquareInfo; 64],
-    occupancy: Occupancy,
+    occ: Occupancy,
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -69,7 +68,7 @@ pub enum SquareInfo {
 //#################################################################################################
 
 impl Board {
-    // ===================================== Accessers =====================================
+    // ==================================== Accessers ======================================
 
     /// Return the BitBoard associated to that Color and Piece
     #[inline(always)]
@@ -86,17 +85,17 @@ impl Board {
     /// Return the occupancy BitBoard associated to that color
     #[inline(always)]
     pub fn get_occupancy(&self) -> &Occupancy {
-        &self.occupancy
+        &self.occ
     }
 
-    // ===================================== Helper =====================================
+    // ================================ Helper methods =====================================
 
     // The three following methods were made with compiler optimisations
     // in mind. That is the reason why removing a piece from the board returns
     // it's color and type: so that when calling those methods together the
     // compiler will see it can bundle some bitwise operations.
 
-    /// Place a piece on the board
+    // Place a piece on the board
     #[inline(always)]
     fn set_piece(&mut self, color: Color, piece: Piece, on: Square) {
         /*self.mailbox[on as usize] = Some((color, piece));
@@ -127,20 +126,7 @@ impl Board {
         todo!()
     }
 
-    #[inline(always)]
-    fn update_bitboard(&mut self, color: Color, piece: Piece, mask: BitBoard) {
-        self.bitboards[color as usize][piece as usize] ^= mask;
-    }
-
-    #[inline(always)]
-    fn get_piece_unchecked(&self, square: Square) -> Piece {
-        match self.mailbox[square as usize] {
-            SquareInfo::Occupied {piece, ..} => piece,
-            _ => unsafe {unreachable_unchecked()}
-        }
-    }
-
-    #[inline(always)]
+    /*#[inline(always)]
     fn get_color_piece_unchecked(&self, square: Square) -> (Color, Piece) {
         match self.mailbox[square as usize] {
             SquareInfo::Occupied {color, piece, ..} => (color, piece),
@@ -151,9 +137,6 @@ impl Board {
     #[inline(always)]
     fn update_attackers(&mut self, attack: BitBoard) {
         for from_bitboard in attack.iter_bitboards() {
-            // 1 - gen the new attack mask
-            // 2 - xor the old mask with the new one and xor the attack maps
-
             let from = from_bitboard.least_significant_bit();
 
             let (color, piece, defend, to_update) = match self.mailbox[from as usize] {
@@ -173,36 +156,113 @@ impl Board {
                 }
             }
         }
+    }*/
+
+    /// Update the attack map of the square sq with the given bitboard
+    #[inline(always)]
+    fn update_attacks(&mut self, sq: Square, mask: BitBoard) {
+        match self.mailbox[sq as usize] {
+            SquareInfo::Unoccupied {ref mut attack, ..} | 
+            SquareInfo::Occupied {ref mut attack, ..} => {
+                *attack ^= mask;
+            }
+        }
+    }
+
+    /// Update the attacks of the piece on sq (if there are any) and
+    /// also update the squares attacked by that piece
+    #[inline(always)]
+    fn update_attacker(&mut self, sq: Square) {
+        match self.mailbox[sq as usize] {
+            SquareInfo::Occupied {color, piece, ref mut defend, ..} => {
+                let mut diff = *defend;
+                *defend = attacks(color, piece, sq, &self.occ);
+                diff ^= *defend;
+
+                let mask = sq.into();
+                for sq in diff.iter_squares() {
+                    self.update_attacks(sq, mask);
+                }
+            }
+            _ => ()
+        }
     }
 
     #[inline(always)]
-    fn empty_mailbox(&mut self, color: Color, sq: Square) {
-        let attack = match self.mailbox[sq as usize] {
-            SquareInfo::Occupied {attack, ..} => {
-                self.mailbox[sq as usize] = SquareInfo::Unoccupied {attack};
-                self.update_attackers(attack);
+    fn get_piece(&self, square: Square) -> Piece {
+        match self.mailbox[square as usize] {
+            SquareInfo::Occupied {piece, ..} => piece,
+            _ => unreachable!()
+        }
+    }
+
+    #[inline(always)]
+    fn update_bitboard(&mut self, color: Color, piece: Piece, mask: BitBoard) {
+        self.bitboards[color as usize][piece as usize] ^= mask;
+    }
+
+    #[inline(always)]
+    fn occupy_mailbox(&mut self, color: Color, piece: Piece, sq: Square) {
+        self.mailbox[sq as usize] = match self.mailbox[sq as usize] {
+            SquareInfo::Occupied {attack, defend, ..} => SquareInfo::Occupied {
+                color,
+                piece,
+                attack,
+                defend,
             },
-            _ => unsafe {unreachable_unchecked()},
+            SquareInfo::Unoccupied {attack} =>  SquareInfo::Occupied {
+                color,
+                piece,
+                attack,
+                defend: BitBoard(0),
+            },
         };
-
-        
     }
 
     #[inline(always)]
-    fn fill_mailbox(&mut self, color: Color, piece: Piece, sq: Square) {
+    fn unoccupy_mailbox(&mut self, color: Color, sq: Square) {
         let attack = match self.mailbox[sq as usize] {
-            SquareInfo::Occupied {attack, ..} | SquareInfo::Unoccupied {attack} => attack
+            SquareInfo::Occupied {attack, defend, ..} => {
+                let mask = sq.into();
+                for sq in defend.iter_squares() {
+                    self.update_attacks(sq, mask);
+                }
+                
+                self.mailbox[sq as usize] = SquareInfo::Unoccupied {attack};
+            }
+            _ => unreachable!()
         };
+    }
 
-        let (color, piece) = self.get_color_piece_unchecked(sq);
-        self.mailbox[sq as usize] = SquareInfo::Occupied {
-            piece,
-            color, 
-            attack: BitBoard(0), 
-            defend: BitBoard(0),
-        };
+    #[inline(always)]
+    fn update_occupied(&mut self, sq: Square) {
+        match self.mailbox[sq as usize] {
+            SquareInfo::Occupied {piece, color, attack, ref mut defend} => {
+                *defend = attacks(color, piece, sq, &self.occ);
 
-        self.update_attackers(attack);
+                let mask = sq.into();
+                for sq in defend.iter_squares() {
+                    self.update_attacks(sq, mask);
+                }
+
+                for sq in attack.iter_squares() {
+                    self.update_attacker(sq);
+                }
+            }
+            _ => unreachable!()
+        }
+    }
+
+    #[inline(always)]
+    fn update_unoccupied(&mut self, sq: Square) {
+        match self.mailbox[sq as usize] {
+            SquareInfo::Unoccupied {attack} => {
+                for sq in attack.iter_squares() {
+                    self.update_attacker(sq);
+                }
+            }
+            _ => unreachable!()
+        }
     }
 
     // ===================================== do & undo =====================================
@@ -212,27 +272,27 @@ impl Board {
     pub(crate) fn do_move(&mut self, color: Color, mv: Move) {
         match mv {
             Move::Quiet {from, to} => {
-                let piece = self.get_piece_unchecked(from);
+                let piece = self.get_piece(from);
                 let mask = squares!(from, to);
 
                 self.update_bitboard(color, piece, mask);
-                self.occupancy.update(color, mask);
+                self.occ.update(color, mask);
 
                 // self.update_square(from);
                 // self.update_square(to);
             }
             Move::Capture {from, to, capture} => {
-                let piece = self.get_piece_unchecked(from);
+                let piece = self.get_piece(from);
                 let mask = squares!(from, to);
 
                 self.update_bitboard(color, piece, mask);
-                self.occupancy.update(color, mask);
+                self.occ.update(color, mask);
                 
                 let color_inv = color.invert();
                 let mask = squares!(to);
 
                 self.update_bitboard(color_inv, capture, mask);
-                self.occupancy.update(color_inv, mask);
+                self.occ.update(color_inv, mask);
 
                 // self.remove_piece(from);
                 // self.reset_piece(to);
@@ -487,6 +547,6 @@ mod tests {
                 )
             }
         }
-        assert_eq!(default.occupancy, board.occupancy);
+        assert_eq!(default.occ, board.occ);
     }
 }

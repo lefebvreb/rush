@@ -32,7 +32,7 @@ impl Game {
         self.ply.decr();
 
         self.color = self.color.invert();
-        let mv = self.history.pop().expect("Trying to revert nothing");
+        let mv = self.history.pop().unwrap();
         
         self.castle_rights.undo_move(self.color, mv, self.ply);
         self.board.undo_move(self.color, mv);

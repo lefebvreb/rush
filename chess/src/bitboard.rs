@@ -14,7 +14,7 @@ pub struct BitBoard(pub u64);
 //#################################################################################################
 
 impl BitBoard {
-    pub const FILE_A: BitBoard = BitBoard(0x0101010101010101);
+    /*pub const FILE_A: BitBoard = BitBoard(0x0101010101010101);
     pub const FILE_B: BitBoard = BitBoard(0x0202020202020202);
     pub const FILE_C: BitBoard = BitBoard(0x0404040404040404);
     pub const FILE_D: BitBoard = BitBoard(0x0808080808080808);
@@ -30,7 +30,7 @@ impl BitBoard {
     pub const RANK_5: BitBoard = BitBoard(0x000000FF00000000);
     pub const RANK_6: BitBoard = BitBoard(0x0000FF0000000000);
     pub const RANK_7: BitBoard = BitBoard(0x00FF000000000000);
-    pub const RANK_8: BitBoard = BitBoard(0xFF00000000000000);
+    pub const RANK_8: BitBoard = BitBoard(0xFF00000000000000);*/
 
     /// Return true if the BitBoard `self` is empty
     #[inline(always)]
@@ -56,11 +56,6 @@ impl BitBoard {
             self &= self - BitBoard(1);
             old ^ self
         })
-    }
-
-    #[inline(always)]
-    pub fn least_significant_bit(self) -> Square {
-        Square::from(self.0.trailing_zeros())
     }
 }
 

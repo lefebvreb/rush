@@ -1,5 +1,3 @@
-use std::hint::unreachable_unchecked;
-
 use crate::color::Color;
 use crate::piece::Piece;
 use crate::square::Square;
@@ -61,7 +59,7 @@ impl Move {
             } else {
                 Square::C8
             }
-            _ => unsafe {unreachable_unchecked()}
+            _ => unreachable!(),
         }
     }
 
@@ -80,7 +78,7 @@ impl Move {
             } else {
                 Square::E8
             }
-            _ => unsafe {unreachable_unchecked()}
+            _ => unreachable!(),
         }
     }
 
