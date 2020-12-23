@@ -4,6 +4,7 @@ use crate::color::Color;
 use crate::moves::Move;
 use crate::ply::Ply;
 
+/// A struct that holds every information defining a complete game of chess
 #[derive(Debug)]
 pub struct Game {
     pub(crate) board: Board,
@@ -38,11 +39,13 @@ impl Game {
         self.board.undo_move(self.color, mv);
     }
 
+    /// Return the game's board
     #[cold]
     pub fn get_board(&self) -> &Board {
         &self.board
     }
 
+    /// Return the color of the current player
     #[cold]
     pub fn get_color(&self) -> Color {
         self.color

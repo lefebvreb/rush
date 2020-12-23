@@ -44,7 +44,7 @@ impl BitBoard {
         (0..self.0.count_ones()).map(move |_| {
             let lsb = self.0.trailing_zeros();
             self &= self - BitBoard(1);
-            Square::from(lsb)
+            Square::from(lsb as u8)
         })
     }
 

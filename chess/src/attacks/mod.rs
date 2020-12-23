@@ -2,12 +2,7 @@ mod bmi2;
 use bmi2::{BISHOP_BMI2, ROOK_BMI2};
 
 mod non_sliders_attacks;
-use non_sliders_attacks::{
-    BLACK_PAWN_ATTACKS,
-    KING_ATTACKS, KNIGHT_ATTACKS, 
-    WHITE_PAWN_ATTACKS,
-};
-
+use non_sliders_attacks::*;
 mod slider_attacks;
 use slider_attacks::SLIDER_ATTACKS;
 
@@ -26,44 +21,27 @@ use crate::square::Square;
 /// Return the attacks BitBoard of a Pawn of Color color located on square sq with Board occupancy occ
 #[inline(always)]
 fn pawn_attacks(color: Color, sq: Square) -> BitBoard {
-    match color {
-        Color::White => BitBoard(WHITE_PAWN_ATTACKS[sq as usize]),
-        Color::Black => BitBoard(BLACK_PAWN_ATTACKS[sq as usize]),
-    }
-}
-
-/*/// Return the attacks BitBoard of a Pawn of Color color located on square sq with Board occupancy occ
-#[inline(always)]
-fn pawn_pushes(color: Color, sq: Square, occ: &Occupancy) -> (BitBoard, BitBoard) {
-    match color {
-        Color::White => {
-            let single = BitBoard(WHITE_PAWN_PUSHES[sq as usize]) & occ.free;
-            (single, BitBoard(if single.is_empty() {
-                0
-            } else {
-                WHITE_PAWN_DOUBLE_PUSHES[sq as usize]
-            }) & occ.free)
-        }
-        Color::Black => {
-            let single = BitBoard(BLACK_PAWN_PUSHES[sq as usize]) & occ.free;
-            (single, BitBoard(if single.is_empty() {
-                0
-            } else {
-                BLACK_PAWN_DOUBLE_PUSHES[sq as usize]
-            }) & occ.free)
-        }
-    }
+    BitBoard(match color {
+        Color::White => WHITE_PAWN_ATTACKS[sq as usize],
+        Color::Black => BLACK_PAWN_ATTACKS[sq as usize],
+    })
 }
 
 #[inline(always)]
-fn en_passant(board: &Board, color: Color, last_move: Move) -> (Move, Move) {
-    match last_move {
-        Move::DoublePush {to, ..} => {
-            todo!()
-        }
-        _ => (Move::None, Move::None),
-    }
-}*/
+fn pawn_push(color: Color, sq: Square) -> Square {
+    Square::from(match color {
+        Color::White => WHITE_PAWN_PUSHES[sq as usize],
+        Color::Black => BLACK_PAWN_PUSHES[sq as usize],
+    })
+}
+
+#[inline(always)]
+fn double_push(color: Color, sq: Square) -> Square {
+    Square::from(match color {
+        Color::White => WHITE_PAWN_DOUBLE_PUSHES[sq as usize],
+        Color::Black => BLACK_PAWN_DOUBLE_PUSHES[sq as usize],
+    })
+}
 
 //#################################################################################################
 //
