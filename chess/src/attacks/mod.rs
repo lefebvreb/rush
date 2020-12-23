@@ -3,9 +3,9 @@ use bmi2::{BISHOP_BMI2, ROOK_BMI2};
 
 mod non_sliders_attacks;
 use non_sliders_attacks::{
-    BLACK_PAWN_ATTACKS, BLACK_PAWN_PUSHES, BLACK_PAWN_DOUBLE_PUSHES, 
+    BLACK_PAWN_ATTACKS,
     KING_ATTACKS, KNIGHT_ATTACKS, 
-    WHITE_PAWN_ATTACKS, WHITE_PAWN_PUSHES, WHITE_PAWN_DOUBLE_PUSHES
+    WHITE_PAWN_ATTACKS,
 };
 
 mod slider_attacks;
@@ -115,6 +115,7 @@ fn knight_attacks(color: Color, sq: Square) -> BitBoard {
 //
 //#################################################################################################
 
+/// Generate the attacks of a given piece, with the corresponding color and on square sq
 #[inline(always)]
 pub fn attacks(color: Color, piece: Piece, sq: Square, occ: BitBoard) -> BitBoard {
     match piece {

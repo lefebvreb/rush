@@ -16,8 +16,9 @@ pub struct Board {
     occ: Occupancy,
 }
 
+/// A struct holding all necessary occupancy informations
 #[derive(Clone, Debug)]
-pub struct Occupancy {
+struct Occupancy {
     pub white: BitBoard,
     pub black: BitBoard,
     pub all: BitBoard,
@@ -25,22 +26,15 @@ pub struct Occupancy {
 }
 
 impl Occupancy {
+    /// Update the occupancy according to the given color and mask
     #[inline(always)]
-    pub fn update(&mut self, color: Color, mask: BitBoard) {
+    fn update(&mut self, color: Color, mask: BitBoard) {
         match color {
             Color::White => self.white ^= mask,
             Color::Black => self.black ^= mask,
         }
         self.all ^= mask;
         self.free ^= mask;
-    }
-
-    #[inline(always)]
-    pub fn by_color(&self, color: Color) -> BitBoard {
-        match color {
-            Color::White => self.white,
-            Color::Black => self.black,
-        }
     }
 }
 
@@ -82,12 +76,6 @@ impl Board {
         &self.mailbox[square as usize]
     }
 
-    /// Return the occupancy BitBoard associated to that color
-    #[inline(always)]
-    pub fn get_occupancy(&self) -> &Occupancy {
-        &self.occ
-    }
-
     // ================================ Helper methods =====================================
 
     /// Update the attack map of the square sq with the given bitboard
@@ -120,6 +108,7 @@ impl Board {
         }
     }
 
+    /// Return the piece present at the given square, should not be called when there are no pieces there
     #[inline(always)]
     fn get_piece(&self, square: Square) -> Piece {
         match self.mailbox[square as usize] {
@@ -128,30 +117,50 @@ impl Board {
         }
     }
 
+    /// Update all bitboards with the given mask, color and piece
     #[inline(always)]
     fn update_bitboards(&mut self, color: Color, piece: Piece, mask: BitBoard) {
         self.bitboards[color as usize][piece as usize] ^= mask;
         self.occ.update(color, mask);
     }
 
+    /// Fill a mailbox slot with a new piece
     #[inline(always)]
     fn occupy_mailbox(&mut self, color: Color, piece: Piece, sq: Square) {
-        self.mailbox[sq as usize] = match self.mailbox[sq as usize] {
-            SquareInfo::Occupied {attack, defend, ..} => SquareInfo::Occupied {
-                color,
-                piece,
-                attack,
-                defend,
-            },
-            SquareInfo::Unoccupied {attack} =>  SquareInfo::Occupied {
-                color,
-                piece,
-                attack,
-                defend: BitBoard(0),
-            },
+        let mailbox = &mut self.mailbox[sq as usize];
+
+        let attack = match *mailbox {
+            SquareInfo::Unoccupied {attack} => attack,
+            _ => unreachable!(),
+        };
+
+        *mailbox = SquareInfo::Occupied {
+            color,
+            piece,
+            attack,
+            defend: BitBoard(0),
         };
     }
 
+    /// Replace the previous occupant of that mailbox slot with a new one
+    #[inline(always)]
+    fn reoccupy_mailbox(&mut self, color: Color, piece: Piece, sq: Square) {
+        let mailbox = &mut self.mailbox[sq as usize];
+
+        let (attack, defend) = match *mailbox {
+            SquareInfo::Occupied {attack, defend, ..} => (attack, defend),
+            _ => unreachable!(),
+        };
+
+        *mailbox = SquareInfo::Occupied {
+            color,
+            piece,
+            attack,
+            defend,
+        };
+    }
+
+    /// Empty a slot of the mailbox, discarding it's defend map and updating the attackers'
     #[inline(always)]
     fn unoccupy_mailbox(&mut self, sq: Square) {
         let attack = match self.mailbox[sq as usize] {
@@ -167,6 +176,7 @@ impl Board {
         };
     }
 
+    /// Updates the attack and defend maps of an occupied Square
     #[inline(always)]
     fn update_occupied(&mut self, sq: Square) {
         match self.mailbox[sq as usize] {
@@ -186,6 +196,7 @@ impl Board {
         }
     }
 
+    /// Update the attack map of an unoccupied Square
     #[inline(always)]
     fn update_unoccupied(&mut self, sq: Square) {
         match self.mailbox[sq as usize] {
@@ -198,6 +209,7 @@ impl Board {
         }
     }
 
+    /// Moves a king and a rook the proper way
     #[inline(always)]
     fn castle(&mut self, color: Color, rook_from: Square, rook_to: Square, king_from: Square, king_to: Square) {
         self.update_bitboards(color, Piece::Rook, squares!(rook_from, rook_to));
@@ -238,7 +250,7 @@ impl Board {
                 self.update_bitboards(color.invert(), capture, to.into());
 
                 self.unoccupy_mailbox(from);
-                self.occupy_mailbox(color, piece, to);
+                self.reoccupy_mailbox(color, piece, to);
 
                 self.update_unoccupied(from);
                 self.update_occupied(to);
@@ -263,7 +275,7 @@ impl Board {
                 self.update_bitboards(color.invert(), capture, to.into());
 
                 self.unoccupy_mailbox(from);
-                self.occupy_mailbox(color, promote, to);
+                self.reoccupy_mailbox(color, promote, to);
 
                 self.update_unoccupied(from);
                 self.update_occupied(to);
@@ -325,7 +337,7 @@ impl Board {
                 self.update_bitboards(color.invert(), capture, to.into());
 
                 self.occupy_mailbox(color, piece, from);
-                self.occupy_mailbox(color.invert(), capture, to);
+                self.reoccupy_mailbox(color.invert(), capture, to);
 
                 self.update_occupied(from);
                 self.update_occupied(to);
@@ -345,7 +357,7 @@ impl Board {
                 self.update_bitboards(color, promote, to.into());
                 self.update_bitboards(color.invert(), capture, to.into());
 
-                self.occupy_mailbox(color.invert(), capture, to);
+                self.reoccupy_mailbox(color.invert(), capture, to);
                 self.occupy_mailbox(color, Piece::Pawn, from);
 
                 self.update_occupied(from);

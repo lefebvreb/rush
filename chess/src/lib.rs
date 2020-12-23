@@ -10,37 +10,19 @@
 
 ========================= */
 
-
-
-/* ======== MEMO ===========
-
-  a b c d e f g h      
-8 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ 
-7 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ 
-6 - - - - - - - - 
-5 - - - - - - - - 
-4 - - - - - - - - 
-3 - - - - - - - - 
-2 ♙ ♙ ♙ ♙ ♙ ♙ ♙ ♙ 
-1 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ 
-     
-========================= */
-
-
-
 /* ======== TODO ===========
 
 IMPLEMENTATION
 
-- Implement the gen_legal_moves function of Game as a state machine (seperate file ?)
+- Implement all functions of move_gen.rs
 
 OPTIMISATIONS
 
--
+- replace all `unreachable!()` by `unsafe {unreacheable_unchecked()}`
 
 TESTS
 
-- MoveGen (perft)
+- perft
 
 ========================= */
 
