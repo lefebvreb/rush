@@ -2,10 +2,10 @@ var ctx, atlas
 
 // When window is ready
 window.onload = function() {
-    ctx = document.getElementById("canvas").getContext("2d");
+    ctx = document.getElementById("canvas").getContext("2d")
     
-    atlas = document.createElement("img");
-    atlas.src = "atlas.png";
+    atlas = document.createElement("img")
+    atlas.src = "atlas.png"
     atlas.onload = draw
 }
 

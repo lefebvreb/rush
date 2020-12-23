@@ -197,8 +197,9 @@ impl Board {
     }
 
     #[inline(always)]
-    fn update_bitboard(&mut self, color: Color, piece: Piece, mask: BitBoard) {
+    fn update_bitboards(&mut self, color: Color, piece: Piece, mask: BitBoard) {
         self.bitboards[color as usize][piece as usize] ^= mask;
+        self.occ.update(color, mask);
     }
 
     #[inline(always)]
@@ -220,7 +221,7 @@ impl Board {
     }
 
     #[inline(always)]
-    fn unoccupy_mailbox(&mut self, color: Color, sq: Square) {
+    fn unoccupy_mailbox(&mut self, sq: Square) {
         let attack = match self.mailbox[sq as usize] {
             SquareInfo::Occupied {attack, defend, ..} => {
                 let mask = sq.into();
@@ -265,6 +266,22 @@ impl Board {
         }
     }
 
+    #[inline(always)]
+    fn castle(&mut self, color: Color, rook_from: Square, rook_to: Square, king_from: Square, king_to: Square) {
+        self.update_bitboards(color, Piece::Rook, squares!(rook_from, rook_to));
+        self.update_bitboards(color, Piece::King, squares!(king_from, king_to));
+
+        self.unoccupy_mailbox(rook_from);
+        self.unoccupy_mailbox(king_from);
+        self.occupy_mailbox(color, Piece::Rook, rook_to);
+        self.occupy_mailbox(color, Piece::King, king_to);
+
+        self.update_unoccupied(rook_from);
+        self.update_unoccupied(king_from);
+        self.update_occupied(rook_to);
+        self.update_occupied(king_to);
+    }
+
     // ===================================== do & undo =====================================
 
     /// Perform the move and modify the board accordingly
@@ -273,73 +290,82 @@ impl Board {
         match mv {
             Move::Quiet {from, to} => {
                 let piece = self.get_piece(from);
-                let mask = squares!(from, to);
 
-                self.update_bitboard(color, piece, mask);
-                self.occ.update(color, mask);
+                self.update_bitboards(color, piece, squares!(from, to));
 
-                // self.update_square(from);
-                // self.update_square(to);
+                self.unoccupy_mailbox(from);
+                self.occupy_mailbox(color, piece, to);
+
+                self.update_unoccupied(from);
+                self.update_occupied(to);
             }
             Move::Capture {from, to, capture} => {
                 let piece = self.get_piece(from);
-                let mask = squares!(from, to);
 
-                self.update_bitboard(color, piece, mask);
-                self.occ.update(color, mask);
-                
-                let color_inv = color.invert();
-                let mask = squares!(to);
+                self.update_bitboards(color, piece, squares!(from, to));
+                self.update_bitboards(color.invert(), capture, to.into());
 
-                self.update_bitboard(color_inv, capture, mask);
-                self.occ.update(color_inv, mask);
+                self.unoccupy_mailbox(from);
+                self.occupy_mailbox(color, piece, to);
 
-                // self.remove_piece(from);
-                // self.reset_piece(to);
+                self.update_unoccupied(from);
+                self.update_occupied(to);
             }
             Move::Promote {from, to, promote} => {
+                let piece = self.get_piece(from);
 
+                self.update_bitboards(color, piece, from.into());
+                self.update_bitboards(color, promote, to.into());
+
+                self.unoccupy_mailbox(from);
+                self.occupy_mailbox(color, promote, to);
+
+                self.update_unoccupied(from);
+                self.update_occupied(to);
             }
-            Move::PromoteCapture {from, to, promote, ..} => {
-                let (color, _) = self.remove_piece(from);
-                self.reset_piece(color, promote, to);
+            Move::PromoteCapture {from, to, capture, promote} => {
+                let piece = self.get_piece(from);
+
+                self.update_bitboards(color, piece, from.into());
+                self.update_bitboards(color, promote, to.into());
+                self.update_bitboards(color.invert(), capture, to.into());
+
+                self.unoccupy_mailbox(from);
+                self.occupy_mailbox(color, promote, to);
+
+                self.update_unoccupied(from);
+                self.update_occupied(to);
             }
             Move::EnPassant {from, to} => {
-                let (color, piece) = self.remove_piece(from);
-                self.remove_piece(Square::from((to.x(), from.y())));
-                self.set_piece(color, piece, to);
+                let mid = Square::from((to.x(), from.y()));
+
+                self.update_bitboards(color, Piece::Pawn, squares!(from, to));
+                self.update_bitboards(color.invert(), Piece::Pawn, to.into());
+
+                self.unoccupy_mailbox(from);
+                self.unoccupy_mailbox(mid);
+                self.occupy_mailbox(color, Piece::Pawn, to);
+
+                self.update_unoccupied(from);
+                self.update_unoccupied(mid);
+                self.update_occupied(to);
             }
             Move::DoublePush {from, to} => {
-                let (color, piece) = self.remove_piece(from);
-                self.set_piece(color, piece, to);
+                self.update_bitboards(color, Piece::Pawn, squares!(from, to));
+
+                self.unoccupy_mailbox(from);
+                self.occupy_mailbox(color, Piece::Pawn, to);
+
+                self.update_unoccupied(from);
+                self.update_occupied(to);
             }
             Move::KingCastle => match color {
-                Color::White => {
-                    self.remove_piece(Square::H1);
-                    self.set_piece(Color::White, Piece::Rook, Square::F1);
-                    self.remove_piece(Square::E1);
-                    self.set_piece(Color::White, Piece::King, Square::G1);
-                }
-                Color::Black => {
-                    self.remove_piece(Square::H8);
-                    self.set_piece(Color::Black, Piece::Rook, Square::F8);
-                    self.remove_piece(Square::E8);
-                    self.set_piece(Color::Black, Piece::King, Square::G8);
-                }
+                Color::White => self.castle(Color::White, Square::H1, Square::F1, Square::E1, Square::G1),
+                Color::Black => self.castle(Color::White, Square::H8, Square::F8, Square::E8, Square::G8),
             }
             Move::QueenCastle => match color {
-                Color::White => {
-                    self.remove_piece(Square::A1);
-                    self.set_piece(Color::White, Piece::Rook, Square::C1);
-                    self.remove_piece(Square::E1);
-                    self.set_piece(Color::White, Piece::King, Square::B1);
-                }
-                Color::Black => {
-                    self.remove_piece(Square::A8);
-                    self.set_piece(Color::Black, Piece::Rook, Square::C8);
-                    self.remove_piece(Square::E8);
-                    self.set_piece(Color::Black, Piece::King, Square::B8);
-                }
+                Color::White => self.castle(Color::White, Square::A1, Square::C1, Square::E1, Square::B1),
+                Color::Black => self.castle(Color::White, Square::A8, Square::C8, Square::E8, Square::B8),
             }
             _ => (),
         }
@@ -350,57 +376,79 @@ impl Board {
     pub(crate) fn undo_move(&mut self, color: Color, mv: Move) {
         match mv {
             Move::Quiet {from, to} => {
-                let (color, piece) = self.remove_piece(to);
-                self.set_piece(color, piece, from);
+                let piece = self.get_piece(to);
+
+                self.update_bitboards(color, piece, squares!(from, to));
+
+                self.occupy_mailbox(color, piece, from);
+                self.unoccupy_mailbox(to);
+
+                self.update_occupied(from);
+                self.update_unoccupied(to);
             }
             Move::Capture {from, to, capture} => {
-                let (color, piece) = self.reset_piece(color.invert(), capture, to);
-                self.set_piece(color, piece, from);
+                let piece = self.get_piece(to);
+
+                self.update_bitboards(color, piece, squares!(from, to));
+                self.update_bitboards(color.invert(), capture, to.into());
+
+                self.occupy_mailbox(color, piece, from);
+                self.occupy_mailbox(color.invert(), capture, to);
+
+                self.update_occupied(from);
+                self.update_occupied(to);
             }
-            Move::Promote {from, to, ..} => {
-                let (color, _) = self.remove_piece(to);
-                self.set_piece(color, Piece::Pawn, from);
+            Move::Promote {from, to, promote} => {
+                self.update_bitboards(color, Piece::Pawn, from.into());
+                self.update_bitboards(color, promote, to.into());
+
+                self.occupy_mailbox(color, Piece::Pawn, from);
+                self.unoccupy_mailbox(to);
+
+                self.update_occupied(from);
+                self.update_unoccupied(to);
             }
-            Move::PromoteCapture {from, to, capture, ..} => {
-                let (color, _) = self.reset_piece(color.invert(), capture, to);
-                self.set_piece(color, Piece::Pawn, from);
+            Move::PromoteCapture {from, to, capture, promote} => {
+                self.update_bitboards(color, Piece::Pawn, from.into());
+                self.update_bitboards(color, promote, to.into());
+                self.update_bitboards(color.invert(), capture, to.into());
+
+                self.occupy_mailbox(color.invert(), capture, to);
+                self.occupy_mailbox(color, Piece::Pawn, from);
+
+                self.update_occupied(from);
+                self.update_occupied(to);
             }
             Move::EnPassant {from, to} => {
-                let (color, piece) = self.remove_piece(to);
-                self.set_piece(color, piece, from);
-                self.set_piece(color.invert(), Piece::Pawn, Square::from((to.x(), from.y())));
+                let mid = Square::from((to.x(), from.y()));
+
+                self.update_bitboards(color, Piece::Pawn, squares!(from, to));
+                self.update_bitboards(color.invert(), Piece::Pawn, mid.into());
+
+                self.occupy_mailbox(color, Piece::Pawn, from);
+                self.occupy_mailbox(color.invert(), Piece::Pawn, mid);
+                self.unoccupy_mailbox(to);
+
+                self.update_occupied(from);
+                self.update_occupied(mid);
+                self.update_unoccupied(to);
             }
             Move::DoublePush {from, to} => {
-                let (color, piece) = self.remove_piece(to);
-                self.set_piece(color, piece, from);
+                self.update_bitboards(color, Piece::Pawn, squares!(from, to));
+
+                self.occupy_mailbox(color, Piece::Pawn, from);
+                self.unoccupy_mailbox(to);
+
+                self.update_occupied(from);
+                self.update_unoccupied(to);
             }
             Move::KingCastle => match color {
-                Color::White => {
-                    self.remove_piece(Square::F1);
-                    self.set_piece(Color::White, Piece::Rook, Square::H1);
-                    self.remove_piece(Square::G1);
-                    self.set_piece(Color::White, Piece::King, Square::E1);
-                }
-                Color::Black => {
-                    self.remove_piece(Square::F8);
-                    self.set_piece(Color::Black, Piece::Rook, Square::H8);
-                    self.remove_piece(Square::G8);
-                    self.set_piece(Color::Black, Piece::King, Square::E8);
-                }
+                Color::White => self.castle(Color::White, Square::F1, Square::H1, Square::G1, Square::E1),
+                Color::Black => self.castle(Color::White, Square::F8, Square::H8, Square::G8, Square::E8),
             }
             Move::QueenCastle => match color {
-                Color::White => {
-                    self.remove_piece(Square::C1);
-                    self.set_piece(Color::White, Piece::Rook, Square::A1);
-                    self.remove_piece(Square::B1);
-                    self.set_piece(Color::White, Piece::King, Square::E1);
-                }
-                Color::Black => {
-                    self.remove_piece(Square::C8);
-                    self.set_piece(Color::Black, Piece::Rook, Square::A8);
-                    self.remove_piece(Square::B8);
-                    self.set_piece(Color::Black, Piece::King, Square::E8);
-                }
+                Color::White => self.castle(Color::White, Square::C1, Square::A1, Square::B1, Square::E1),
+                Color::Black => self.castle(Color::White, Square::C8, Square::A8, Square::B8, Square::E8),
             }
             _ => (),
         }
