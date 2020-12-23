@@ -16,7 +16,7 @@ pub struct Board {
     occ: Occupancy,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug)]
 pub struct Occupancy {
     pub white: BitBoard,
     pub black: BitBoard,
@@ -48,7 +48,7 @@ impl Occupancy {
 /// attack is the bitboard of the pieces attacking that square
 /// defend is the bitboard of the squares attacked by the piece
 #[repr(u8)]
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum SquareInfo {
     Occupied {
         piece: Piece,
@@ -90,74 +90,6 @@ impl Board {
 
     // ================================ Helper methods =====================================
 
-    // The three following methods were made with compiler optimisations
-    // in mind. That is the reason why removing a piece from the board returns
-    // it's color and type: so that when calling those methods together the
-    // compiler will see it can bundle some bitwise operations.
-
-    // Place a piece on the board
-    #[inline(always)]
-    fn set_piece(&mut self, color: Color, piece: Piece, on: Square) {
-        /*self.mailbox[on as usize] = Some((color, piece));
-        let bitboard = on.into();
-        self.bitboards[color as usize][piece as usize] ^= bitboard;
-        self.occupancy[color as usize] ^= bitboard;*/
-        todo!()
-    }
-
-    /// Remove a piece from the board and return it
-    #[inline(always)]
-    fn remove_piece(&mut self, on: Square) -> (Color, Piece) {
-        /*let (color, piece) = self.mailbox[on as usize].expect("trying to remove nothing");
-        self.mailbox[on as usize] = None;
-        let bitboard = on.into();
-        self.bitboards[color as usize][piece as usize] ^= bitboard;
-        self.occupancy[color as usize] ^= bitboard;
-        (color, piece)*/
-        todo!()
-    }
-
-    /// Remove a piece on the board, then remove it and
-    #[inline(always)]
-    fn reset_piece(&mut self, color: Color, piece: Piece, on: Square) -> (Color, Piece) {
-        /*let swap = self.remove_piece(on);
-        self.set_piece(color, piece, on);
-        swap*/
-        todo!()
-    }
-
-    /*#[inline(always)]
-    fn get_color_piece_unchecked(&self, square: Square) -> (Color, Piece) {
-        match self.mailbox[square as usize] {
-            SquareInfo::Occupied {color, piece, ..} => (color, piece),
-            _ => unsafe {unreachable_unchecked()}
-        }
-    }
-
-    #[inline(always)]
-    fn update_attackers(&mut self, attack: BitBoard) {
-        for from_bitboard in attack.iter_bitboards() {
-            let from = from_bitboard.least_significant_bit();
-
-            let (color, piece, defend, to_update) = match self.mailbox[from as usize] {
-                SquareInfo::Occupied {color, piece, ref mut defend, ..} => {
-                    let new_defend = attacks(color, piece, from, &self.occupancy);
-                    let to_update = *defend ^ new_defend;
-                    *defend = new_defend;
-                    (color, piece, defend, to_update)
-                },
-                _ => unsafe {unreachable_unchecked()},
-            };
-
-            for to in to_update.iter_squares() {
-                match self.mailbox[to as usize] {
-                    SquareInfo::Occupied {ref mut attack, ..} => *attack ^= from_bitboard,
-                    SquareInfo::Unoccupied {ref mut attack} => *attack ^= from_bitboard,
-                }
-            }
-        }
-    }*/
-
     /// Update the attack map of the square sq with the given bitboard
     #[inline(always)]
     fn update_attacks(&mut self, sq: Square, mask: BitBoard) {
@@ -176,7 +108,7 @@ impl Board {
         match self.mailbox[sq as usize] {
             SquareInfo::Occupied {color, piece, ref mut defend, ..} => {
                 let mut diff = *defend;
-                *defend = attacks(color, piece, sq, &self.occ);
+                *defend = attacks(color, piece, sq, self.occ.all);
                 diff ^= *defend;
 
                 let mask = sq.into();
@@ -239,7 +171,7 @@ impl Board {
     fn update_occupied(&mut self, sq: Square) {
         match self.mailbox[sq as usize] {
             SquareInfo::Occupied {piece, color, attack, ref mut defend} => {
-                *defend = attacks(color, piece, sq, &self.occ);
+                *defend = attacks(color, piece, sq, self.occ.all);
 
                 let mask = sq.into();
                 for sq in defend.iter_squares() {
@@ -340,7 +272,7 @@ impl Board {
                 let mid = Square::from((to.x(), from.y()));
 
                 self.update_bitboards(color, Piece::Pawn, squares!(from, to));
-                self.update_bitboards(color.invert(), Piece::Pawn, to.into());
+                self.update_bitboards(color.invert(), Piece::Pawn, mid.into());
 
                 self.unoccupy_mailbox(from);
                 self.unoccupy_mailbox(mid);
@@ -361,11 +293,11 @@ impl Board {
             }
             Move::KingCastle => match color {
                 Color::White => self.castle(Color::White, Square::H1, Square::F1, Square::E1, Square::G1),
-                Color::Black => self.castle(Color::White, Square::H8, Square::F8, Square::E8, Square::G8),
+                Color::Black => self.castle(Color::Black, Square::H8, Square::F8, Square::E8, Square::G8),
             }
             Move::QueenCastle => match color {
                 Color::White => self.castle(Color::White, Square::A1, Square::C1, Square::E1, Square::B1),
-                Color::Black => self.castle(Color::White, Square::A8, Square::C8, Square::E8, Square::B8),
+                Color::Black => self.castle(Color::Black, Square::A8, Square::C8, Square::E8, Square::B8),
             }
             _ => (),
         }
@@ -444,11 +376,11 @@ impl Board {
             }
             Move::KingCastle => match color {
                 Color::White => self.castle(Color::White, Square::F1, Square::H1, Square::G1, Square::E1),
-                Color::Black => self.castle(Color::White, Square::F8, Square::H8, Square::G8, Square::E8),
+                Color::Black => self.castle(Color::Black, Square::F8, Square::H8, Square::G8, Square::E8),
             }
             Move::QueenCastle => match color {
                 Color::White => self.castle(Color::White, Square::C1, Square::A1, Square::B1, Square::E1),
-                Color::Black => self.castle(Color::White, Square::C8, Square::A8, Square::B8, Square::E8),
+                Color::Black => self.castle(Color::Black, Square::C8, Square::A8, Square::B8, Square::E8),
             }
             _ => (),
         }
@@ -459,38 +391,45 @@ impl Default for Board {
     /// Return a new Board with the default chess position
     #[cold]
     fn default() -> Board {
-        /*let bitboards = [[ // White bitboards
-                BitBoard::RANK_2,                 // Pawns
-                squares!(Square::A1, Square::H1), // Rooks
-                squares!(Square::B1, Square::G1), // Knights
-                squares!(Square::C1, Square::F1), // Bishops
-                squares!(Square::D1),             // Queen
-                squares!(Square::E1),             // King
-            ], [           // Black bitboards
-                BitBoard::RANK_7,                 // Pawns
-                squares!(Square::A8, Square::H8), // Rooks
-                squares!(Square::B8, Square::G8), // Knights
-                squares!(Square::C8, Square::F8), // Bishops
-                squares!(Square::D8),             // Queen
-                squares!(Square::E8),             // King
-        ]];
+        let mut board = Board {
+            bitboards: [[BitBoard(0); 6]; 2],
+            mailbox: [SquareInfo::Unoccupied {attack: BitBoard(0)}; 64],
+            occ: Occupancy {
+                white: BitBoard(0),
+                black: BitBoard(0),
+                all: BitBoard(0),
+                free: BitBoard(0xFFFFFFFFFFFFFFFF),
+            }
+        };
 
-        let mut mailbox = [SquareInfo::Unoccupied {defend: BitBoard(0)}; 64];
-        let mut occupancy = [BitBoard(0); 2];
-        
-        for color in &Color::COLORS {
-            for piece in &Piece::PIECES {
-                let bitboard = bitboards[*color as usize][*piece as usize];
-
-                for square in bitboard.iter_squares() {
-                    mailbox[square as usize] = Some((*color, *piece));
+        for (color, pieces_squares) in &[
+            (Color::White, vec![
+                (Piece::Pawn, vec![Square::A2, Square::B2, Square::C2, Square::D2, Square::E2, Square::F2, Square::G2, Square::H2]),
+                (Piece::Rook, vec![Square::A1, Square::H1]),
+                (Piece::Knight, vec![Square::B1, Square::G1]),
+                (Piece::Bishop, vec![Square::C1, Square::F1]),
+                (Piece::Queen, vec![Square::D1]),
+                (Piece::King, vec![Square::E1]),
+            ]),
+            (Color::Black, vec![
+                (Piece::Pawn, vec![Square::A7, Square::B7, Square::C7, Square::D7, Square::E7, Square::F7, Square::G7, Square::H7]),
+                (Piece::Rook, vec![Square::A8, Square::H8]),
+                (Piece::Knight, vec![Square::B8, Square::G8]),
+                (Piece::Bishop, vec![Square::C8, Square::F8]),
+                (Piece::Queen, vec![Square::D8]),
+                (Piece::King, vec![Square::E8]),
+            ]),
+        ] {
+            for (piece, squares) in pieces_squares {
+                for sq in squares {
+                    board.update_bitboards(*color, *piece, (*sq).into());
+                    board.occupy_mailbox(*color, *piece, *sq);
+                    board.update_occupied(*sq);
                 }
-                occupancy[*color as usize] |= bitboard;
             }
         }
 
-        Board {bitboards, mailbox, occupancy}*/
-        todo!()
+        return board;
     }
 }
 
@@ -536,7 +475,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn moves() {
+    fn do_and_undo_moves() {
         let mut board = Board::default();
         let mut color = Color::White;
 
@@ -569,17 +508,11 @@ mod tests {
         for mv in moves.iter() {
             board.do_move(color, *mv);
             color = color.invert();
-
-            println!("{:?}", mv);
-            println!("{}", board);
         }
 
         for mv in moves.iter().rev() {
             color = color.invert();
             board.undo_move(color, *mv);
-
-            println!("reverse {:?}", mv);
-            println!("{}", board);
         }
 
         let default = Board::default();
@@ -595,6 +528,10 @@ mod tests {
                 )
             }
         }
-        assert_eq!(default.occ, board.occ);
+        assert_eq!(default.occ.white, board.occ.white);
+        assert_eq!(default.occ.black, board.occ.black);
+        assert_eq!(default.occ.all, board.occ.all);
+        assert_eq!(default.occ.free, board.occ.free);
     }
+
 }
