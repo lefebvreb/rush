@@ -51,22 +51,22 @@ fn double_push(color: Color, sq: Square) -> Square {
 
 /// Return the attacks BitBoard of a Bishop located on square sq, with Board occupancy occ
 #[inline(always)]
-fn bishop_attacks(color: Color, sq: Square, occ: BitBoard) -> BitBoard {
+fn bishop_attacks(sq: Square, occ: BitBoard) -> BitBoard {
     let bmi2 = BISHOP_BMI2[sq as usize];
     BitBoard(pdep(SLIDER_ATTACKS[bmi2.0 + pext(occ.0, bmi2.1) as usize] as u64, bmi2.2))
 }
 
 /// Return the attacks BitBoard of a Rook located on square sq, with Board occupancy occ
 #[inline(always)]
-fn rook_attacks(color: Color, sq: Square, occ: BitBoard) -> BitBoard {
+fn rook_attacks(sq: Square, occ: BitBoard) -> BitBoard {
     let bmi2 = ROOK_BMI2[sq as usize];
     BitBoard(pdep(SLIDER_ATTACKS[bmi2.0 + pext(occ.0, bmi2.1) as usize] as u64, bmi2.2))
 }
 
 /// Return the attacks BitBoard of a Queen located on square sq, with Board occupancy occ
 #[inline(always)]
-fn queen_attacks(color: Color, sq: Square, occ: BitBoard) -> BitBoard {
-    bishop_attacks(color, sq, occ) | rook_attacks(color, sq, occ)
+fn queen_attacks(sq: Square, occ: BitBoard) -> BitBoard {
+    bishop_attacks(sq, occ) | rook_attacks(sq, occ)
 }
 
 //#################################################################################################
@@ -77,13 +77,13 @@ fn queen_attacks(color: Color, sq: Square, occ: BitBoard) -> BitBoard {
 
 /// Return the attacks BitBoard of a King located on square sq
 #[inline(always)]
-fn king_attacks(color: Color, sq: Square) -> BitBoard {
+fn king_attacks(sq: Square) -> BitBoard {
     BitBoard(KING_ATTACKS[sq as usize])
 }
 
 /// Return the attacks BitBoard of a Knight located on square sq
 #[inline(always)]
-fn knight_attacks(color: Color, sq: Square) -> BitBoard {
+fn knight_attacks(sq: Square) -> BitBoard {
     BitBoard(KNIGHT_ATTACKS[sq as usize])
 }
 
@@ -98,10 +98,10 @@ fn knight_attacks(color: Color, sq: Square) -> BitBoard {
 pub fn attacks(color: Color, piece: Piece, sq: Square, occ: BitBoard) -> BitBoard {
     match piece {
         Piece::Pawn => pawn_attacks(color, sq),
-        Piece::Rook => rook_attacks(color, sq, occ),
-        Piece::Knight => knight_attacks(color, sq),
-        Piece::Bishop => bishop_attacks(color, sq, occ),
-        Piece::Queen => queen_attacks(color, sq, occ),
-        Piece::King => king_attacks(color, sq),
+        Piece::Rook => rook_attacks(sq, occ),
+        Piece::Knight => knight_attacks(sq),
+        Piece::Bishop => bishop_attacks(sq, occ),
+        Piece::Queen => queen_attacks(sq, occ),
+        Piece::King => king_attacks(sq),
     }
 }

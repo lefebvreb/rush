@@ -29,7 +29,7 @@ impl Game {
 
     /// Revert the last move. Panic if there is no move in history
     #[inline]
-    pub(crate) fn undo_move(&mut self) {
+    pub fn undo_move(&mut self) {
         self.ply.decr();
 
         self.color = self.color.invert();

@@ -163,7 +163,7 @@ impl Board {
     /// Empty a slot of the mailbox, discarding it's defend map and updating the attackers'
     #[inline(always)]
     fn unoccupy_mailbox(&mut self, sq: Square) {
-        let attack = match self.mailbox[sq as usize] {
+        match self.mailbox[sq as usize] {
             SquareInfo::Occupied {attack, defend, ..} => {
                 let mask = sq.into();
                 for sq in defend.iter_squares() {
@@ -173,7 +173,7 @@ impl Board {
                 self.mailbox[sq as usize] = SquareInfo::Unoccupied {attack};
             }
             _ => unreachable!()
-        };
+        }
     }
 
     /// Updates the attack and defend maps of an occupied Square
@@ -532,11 +532,11 @@ mod tests {
         for i in 0..64 {
             assert_eq!(default.mailbox[i], board.mailbox[i]);
         }
-        for color in &Color::COLORS {
-            for piece in &Piece::PIECES {
+        for i in 0..2 {
+            for j in 0..6 {
                 assert_eq!(
-                    default.bitboards[*color as usize][*piece as usize],
-                    board.bitboards[*color as usize][*piece as usize],
+                    default.bitboards[i][j],
+                    board.bitboards[i][j],
                 )
             }
         }
