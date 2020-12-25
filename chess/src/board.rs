@@ -92,19 +92,25 @@ impl Board {
     /// Update the attacks of the piece on sq (if there are any) and
     /// also update the squares attacked by that piece
     #[inline(always)]
-    fn update_attacker(&mut self, sq: Square) {
-        match self.mailbox[sq as usize] {
-            SquareInfo::Occupied {color, piece, ref mut defend, ..} => {
-                let mut diff = *defend;
-                *defend = attacks(color, piece, sq, self.occ.all);
-                diff ^= *defend;
+    fn update_attacker(&mut self, sq: Square, updated: &mut BitBoard) {
+        let mask = sq.into();
 
-                let mask = sq.into();
-                for sq in diff.iter_squares() {
-                    self.update_attacks(sq, mask);
+        if (*updated & mask).is_empty() {
+            *updated |= mask;
+
+            match self.mailbox[sq as usize] {
+                SquareInfo::Occupied {color, piece, ref mut defend, ..} => {
+                    let mut diff = *defend;
+                    *defend = attacks(color, piece, sq, self.occ.all);
+                    diff ^= *defend;
+    
+                    let mask = sq.into();
+                    for sq in diff.iter_squares() {
+                        self.update_attacks(sq, mask);
+                    }
                 }
+                _ => ()
             }
-            _ => ()
         }
     }
 
@@ -181,20 +187,10 @@ impl Board {
     fn update_occupied(&mut self, sq: Square, updated: &mut BitBoard) {
         match self.mailbox[sq as usize] {
             SquareInfo::Occupied {piece, color, attack, ref mut defend} => {
-                let mask = sq.into();
-
-                if (*updated & mask).is_empty() {
-                    *updated |= mask;
-                }
-                *defend = attacks(color, piece, sq, self.occ.all);
-
-                
-                for sq in defend.iter_squares() {
-                    self.update_attacks(sq, mask);
-                }
+                self.update_attacker(sq, updated);
 
                 for sq in attack.iter_squares() {
-                    self.update_attacker(sq);
+                    self.update_attacker(sq, updated);
                 }
             }
             _ => unreachable!()
@@ -203,11 +199,11 @@ impl Board {
 
     /// Update the attack map of an unoccupied Square
     #[inline(always)]
-    fn update_unoccupied(&mut self, sq: Square) {
+    fn update_unoccupied(&mut self, sq: Square, updated: &mut BitBoard) {
         match self.mailbox[sq as usize] {
             SquareInfo::Unoccupied {attack} => {
                 for sq in attack.iter_squares() {
-                    self.update_attacker(sq);
+                    self.update_attacker(sq, updated);
                 }
             }
             _ => unreachable!()
@@ -225,10 +221,11 @@ impl Board {
         self.occupy_mailbox(color, Piece::Rook, rook_to);
         self.occupy_mailbox(color, Piece::King, king_to);
 
-        self.update_unoccupied(rook_from);
-        self.update_unoccupied(king_from);
-        self.update_occupied(rook_to);
-        self.update_occupied(king_to);
+        let mut updated = BitBoard(0);
+        self.update_unoccupied(rook_from, &mut updated);
+        self.update_unoccupied(king_from, &mut updated);
+        self.update_occupied(rook_to, &mut updated);
+        self.update_occupied(king_to, &mut updated);
     }
 
     // ===================================== do & undo =====================================
@@ -245,8 +242,9 @@ impl Board {
                 self.unoccupy_mailbox(from);
                 self.occupy_mailbox(color, piece, to);
 
-                self.update_unoccupied(from);
-                self.update_occupied(to);
+                let mut updated = BitBoard(0);
+                self.update_unoccupied(from, &mut updated);
+                self.update_occupied(to, &mut updated);
             }
             Move::Capture {from, to, capture} => {
                 let piece = self.get_piece(from);
@@ -257,8 +255,9 @@ impl Board {
                 self.unoccupy_mailbox(from);
                 self.reoccupy_mailbox(color, piece, to);
 
-                self.update_unoccupied(from);
-                self.update_occupied(to);
+                let mut updated = BitBoard(0);
+                self.update_unoccupied(from, &mut updated);
+                self.update_occupied(to, &mut updated);
             }
             Move::Promote {from, to, promote} => {
                 let piece = self.get_piece(from);
@@ -269,8 +268,9 @@ impl Board {
                 self.unoccupy_mailbox(from);
                 self.occupy_mailbox(color, promote, to);
 
-                self.update_unoccupied(from);
-                self.update_occupied(to);
+                let mut updated = BitBoard(0);
+                self.update_unoccupied(from, &mut updated);
+                self.update_occupied(to, &mut updated);
             }
             Move::PromoteCapture {from, to, capture, promote} => {
                 let piece = self.get_piece(from);
@@ -282,8 +282,9 @@ impl Board {
                 self.unoccupy_mailbox(from);
                 self.reoccupy_mailbox(color, promote, to);
 
-                self.update_unoccupied(from);
-                self.update_occupied(to);
+                let mut updated = BitBoard(0);
+                self.update_unoccupied(from, &mut updated);
+                self.update_occupied(to, &mut updated);
             }
             Move::EnPassant {from, to} => {
                 let mid = Square::from((to.x(), from.y()));
@@ -295,9 +296,10 @@ impl Board {
                 self.unoccupy_mailbox(mid);
                 self.occupy_mailbox(color, Piece::Pawn, to);
 
-                self.update_unoccupied(from);
-                self.update_unoccupied(mid);
-                self.update_occupied(to);
+                let mut updated = BitBoard(0);
+                self.update_unoccupied(from, &mut updated);
+                self.update_unoccupied(mid, &mut updated);
+                self.update_occupied(to, &mut updated);
             }
             Move::DoublePush {from, to} => {
                 self.update_bitboards(color, Piece::Pawn, squares!(from, to));
@@ -305,8 +307,9 @@ impl Board {
                 self.unoccupy_mailbox(from);
                 self.occupy_mailbox(color, Piece::Pawn, to);
 
-                self.update_unoccupied(from);
-                self.update_occupied(to);
+                let mut updated = BitBoard(0);
+                self.update_unoccupied(from, &mut updated);
+                self.update_occupied(to, &mut updated);
             }
             Move::KingCastle => match color {
                 Color::White => self.castle(Color::White, Square::H1, Square::F1, Square::E1, Square::G1),
@@ -332,8 +335,9 @@ impl Board {
                 self.occupy_mailbox(color, piece, from);
                 self.unoccupy_mailbox(to);
 
-                self.update_occupied(from);
-                self.update_unoccupied(to);
+                let mut updated = BitBoard(0);
+                self.update_occupied(from, &mut updated);
+                self.update_unoccupied(to, &mut updated);
             }
             Move::Capture {from, to, capture} => {
                 let piece = self.get_piece(to);
@@ -344,8 +348,9 @@ impl Board {
                 self.occupy_mailbox(color, piece, from);
                 self.reoccupy_mailbox(color.invert(), capture, to);
 
-                self.update_occupied(from);
-                self.update_occupied(to);
+                let mut updated = BitBoard(0);
+                self.update_occupied(from, &mut updated);
+                self.update_occupied(to, &mut updated);
             }
             Move::Promote {from, to, promote} => {
                 self.update_bitboards(color, Piece::Pawn, from.into());
@@ -354,8 +359,9 @@ impl Board {
                 self.occupy_mailbox(color, Piece::Pawn, from);
                 self.unoccupy_mailbox(to);
 
-                self.update_occupied(from);
-                self.update_unoccupied(to);
+                let mut updated = BitBoard(0);
+                self.update_occupied(from, &mut updated);
+                self.update_unoccupied(to, &mut updated);
             }
             Move::PromoteCapture {from, to, capture, promote} => {
                 self.update_bitboards(color, Piece::Pawn, from.into());
@@ -365,8 +371,9 @@ impl Board {
                 self.reoccupy_mailbox(color.invert(), capture, to);
                 self.occupy_mailbox(color, Piece::Pawn, from);
 
-                self.update_occupied(from);
-                self.update_occupied(to);
+                let mut updated = BitBoard(0);
+                self.update_occupied(from, &mut updated);
+                self.update_occupied(to, &mut updated);
             }
             Move::EnPassant {from, to} => {
                 let mid = Square::from((to.x(), from.y()));
@@ -378,9 +385,10 @@ impl Board {
                 self.occupy_mailbox(color.invert(), Piece::Pawn, mid);
                 self.unoccupy_mailbox(to);
 
-                self.update_occupied(from);
-                self.update_occupied(mid);
-                self.update_unoccupied(to);
+                let mut updated = BitBoard(0);
+                self.update_occupied(from, &mut updated);
+                self.update_occupied(mid, &mut updated);
+                self.update_unoccupied(to, &mut updated);
             }
             Move::DoublePush {from, to} => {
                 self.update_bitboards(color, Piece::Pawn, squares!(from, to));
@@ -388,8 +396,9 @@ impl Board {
                 self.occupy_mailbox(color, Piece::Pawn, from);
                 self.unoccupy_mailbox(to);
 
-                self.update_occupied(from);
-                self.update_unoccupied(to);
+                let mut updated = BitBoard(0);
+                self.update_occupied(from, &mut updated);
+                self.update_unoccupied(to, &mut updated);
             }
             Move::KingCastle => match color {
                 Color::White => self.castle(Color::White, Square::F1, Square::H1, Square::G1, Square::E1),
@@ -441,7 +450,8 @@ impl Default for Board {
                 for sq in squares {
                     board.update_bitboards(*color, *piece, (*sq).into());
                     board.occupy_mailbox(*color, *piece, *sq);
-                    board.update_occupied(*sq);
+                    let mut updated = BitBoard(0);
+                    board.update_occupied(*sq, &mut updated);
                 }
             }
         }
@@ -525,12 +535,16 @@ mod tests {
         for mv in moves.iter() {
             board.do_move(color, *mv);
             color = color.invert();
+
+            println!("{}", board);
         }
 
         for mv in moves.iter().rev() {
             color = color.invert();
             board.undo_move(color, *mv);
         }
+
+        println!("{}", board);
 
         let default = Board::default();
         
