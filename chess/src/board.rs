@@ -178,12 +178,17 @@ impl Board {
 
     /// Updates the attack and defend maps of an occupied Square
     #[inline(always)]
-    fn update_occupied(&mut self, sq: Square) {
+    fn update_occupied(&mut self, sq: Square, updated: &mut BitBoard) {
         match self.mailbox[sq as usize] {
             SquareInfo::Occupied {piece, color, attack, ref mut defend} => {
+                let mask = sq.into();
+
+                if (*updated & mask).is_empty() {
+                    *updated |= mask;
+                }
                 *defend = attacks(color, piece, sq, self.occ.all);
 
-                let mask = sq.into();
+                
                 for sq in defend.iter_squares() {
                     self.update_attacks(sq, mask);
                 }

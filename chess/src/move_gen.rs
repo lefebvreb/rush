@@ -2,7 +2,24 @@ use crate::game::Game;
 use crate::moves::Move;
 
 enum State {
+    PawnCapture,
+    RookCapture,
+    KnightCapture,
+    BishopCapture,
+    QueenCapture,
+    KingCapture,
+    EnPassant,
+    Castle,
+    PawnPushes,
+    RookQuiet,
+    KnightQuiet,
+    BishopQuiet,
+    QueenQuiet,
+    KingQuiet,
 
+    
+    
+    Stop,
 }
 
 pub struct MoveGenerator {
