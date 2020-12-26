@@ -1,13 +1,18 @@
 mod bmi2;
-use bmi2::{BISHOP_BMI2, ROOK_BMI2};
+use bmi2::*;
 
 mod non_sliders_attacks;
 use non_sliders_attacks::*;
+
+mod pin_tables;
+use pin_tables::*;
+
 mod slider_attacks;
-use slider_attacks::SLIDER_ATTACKS;
+use slider_attacks::*;
 
 use crate::bitboard::BitBoard;
 use crate::bits::{pext, pdep};
+use crate::board::Board;
 use crate::color::Color;
 use crate::piece::Piece;
 use crate::square::Square;
@@ -104,4 +109,52 @@ pub fn attacks(color: Color, piece: Piece, sq: Square, occ: BitBoard) -> BitBoar
         Piece::Queen => queen_attacks(sq, occ),
         Piece::King => king_attacks(sq),
     }
+}
+
+//#################################################################################################
+//
+//                                    Pin
+//
+//#################################################################################################
+
+#[inline(always)]
+pub fn get_pinned(color: Color, board: &Board) -> BitBoard {
+    let king_offset = board.get_bitboard(color, Piece::King).first_square() as usize * 64;
+    let color_inv = color.invert();
+    let queens = board.get_bitboard(color_inv, Piece::Queen);
+    let occ = board.get_occupancy();
+    let us = board.get_color_occupancy(color);
+
+    let mut pinned = BitBoard(0);
+
+    for rook_square in (board.get_bitboard(color_inv, Piece::Rook) | queens).iter_squares() {
+        let between = BitBoard(SQUARES_BETWEEN_STRAIGHT[king_offset + rook_square as usize]);
+
+        if (occ & between).card() == 1 {
+            let maybe_pinned = us & between;
+
+            if !(maybe_pinned.is_empty()) {
+                pinned |= maybe_pinned;
+            }
+        }
+    }
+
+    for bishop_square in (board.get_bitboard(color_inv, Piece::Bishop) | queens).iter_squares() {
+        let between = BitBoard(SQUARES_BETWEEN_DIAGONAL[king_offset + bishop_square as usize]);
+
+        if (occ & between).card() == 1 {
+            let maybe_pinned = us & between;
+
+            if !(maybe_pinned.is_empty()) {
+                pinned |= maybe_pinned;
+            }
+        }
+    }
+
+    pinned
+}
+
+#[inline(always)]
+pub fn pin_mask(king_square: Square, pinned_piece_square: Square) -> BitBoard {
+    BitBoard(SQUARES_MASK[king_square as usize * 64 + pinned_piece_square as usize])
 }

@@ -57,6 +57,16 @@ impl BitBoard {
             old ^ self
         })
     }
+
+    #[inline(always)]
+    pub fn first_square(self) -> Square {
+        Square::from(self.0.trailing_zeros() as u8)
+    }
+    
+    #[inline(always)]
+    pub fn card(self) -> u8 {
+        self.0.count_ones() as u8
+    }
 }
 
 impl Into<usize> for BitBoard {

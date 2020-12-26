@@ -19,10 +19,10 @@ pub struct Board {
 /// A struct holding all necessary occupancy informations
 #[derive(Clone, Debug)]
 struct Occupancy {
-    pub white: BitBoard,
-    pub black: BitBoard,
-    pub all: BitBoard,
-    pub free: BitBoard,
+    white: BitBoard,
+    black: BitBoard,
+    all: BitBoard,
+    free: BitBoard,
 }
 
 impl Occupancy {
@@ -74,6 +74,24 @@ impl Board {
     #[inline(always)]
     pub fn get_info(&self, square: Square) -> &SquareInfo {
         &self.mailbox[square as usize]
+    }
+
+    #[inline(always)]
+    pub fn get_occupancy(&self) -> BitBoard {
+        self.occ.all
+    }
+
+    #[inline(always)]
+    pub fn get_color_occupancy(&self, color: Color) -> BitBoard {
+        match color {
+            Color::White => self.occ.white,
+            Color::Black => self.occ.black,
+        }
+    }
+
+    #[inline(always)]
+    pub fn get_free(&self) -> BitBoard {
+        self.occ.free
     }
 
     // ================================ Helper methods =====================================
