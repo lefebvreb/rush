@@ -2,6 +2,7 @@ use crate::game::Game;
 use crate::moves::Move;
 
 enum State {
+    // if no check
     PawnCapture,
     RookCapture,
     KnightCapture,
@@ -10,14 +11,33 @@ enum State {
     KingCapture,
     EnPassant,
     Castle,
-    PawnPushes,
+    PawnPush,
     RookQuiet,
     KnightQuiet,
     BishopQuiet,
     QueenQuiet,
     KingQuiet,
+    // goto Stop
 
-    
+    // if single check
+    PawnCaptureSingleCheck,
+    RookCaptureSingleCheck,
+    KnightCaptureSingleCheck,
+    BishopCaptureSingleCheck,
+    QueenCaptureSingleCheck,
+    KingCaptureSingleCheck,
+    EnPassantSingleCheck,
+    PawnBlock,
+    RookBlock,
+    KnightBlock,
+    BishopBlock,
+    QueenBlock,
+    // goto KingEvade
+
+    // if double check
+    KingCaptureDoubleCheck,
+    KingEvade,
+    // goto Stop
     
     Stop,
 }
