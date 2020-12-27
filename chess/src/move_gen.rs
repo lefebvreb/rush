@@ -81,34 +81,31 @@ impl MoveGenerator<'_> {
         let king_square = board.get_bitboard(color, Piece::King).first_square();
         let king_attacks = board.get_attacks(king_square) & board.get_color_occupancy(color_inv);
 
-        let (state, moves_buffer, piece_buffer, check_mask) = match king_attacks.card() {
+        let (state, piece_buffer, check_mask) = match king_attacks.card() {
             0 => (
                 State::PawnCapture, 
                 board.get_bitboard(color, Piece::Pawn),
-                BitBoard(0),
-                BitBoard(0),
+                BitBoard::FULL,
             ),
             1 => (
                 State::PawnCapture, 
                 board.get_bitboard(color, Piece::Pawn),
-                BitBoard(0),
                 squares_between(king_square, king_attacks.first_square()) | king_attacks,
             ),
             2 => (
                 State::KingCaptureDoubleCheck, 
                 board.get_bitboard(color, Piece::King),
-                BitBoard(0),
-                BitBoard(0),
+                BitBoard::FULL,
             ),
             _ => unreachable!(),
         };
 
         let danger = {
-            let mut res = BitBoard(0);
+            let mut res = BitBoard::EMPTY;
             for from in board.get_color_occupancy(color_inv).iter_squares() {
                 res |= board.get_defend_unchecked(from);
             }
-            !res
+            res
         };
 
         MoveGenerator {
@@ -122,12 +119,13 @@ impl MoveGenerator<'_> {
             pinned: get_pinned(color, board),
             from: Square::None,
             pawn_promote: PawnPromote::Queen,
-            moves_buffer,
+            moves_buffer: BitBoard::EMPTY,
             piece_buffer,
         }
     }
 
-    // Behold ! The behemoth
+    // Missing: en passant and push promotions
+    // Behold ! The behemoth:
     #[inline(always)]
     pub fn next(&mut self) -> Move {
         let color = self.game.get_color();
@@ -146,7 +144,7 @@ impl MoveGenerator<'_> {
                         }
                     } else {
                         self.piece_buffer = board.get_bitboard(color, $next_piece);
-                        self.moves_buffer = BitBoard(0);
+                        self.moves_buffer = BitBoard::EMPTY;
                         self.state = $next_state;
                     }
                 }
@@ -187,15 +185,15 @@ impl MoveGenerator<'_> {
                                 PawnPromote::Queen => {
                                     self.moves_buffer |= mask;
                                     Piece::Queen
-                                },
+                                }
                                 PawnPromote::Rook => {
                                     self.moves_buffer |= mask;
                                     Piece::Rook
-                                },
+                                }
                                 PawnPromote::Bishop => {
                                     self.moves_buffer |= mask;
                                     Piece::Bishop
-                                },
+                                }
                                 PawnPromote::Knight => Piece::Knight
                             };
                             self.pawn_promote.next();
@@ -237,13 +235,13 @@ impl MoveGenerator<'_> {
                     CastleAvailability::QueenSide => self.state = State::QueenCastle,
                     CastleAvailability::None => {
                         self.piece_buffer = board.get_bitboard(color, Piece::Pawn);
-                        self.moves_buffer = BitBoard(0);
+                        self.moves_buffer = BitBoard::EMPTY;
                         self.state = State::PawnSinglePush
-                    },
+                    }
                 }
                 State::QueenCastle => {
                     self.piece_buffer = board.get_bitboard(color, Piece::Pawn);
-                    self.moves_buffer = BitBoard(0);
+                    self.moves_buffer = BitBoard::EMPTY;
                     self.state = State::PawnSinglePush;
                     match self.castle_availability {
                         CastleAvailability::QueenSide | CastleAvailability::Both => return Move::QueenCastle,
@@ -254,7 +252,7 @@ impl MoveGenerator<'_> {
                     self.from = from_bitboard.first_square();
 
                     self.moves_buffer = if (from_bitboard & self.pinned).is_empty() {
-                        BitBoard(0xFFFFFFFFFFFFFFFF)
+                        BitBoard::FULL
                     } else {
                         pin_mask(self.king_square, self.from)
                     };
@@ -270,7 +268,7 @@ impl MoveGenerator<'_> {
                     }
                 } else {
                     self.piece_buffer = board.get_bitboard(color, Piece::Rook);
-                    self.moves_buffer = BitBoard(0);
+                    self.moves_buffer = BitBoard::EMPTY;
                     self.state = State::RookQuiet
                 }
                 State::PawnDoublePush => {
@@ -338,11 +336,18 @@ mod tests {
     fn opening() {
         let game = Game::default();
 
+        //println!("{}", game.get_board().get_defend_unchecked(Square::B1));
+
         let mut move_gen = MoveGenerator::legals(&game);
 
         let moves = move_gen.collect();
 
         println!("{:?}", moves.len());
         println!("{:?}", moves);
+    }
+
+    #[test]
+    fn perft() {
+
     }
 }

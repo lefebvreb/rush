@@ -32,6 +32,9 @@ impl BitBoard {
     pub const RANK_7: BitBoard = BitBoard(0x00FF000000000000);
     pub const RANK_8: BitBoard = BitBoard(0xFF00000000000000);*/
 
+    pub const EMPTY: BitBoard = BitBoard(0);
+    pub const FULL: BitBoard = BitBoard(0xFFFFFFFFFFFFFFFF);
+
     /// Return true if the BitBoard `self` is empty
     #[inline(always)]
     pub const fn is_empty(self) -> bool {
@@ -107,7 +110,7 @@ impl Into<usize> for BitBoard {
 #[macro_export]
 macro_rules! squares {
     ($($sq: expr),*) => {
-        BitBoard(0) $(| $sq.into())*
+        BitBoard::EMPTY $(| $sq.into())*
     };
 }
 

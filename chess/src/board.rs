@@ -174,7 +174,7 @@ impl Board {
             color,
             piece,
             attack,
-            defend: BitBoard(0),
+            defend: BitBoard::EMPTY,
         };
     }
 
@@ -251,7 +251,7 @@ impl Board {
         self.occupy_mailbox(color, Piece::Rook, rook_to);
         self.occupy_mailbox(color, Piece::King, king_to);
 
-        let mut updated = BitBoard(0);
+        let mut updated = BitBoard::EMPTY;
         self.update_unoccupied(rook_from, &mut updated);
         self.update_unoccupied(king_from, &mut updated);
         self.update_occupied(rook_to, &mut updated);
@@ -272,7 +272,7 @@ impl Board {
                 self.unoccupy_mailbox(from);
                 self.occupy_mailbox(color, piece, to);
 
-                let mut updated = BitBoard(0);
+                let mut updated = BitBoard::EMPTY;
                 self.update_unoccupied(from, &mut updated);
                 self.update_occupied(to, &mut updated);
             }
@@ -285,7 +285,7 @@ impl Board {
                 self.unoccupy_mailbox(from);
                 self.reoccupy_mailbox(color, piece, to);
 
-                let mut updated = BitBoard(0);
+                let mut updated = BitBoard::EMPTY;
                 self.update_unoccupied(from, &mut updated);
                 self.update_occupied(to, &mut updated);
             }
@@ -298,7 +298,7 @@ impl Board {
                 self.unoccupy_mailbox(from);
                 self.occupy_mailbox(color, promote, to);
 
-                let mut updated = BitBoard(0);
+                let mut updated = BitBoard::EMPTY;
                 self.update_unoccupied(from, &mut updated);
                 self.update_occupied(to, &mut updated);
             }
@@ -312,7 +312,7 @@ impl Board {
                 self.unoccupy_mailbox(from);
                 self.reoccupy_mailbox(color, promote, to);
 
-                let mut updated = BitBoard(0);
+                let mut updated = BitBoard::EMPTY;
                 self.update_unoccupied(from, &mut updated);
                 self.update_occupied(to, &mut updated);
             }
@@ -326,7 +326,7 @@ impl Board {
                 self.unoccupy_mailbox(mid);
                 self.occupy_mailbox(color, Piece::Pawn, to);
 
-                let mut updated = BitBoard(0);
+                let mut updated = BitBoard::EMPTY;
                 self.update_unoccupied(from, &mut updated);
                 self.update_unoccupied(mid, &mut updated);
                 self.update_occupied(to, &mut updated);
@@ -337,7 +337,7 @@ impl Board {
                 self.unoccupy_mailbox(from);
                 self.occupy_mailbox(color, Piece::Pawn, to);
 
-                let mut updated = BitBoard(0);
+                let mut updated = BitBoard::EMPTY;
                 self.update_unoccupied(from, &mut updated);
                 self.update_occupied(to, &mut updated);
             }
@@ -365,7 +365,7 @@ impl Board {
                 self.occupy_mailbox(color, piece, from);
                 self.unoccupy_mailbox(to);
 
-                let mut updated = BitBoard(0);
+                let mut updated = BitBoard::EMPTY;
                 self.update_occupied(from, &mut updated);
                 self.update_unoccupied(to, &mut updated);
             }
@@ -378,7 +378,7 @@ impl Board {
                 self.occupy_mailbox(color, piece, from);
                 self.reoccupy_mailbox(color.invert(), capture, to);
 
-                let mut updated = BitBoard(0);
+                let mut updated = BitBoard::EMPTY;
                 self.update_occupied(from, &mut updated);
                 self.update_occupied(to, &mut updated);
             }
@@ -389,7 +389,7 @@ impl Board {
                 self.occupy_mailbox(color, Piece::Pawn, from);
                 self.unoccupy_mailbox(to);
 
-                let mut updated = BitBoard(0);
+                let mut updated = BitBoard::EMPTY;
                 self.update_occupied(from, &mut updated);
                 self.update_unoccupied(to, &mut updated);
             }
@@ -401,7 +401,7 @@ impl Board {
                 self.reoccupy_mailbox(color.invert(), capture, to);
                 self.occupy_mailbox(color, Piece::Pawn, from);
 
-                let mut updated = BitBoard(0);
+                let mut updated = BitBoard::EMPTY;
                 self.update_occupied(from, &mut updated);
                 self.update_occupied(to, &mut updated);
             }
@@ -415,7 +415,7 @@ impl Board {
                 self.occupy_mailbox(color.invert(), Piece::Pawn, mid);
                 self.unoccupy_mailbox(to);
 
-                let mut updated = BitBoard(0);
+                let mut updated = BitBoard::EMPTY;
                 self.update_occupied(from, &mut updated);
                 self.update_occupied(mid, &mut updated);
                 self.update_unoccupied(to, &mut updated);
@@ -426,7 +426,7 @@ impl Board {
                 self.occupy_mailbox(color, Piece::Pawn, from);
                 self.unoccupy_mailbox(to);
 
-                let mut updated = BitBoard(0);
+                let mut updated = BitBoard::EMPTY;
                 self.update_occupied(from, &mut updated);
                 self.update_unoccupied(to, &mut updated);
             }
@@ -448,13 +448,13 @@ impl Default for Board {
     #[cold]
     fn default() -> Board {
         let mut board = Board {
-            bitboards: [[BitBoard(0); 6]; 2],
-            mailbox: [SquareInfo::Unoccupied {attack: BitBoard(0)}; 64],
+            bitboards: [[BitBoard::EMPTY; 6]; 2],
+            mailbox: [SquareInfo::Unoccupied {attack: BitBoard::EMPTY}; 64],
             occ: Occupancy {
-                white: BitBoard(0),
-                black: BitBoard(0),
-                all: BitBoard(0),
-                free: BitBoard(0xFFFFFFFFFFFFFFFF),
+                white: BitBoard::EMPTY,
+                black: BitBoard::EMPTY,
+                all: BitBoard::EMPTY,
+                free: BitBoard::FULL,
             }
         };
 
@@ -480,7 +480,7 @@ impl Default for Board {
                 for sq in squares {
                     board.update_bitboards(*color, *piece, (*sq).into());
                     board.occupy_mailbox(*color, *piece, *sq);
-                    let mut updated = BitBoard(0);
+                    let mut updated = BitBoard::EMPTY;
                     board.update_occupied(*sq, &mut updated);
                 }
             }

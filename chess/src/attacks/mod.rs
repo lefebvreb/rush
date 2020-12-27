@@ -125,7 +125,7 @@ pub fn get_pinned(color: Color, board: &Board) -> BitBoard {
     let occ = board.get_occupancy();
     let us = board.get_color_occupancy(color);
 
-    let mut pinned = BitBoard(0);
+    let mut pinned = BitBoard::EMPTY;
 
     for rook_square in (board.get_bitboard(color_inv, Piece::Rook) | queens).iter_squares() {
         let between = BitBoard(SQUARES_BETWEEN_STRAIGHT[king_offset + rook_square as usize]);
