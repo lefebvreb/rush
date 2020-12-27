@@ -51,9 +51,9 @@ impl Square {
 
     #[inline(always)]
     pub fn is_last_rank(self, color: Color) -> bool {
-        match color {
-            Color::White => self.y() == 7,
-            Color::Black => self.y() == 0,
+        self.y() == match color {
+            Color::White => 7,
+            Color::Black => 0,
         }
     }
 }

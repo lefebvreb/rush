@@ -158,3 +158,9 @@ pub fn get_pinned(color: Color, board: &Board) -> BitBoard {
 pub fn pin_mask(king_square: Square, pinned_piece_square: Square) -> BitBoard {
     BitBoard(SQUARES_MASK[king_square as usize * 64 + pinned_piece_square as usize])
 }
+
+#[inline(always)]
+pub fn squares_between(sq1: Square, sq2: Square) -> BitBoard {
+    let i = sq1 as usize + 64 * sq2 as usize;
+    BitBoard(SQUARES_BETWEEN_STRAIGHT[i] | SQUARES_BETWEEN_DIAGONAL[i])
+}

@@ -1,4 +1,4 @@
-use crate::attacks::{get_pinned, pin_mask};
+use crate::attacks::{double_push, get_pinned, pawn_push, pin_mask, squares_between};
 use crate::bitboard::BitBoard;
 use crate::castle_rights::CastleAvailability;
 use crate::color::Color;
@@ -28,25 +28,9 @@ enum State {
     KingQuiet,
     // goto Stop
 
-    // if single check =>
-    PawnCaptureSingleCheck,
-    RookCaptureSingleCheck,
-    KnightCaptureSingleCheck,
-    BishopCaptureSingleCheck,
-    QueenCaptureSingleCheck,
-    KingCaptureSingleCheck,
-    EnPassantSingleCheck,
-    PawnBlock,
-    RookBlock,
-    KnightBlock,
-    BishopBlock,
-    QueenBlock,
-    // goto KingEvade
-
     // if double check =>
     KingCaptureDoubleCheck,
-    KingEvade,
-    // goto Stop
+    // goto KingQuiet
     
     Stop,
 }
@@ -76,6 +60,7 @@ pub struct MoveGenerator<'game> {
     game: &'game Game,
     color_inv: Color,
     king_square: Square,
+    check_mask: BitBoard,
     castle_availability: CastleAvailability,
     safe: BitBoard,
     pinned: BitBoard,
@@ -87,28 +72,32 @@ pub struct MoveGenerator<'game> {
 
 impl MoveGenerator<'_> {
     #[inline(always)]
-    pub fn legals(color: Color, game: &Game) -> MoveGenerator {
+    pub fn legals(game: &Game) -> MoveGenerator {
         let board = game.get_board();
+        let color = game.get_color();
 
         let color_inv = color.invert();
 
         let king_square = board.get_bitboard(color, Piece::King).first_square();
-        let king_attacks = board.get_attacks(king_square);
+        let king_attacks = board.get_attacks(king_square) & board.get_color_occupancy(color_inv);
 
-        let (state, moves_buffer, piece_buffer) = match king_attacks.card() {
+        let (state, moves_buffer, piece_buffer, check_mask) = match king_attacks.card() {
             0 => (
                 State::PawnCapture, 
                 board.get_bitboard(color, Piece::Pawn),
                 BitBoard(0),
+                BitBoard(0),
             ),
             1 => (
-                State::PawnCaptureSingleCheck, 
+                State::PawnCapture, 
                 board.get_bitboard(color, Piece::Pawn),
                 BitBoard(0),
+                squares_between(king_square, king_attacks.first_square()) | king_attacks,
             ),
             2 => (
                 State::KingCaptureDoubleCheck, 
                 board.get_bitboard(color, Piece::King),
+                BitBoard(0),
                 BitBoard(0),
             ),
             _ => unreachable!(),
@@ -127,6 +116,7 @@ impl MoveGenerator<'_> {
             game,
             color_inv,
             king_square,
+            check_mask,
             castle_availability: game.castle_rights.get_availability(color, board.get_occupancy(), danger),
             safe: !danger,
             pinned: get_pinned(color, board),
@@ -137,6 +127,7 @@ impl MoveGenerator<'_> {
         }
     }
 
+    // Behold ! The behemoth
     #[inline(always)]
     pub fn next(&mut self) -> Move {
         let color = self.game.get_color();
@@ -149,7 +140,7 @@ impl MoveGenerator<'_> {
                 } else {
                     if let Some(from_bitboard) = self.piece_buffer.pop_first_bitboard() {
                         self.from = from_bitboard.first_square();
-                        self.moves_buffer = board.get_defend_unchecked(self.from) & $mask;
+                        self.moves_buffer = board.get_defend_unchecked(self.from) & $mask & self.check_mask;
                         if (from_bitboard & self.pinned).is_not_empty() {
                             self.moves_buffer &= pin_mask(self.king_square, self.from);
                         }
@@ -170,6 +161,18 @@ impl MoveGenerator<'_> {
                             from: self.from, 
                             to, 
                             capture: board.get_piece_unchecked(to),
+                        }
+                )
+            };
+        }
+
+        macro_rules! quiet {
+            ($next_piece: expr, $next_state: expr) => {
+                next_move!(
+                    board.get_free(), $next_piece, $next_state, |to: Square, _| 
+                        Move::Quiet {
+                            from: self.from, 
+                            to,
                         }
                 )
             };
@@ -222,7 +225,10 @@ impl MoveGenerator<'_> {
                             capture: board.get_piece_unchecked(to),
                         }
                 ),
-                State::EnPassant => todo!(),
+                State::EnPassant => {
+                    // TODO
+                    self.state = State::KingCastle;
+                },
                 State::KingCastle => match self.castle_availability {
                     CastleAvailability::KingSide | CastleAvailability::Both => {
                         self.state = State::QueenCastle;
@@ -245,30 +251,60 @@ impl MoveGenerator<'_> {
                     }
                 }
                 State::PawnSinglePush => if let Some(from_bitboard) = self.piece_buffer.pop_first_bitboard() {
-                    
+                    self.from = from_bitboard.first_square();
+
+                    self.moves_buffer = if (from_bitboard & self.pinned).is_empty() {
+                        BitBoard(0xFFFFFFFFFFFFFFFF)
+                    } else {
+                        pin_mask(self.king_square, self.from)
+                    };
+
+                    let push = self.moves_buffer & board.get_free() & self.check_mask & pawn_push(color, self.from).into();
+
+                    if push.is_not_empty() {
+                        self.state = State::PawnDoublePush;
+                        return Move::Quiet {
+                            from: self.from,
+                            to: push.first_square(),
+                        };
+                    }
+                } else {
+                    self.piece_buffer = board.get_bitboard(color, Piece::Rook);
+                    self.moves_buffer = BitBoard(0);
+                    self.state = State::RookQuiet
                 }
-                State::PawnDoublePush => todo!(),
-                State::RookQuiet => todo!(),
-                State::KnightQuiet => todo!(),
-                State::BishopQuiet => todo!(),
-                State::QueenQuiet => todo!(),
-                State::KingQuiet => todo!(),
+                State::PawnDoublePush => {
+                    let push = self.moves_buffer & board.get_free() & self.check_mask & double_push(color, self.from).into();
 
-                State::PawnCaptureSingleCheck => todo!(),
-                State::RookCaptureSingleCheck => todo!(),
-                State::KnightCaptureSingleCheck => todo!(),
-                State::BishopCaptureSingleCheck => todo!(),
-                State::QueenCaptureSingleCheck => todo!(),
-                State::KingCaptureSingleCheck => todo!(),
-                State::EnPassantSingleCheck => todo!(),
-                State::PawnBlock => todo!(),
-                State::RookBlock => todo!(),
-                State::KnightBlock => todo!(),
-                State::BishopBlock => todo!(),
-                State::QueenBlock => todo!(),
+                    self.state = State::PawnSinglePush;
 
-                State::KingCaptureDoubleCheck => todo!(),
-                State::KingEvade => todo!(),
+                    if push.is_not_empty() {
+                        return Move::DoublePush {
+                            from: self.from,
+                            to: push.first_square(),
+                        };
+                    }
+                },
+                State::RookQuiet => quiet!(Piece::Knight, State::KnightQuiet),
+                State::KnightQuiet => quiet!(Piece::Bishop, State::BishopQuiet),
+                State::BishopQuiet => quiet!(Piece::Queen, State::QueenQuiet),
+                State::QueenQuiet => quiet!(Piece::King, State::KingQuiet),
+                State::KingQuiet => next_move!(
+                    board.get_free() & self.safe, /* useless fetch */ Piece::Pawn, State::Stop, |to: Square, _| 
+                        Move::Quiet {
+                            from: self.from, 
+                            to,
+                        }
+                ),
+
+                State::KingCaptureDoubleCheck => next_move!(
+                    board.get_color_occupancy(self.color_inv) & self.safe, /* useless fetch */ Piece::King, State::KingQuiet, |to: Square, _| 
+                        Move::Capture {
+                            from: self.from, 
+                            to, 
+                            capture: board.get_piece_unchecked(to),
+                        }
+                ),
 
                 State::Stop => {
                     return Move::None;
@@ -291,5 +327,22 @@ impl MoveGenerator<'_> {
         }
 
         res
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn opening() {
+        let game = Game::default();
+
+        let mut move_gen = MoveGenerator::legals(&game);
+
+        let moves = move_gen.collect();
+
+        println!("{:?}", moves.len());
+        println!("{:?}", moves);
     }
 }
