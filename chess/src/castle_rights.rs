@@ -48,23 +48,23 @@ impl CastleRights {
     /// Return the castling abilities of a certain player, based on the monochrome
     /// occupancy bitboard and the attack bitboard of the opponent.
     #[inline]
-    pub fn get_availability(&self, color: Color, occ: BitBoard, atk: BitBoard) -> CastleAvailability {
+    pub fn get_availability(&self, color: Color, occ: BitBoard, danger: BitBoard) -> CastleAvailability {
         match match color {
             Color::White if self.kings[0] => {(
                     self.king_rooks[0] &&                
                     (occ & squares!(Square::F1, Square::G1)).is_empty() &&
-                    (atk & squares!(Square::E1, Square::F1, Square::G1)).is_empty(),
+                    (danger & squares!(Square::E1, Square::F1, Square::G1)).is_empty(),
                     self.queen_rooks[0] &&
                     (occ & squares!(Square::B1, Square::C1, Square::D1)).is_empty() &&
-                    (atk & squares!(Square::B1, Square::C1, Square::D1, Square::E1)).is_empty(),
+                    (danger & squares!(Square::B1, Square::C1, Square::D1, Square::E1)).is_empty(),
             )}
             Color::Black if self.kings[1] => {(
                     self.king_rooks[1] &&                
                     (occ & squares!(Square::F8, Square::G8)).is_empty() &&
-                    (atk & squares!(Square::E8, Square::F8, Square::G8)).is_empty(),
+                    (danger & squares!(Square::E8, Square::F8, Square::G8)).is_empty(),
                     self.queen_rooks[1] &&
                     (occ & squares!(Square::B8, Square::C8, Square::D8)).is_empty() &&
-                    (atk & squares!(Square::B8, Square::C8, Square::D8, Square::E8)).is_empty(),
+                    (danger & squares!(Square::B8, Square::C8, Square::D8, Square::E8)).is_empty(),
             )}
             _ => return CastleAvailability::None,
         } {

@@ -38,6 +38,11 @@ impl BitBoard {
         self.0 == 0
     }
 
+    #[inline(always)]
+    pub const fn is_not_empty(self) -> bool {
+        self.0 != 0
+    }
+
     /// Return an iterator over the bits of the BitBoard `self`
     #[inline(always)]
     pub fn iter_squares(mut self) -> impl Iterator<Item = Square> {
@@ -66,6 +71,28 @@ impl BitBoard {
     #[inline(always)]
     pub fn card(self) -> u8 {
         self.0.count_ones() as u8
+    }
+
+    #[inline(always)]
+    pub fn pop_first_square(&mut self) -> Square {
+        if self.is_empty() {
+            Square::None
+        } else {
+            let old = *self;
+            *self &= *self - BitBoard(1);
+            (old ^ *self).first_square()
+        }
+    }
+
+    #[inline(always)]
+    pub fn pop_first_bitboard(&mut self) -> Option<BitBoard> {
+        if self.is_empty() {
+            None
+        } else {
+            let old = *self;
+            *self &= *self - BitBoard(1);
+            Some(old ^ *self)
+        }
     }
 }
 

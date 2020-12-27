@@ -6,6 +6,7 @@ use crate::square::Square;
 #[repr(u8)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Move {
+    None,
     Quiet {
         from: Square,
         to: Square,
@@ -36,7 +37,6 @@ pub enum Move {
     },
     KingCastle,
     QueenCastle,
-    None,
 }
 
 impl Move {

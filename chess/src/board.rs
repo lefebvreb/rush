@@ -70,12 +70,6 @@ impl Board {
         self.bitboards[color as usize][piece as usize]
     }
 
-    /// Return the Piece and it's Color present on that Square 
-    #[inline(always)]
-    pub fn get_info(&self, square: Square) -> &SquareInfo {
-        &self.mailbox[square as usize]
-    }
-
     #[inline(always)]
     pub fn get_occupancy(&self) -> BitBoard {
         self.occ.all
@@ -92,6 +86,33 @@ impl Board {
     #[inline(always)]
     pub fn get_free(&self) -> BitBoard {
         self.occ.free
+    }
+
+    #[inline(always)]
+    pub fn get_attacks(&self, sq: Square) -> BitBoard {
+        match self.mailbox[sq as usize] {
+            SquareInfo::Occupied {attack, ..} |
+            SquareInfo::Unoccupied {attack} => attack,
+        }
+    }
+
+    // ================================ Unchecked accessers =====================================
+
+    #[inline(always)]
+    pub(crate) fn get_defend_unchecked(&self, sq: Square) -> BitBoard {
+        match self.mailbox[sq as usize] {
+            SquareInfo::Occupied {defend, ..} => defend,
+            _ => unreachable!(),
+        }
+    }
+
+    /// Return the piece present at the given square, should not be called when there are no pieces there
+    #[inline(always)]
+    pub(crate) fn get_piece_unchecked(&self, square: Square) -> Piece {
+        match self.mailbox[square as usize] {
+            SquareInfo::Occupied {piece, ..} => piece,
+            _ => unreachable!()
+        }
     }
 
     // ================================ Helper methods =====================================
@@ -129,15 +150,6 @@ impl Board {
                 }
                 _ => ()
             }
-        }
-    }
-
-    /// Return the piece present at the given square, should not be called when there are no pieces there
-    #[inline(always)]
-    fn get_piece(&self, square: Square) -> Piece {
-        match self.mailbox[square as usize] {
-            SquareInfo::Occupied {piece, ..} => piece,
-            _ => unreachable!()
         }
     }
 
@@ -253,7 +265,7 @@ impl Board {
     pub(crate) fn do_move(&mut self, color: Color, mv: Move) {
         match mv {
             Move::Quiet {from, to} => {
-                let piece = self.get_piece(from);
+                let piece = self.get_piece_unchecked(from);
 
                 self.update_bitboards(color, piece, squares!(from, to));
 
@@ -265,7 +277,7 @@ impl Board {
                 self.update_occupied(to, &mut updated);
             }
             Move::Capture {from, to, capture} => {
-                let piece = self.get_piece(from);
+                let piece = self.get_piece_unchecked(from);
 
                 self.update_bitboards(color, piece, squares!(from, to));
                 self.update_bitboards(color.invert(), capture, to.into());
@@ -278,7 +290,7 @@ impl Board {
                 self.update_occupied(to, &mut updated);
             }
             Move::Promote {from, to, promote} => {
-                let piece = self.get_piece(from);
+                let piece = self.get_piece_unchecked(from);
 
                 self.update_bitboards(color, piece, from.into());
                 self.update_bitboards(color, promote, to.into());
@@ -291,7 +303,7 @@ impl Board {
                 self.update_occupied(to, &mut updated);
             }
             Move::PromoteCapture {from, to, capture, promote} => {
-                let piece = self.get_piece(from);
+                let piece = self.get_piece_unchecked(from);
 
                 self.update_bitboards(color, piece, from.into());
                 self.update_bitboards(color, promote, to.into());
@@ -346,7 +358,7 @@ impl Board {
     pub(crate) fn undo_move(&mut self, color: Color, mv: Move) {
         match mv {
             Move::Quiet {from, to} => {
-                let piece = self.get_piece(to);
+                let piece = self.get_piece_unchecked(to);
 
                 self.update_bitboards(color, piece, squares!(from, to));
 
@@ -358,7 +370,7 @@ impl Board {
                 self.update_unoccupied(to, &mut updated);
             }
             Move::Capture {from, to, capture} => {
-                let piece = self.get_piece(to);
+                let piece = self.get_piece_unchecked(to);
 
                 self.update_bitboards(color, piece, squares!(from, to));
                 self.update_bitboards(color.invert(), capture, to.into());

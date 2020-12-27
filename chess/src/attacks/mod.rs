@@ -33,7 +33,7 @@ fn pawn_attacks(color: Color, sq: Square) -> BitBoard {
 }
 
 #[inline(always)]
-fn pawn_push(color: Color, sq: Square) -> Square {
+pub fn pawn_push(color: Color, sq: Square) -> Square {
     Square::from(match color {
         Color::White => WHITE_PAWN_PUSHES[sq as usize],
         Color::Black => BLACK_PAWN_PUSHES[sq as usize],
@@ -41,7 +41,7 @@ fn pawn_push(color: Color, sq: Square) -> Square {
 }
 
 #[inline(always)]
-fn double_push(color: Color, sq: Square) -> Square {
+pub fn double_push(color: Color, sq: Square) -> Square {
     Square::from(match color {
         Color::White => WHITE_PAWN_DOUBLE_PUSHES[sq as usize],
         Color::Black => BLACK_PAWN_DOUBLE_PUSHES[sq as usize],
@@ -133,7 +133,7 @@ pub fn get_pinned(color: Color, board: &Board) -> BitBoard {
         if (occ & between).card() == 1 {
             let maybe_pinned = us & between;
 
-            if !(maybe_pinned.is_empty()) {
+            if maybe_pinned.is_not_empty() {
                 pinned |= maybe_pinned;
             }
         }
@@ -145,7 +145,7 @@ pub fn get_pinned(color: Color, board: &Board) -> BitBoard {
         if (occ & between).card() == 1 {
             let maybe_pinned = us & between;
 
-            if !(maybe_pinned.is_empty()) {
+            if maybe_pinned.is_not_empty() {
                 pinned |= maybe_pinned;
             }
         }

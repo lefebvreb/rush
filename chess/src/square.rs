@@ -2,6 +2,7 @@ use std::mem::transmute;
 
 use crate::bitboard::BitBoard;
 use crate::bits::SHIFTS;
+use crate::color::Color;
 
 /// Represent a Square of the board
 #[repr(u8)]
@@ -46,6 +47,14 @@ impl Square {
     #[inline(always)]
     pub fn is_none(self) -> bool {
         self == Square::None
+    }
+
+    #[inline(always)]
+    pub fn is_last_rank(self, color: Color) -> bool {
+        match color {
+            Color::White => self.y() == 7,
+            Color::Black => self.y() == 0,
+        }
     }
 }
 
