@@ -44,10 +44,6 @@ pub trait MoveGenerator {
             })
             .collect()
     }
-
-    fn test() {
-
-    }
 }
 
 impl<G: Generator<(), Yield=Move, Return=()> + Unpin> MoveGenerator for G {
