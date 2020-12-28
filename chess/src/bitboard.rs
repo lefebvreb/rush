@@ -14,33 +14,19 @@ pub struct BitBoard(pub u64);
 //#################################################################################################
 
 impl BitBoard {
-    /*pub const FILE_A: BitBoard = BitBoard(0x0101010101010101);
-    pub const FILE_B: BitBoard = BitBoard(0x0202020202020202);
-    pub const FILE_C: BitBoard = BitBoard(0x0404040404040404);
-    pub const FILE_D: BitBoard = BitBoard(0x0808080808080808);
-    pub const FILE_E: BitBoard = BitBoard(0x1010101010101010);
-    pub const FILE_F: BitBoard = BitBoard(0x2020202020202020);
-    pub const FILE_G: BitBoard = BitBoard(0x4040404040404040);
-    pub const FILE_H: BitBoard = BitBoard(0x8080808080808080);
-
-    pub const RANK_1: BitBoard = BitBoard(0x00000000000000FF);
-    pub const RANK_2: BitBoard = BitBoard(0x000000000000FF00);
-    pub const RANK_3: BitBoard = BitBoard(0x0000000000FF0000);
-    pub const RANK_4: BitBoard = BitBoard(0x00000000FF000000);
-    pub const RANK_5: BitBoard = BitBoard(0x000000FF00000000);
-    pub const RANK_6: BitBoard = BitBoard(0x0000FF0000000000);
-    pub const RANK_7: BitBoard = BitBoard(0x00FF000000000000);
-    pub const RANK_8: BitBoard = BitBoard(0xFF00000000000000);*/
-
+    /// An empty BitBoard
     pub const EMPTY: BitBoard = BitBoard(0);
+
+    /// A full BitBoard
     pub const FULL: BitBoard = BitBoard(0xFFFFFFFFFFFFFFFF);
 
-    /// Return true if the BitBoard `self` is empty
+    /// Return true if and only if the BitBoard `self` is empty
     #[inline(always)]
     pub const fn is_empty(self) -> bool {
         self.0 == 0
     }
 
+    /// Return true if and only if the BitBoard `self` is not empty
     #[inline(always)]
     pub const fn is_not_empty(self) -> bool {
         self.0 != 0
@@ -65,28 +51,26 @@ impl BitBoard {
             old ^ self
         })
     }
-
-    #[inline(always)]
-    pub fn first_square(self) -> Square {
-        Square::from(self.0.trailing_zeros() as u8)
-    }
     
+    /// Count the bits of `self` that are 1
     #[inline(always)]
-    pub fn card(self) -> u8 {
+    pub fn count_bits(self) -> u8 {
         self.0.count_ones() as u8
     }
 
+    /// Return the first square of the bitboard
     #[inline(always)]
-    pub fn pop_first_square(&mut self) -> Square {
+    pub fn pop_first_square(&mut self) -> Option<Square> {
         if self.is_empty() {
-            Square::None
+            None
         } else {
             let old = *self;
             *self &= *self - BitBoard(1);
-            (old ^ *self).first_square()
+            Some((old ^ *self).as_square_unchecked())
         }
     }
 
+    /// Return the first bit of the bitboard
     #[inline(always)]
     pub fn pop_first_bitboard(&mut self) -> Option<BitBoard> {
         if self.is_empty() {
@@ -96,6 +80,12 @@ impl BitBoard {
             *self &= *self - BitBoard(1);
             Some(old ^ *self)
         }
+    }
+
+    // Return the first square of the bitboard
+    #[inline(always)]
+    pub(crate) fn as_square_unchecked(self) -> Square {
+        Square::from(self.0.trailing_zeros() as u8)
     }
 }
 

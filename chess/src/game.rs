@@ -7,11 +7,11 @@ use crate::ply::Ply;
 /// A struct that holds every information defining a complete game of chess
 #[derive(Debug)]
 pub struct Game {
-    pub(crate) board: Board,
-    pub(crate) castle_rights: CastleRights,
-    pub(crate) color: Color,
-    pub(crate) history: Vec<Move>,
-    pub(crate) ply: Ply,
+    pub board: Board,
+    pub castle_rights: CastleRights,
+    pub color: Color,
+    pub history: Vec<Move>,
+    pub ply: Ply,
 }
 
 impl Game {
@@ -40,15 +40,27 @@ impl Game {
     }
 
     /// Return the game's board
-    #[cold]
+    #[inline(always)]
     pub fn get_board(&self) -> &Board {
         &self.board
     }
 
     /// Return the color of the current player
-    #[cold]
+    #[inline(always)]
     pub fn get_color(&self) -> Color {
         self.color
+    }
+
+    // Return the castling rights
+    #[inline(always)]
+    pub(crate) fn get_castle_rights(&self) -> &CastleRights {
+        &self.castle_rights
+    }
+
+    // Return the last move played
+    #[inline(always)]
+    pub(crate) fn get_last_move(&self) -> Move {
+        self.history.last().map_or(Move::None, |mv| *mv)
     }
 }
 

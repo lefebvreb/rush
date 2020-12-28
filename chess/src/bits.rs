@@ -1,5 +1,5 @@
-/// Precalculated table of left shifts, such that
-/// SHIFTS[i] == 1u64 << i for 0 <= i < 64
+// Precalculated table of left shifts, such that
+// SHIFTS[i] == 1u64 << i for 0 <= i < 64
 pub const SHIFTS: [u64; 64] = {
     let mut tab = [0; 64];
     let mut i = 0;
@@ -10,14 +10,14 @@ pub const SHIFTS: [u64; 64] = {
     tab
 };
 
-/// Perform a parallel bits extract (pext) using the intrinsic (fast)
+// Perform a parallel bits extract (pext) using the intrinsic (fast)
 #[inline(always)]
 #[cfg(target_feature = "bmi2")]
 pub fn pext(a: u64, mask: u64) -> u64 {
     unsafe {std::arch::x86_64::_pext_u64(a, mask)}
 }
 
-/// Perform a parallel bits extract (pext) without the intrinsic (slow)
+// Perform a parallel bits extract (pext) without the intrinsic (slow)
 #[inline(always)]
 #[cfg(not(target_feature = "bmi2"))]
 pub fn pext(a: u64, mut mask: u64) -> u64 {
@@ -35,14 +35,14 @@ pub fn pext(a: u64, mut mask: u64) -> u64 {
     res
 }
 
-/// Perform a parallel bits deposit (pdep) using the intrinsic (fast)
+// Perform a parallel bits deposit (pdep) using the intrinsic (fast)
 #[inline(always)]
 #[cfg(target_feature = "bmi2")]
 pub fn pdep(a: u64, mask: u64) -> u64 {
     unsafe {std::arch::x86_64::_pdep_u64(a, mask)}
 }
 
-/// Perform a parallel bits deposit (pdep) without the intrinsic (slow)
+// Perform a parallel bits deposit (pdep) without the intrinsic (slow)
 #[inline(always)]
 #[cfg(not(target_feature = "bmi2"))]
 pub fn pdep(a: u64, mut mask: u64) -> u64 {

@@ -3,18 +3,18 @@
 // a ply counter. Plus, it makes a few signatures a
 // bit more clear.
 
-/// Represent a ply (half-turn) counter
+// Represent a ply (half-turn) counter
 #[derive(Copy, Clone, PartialEq, Default, Debug)]
-pub struct Ply(u32);
+pub struct Ply(u16);
 
 impl Ply {
-    /// Increment the counter
+    // Increment the counter
     #[inline(always)]
     pub fn incr(&mut self) {
         self.0 += 1;
     }
 
-     /// Decrement the counter
+    // Decrement the counter
     #[inline(always)]
     pub fn decr(&mut self) {
         self.0 -= 1;

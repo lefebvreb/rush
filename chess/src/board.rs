@@ -16,7 +16,7 @@ pub struct Board {
     occ: Occupancy,
 }
 
-/// A struct holding all necessary occupancy informations
+// A struct holding all necessary occupancy informations
 #[derive(Clone, Debug)]
 struct Occupancy {
     white: BitBoard,
@@ -70,11 +70,13 @@ impl Board {
         self.bitboards[color as usize][piece as usize]
     }
 
+    /// Return the monochrome occupancy of the board
     #[inline(always)]
     pub fn get_occupancy(&self) -> BitBoard {
         self.occ.all
     }
 
+    /// Return the occupancy of the board corresponding to the given color
     #[inline(always)]
     pub fn get_color_occupancy(&self, color: Color) -> BitBoard {
         match color {
@@ -83,11 +85,13 @@ impl Board {
         }
     }
 
+    /// Return the free squares of the board
     #[inline(always)]
     pub fn get_free(&self) -> BitBoard {
         self.occ.free
     }
 
+    /// Return the attacks to that square
     #[inline(always)]
     pub fn get_attacks(&self, sq: Square) -> BitBoard {
         match self.mailbox[sq as usize] {
@@ -98,6 +102,7 @@ impl Board {
 
     // ================================ Unchecked accessers =====================================
 
+    // Return the attacks from that square, assuming there is a piece there
     #[inline(always)]
     pub(crate) fn get_defend_unchecked(&self, sq: Square) -> BitBoard {
         match self.mailbox[sq as usize] {
@@ -106,7 +111,7 @@ impl Board {
         }
     }
 
-    /// Return the piece present at the given square, should not be called when there are no pieces there
+    // Return the piece present at the given square, should not be called when there are no pieces there
     #[inline(always)]
     pub(crate) fn get_piece_unchecked(&self, square: Square) -> Piece {
         match self.mailbox[square as usize] {
@@ -117,7 +122,7 @@ impl Board {
 
     // ================================ Helper methods =====================================
 
-    /// Update the attack map of the square sq with the given bitboard
+    // Update the attack map of the square sq with the given bitboard
     #[inline(always)]
     fn update_attacks(&mut self, sq: Square, mask: BitBoard) {
         match self.mailbox[sq as usize] {
@@ -128,8 +133,8 @@ impl Board {
         }
     }
 
-    /// Update the attacks of the piece on sq (if there are any) and
-    /// also update the squares attacked by that piece
+    // Update the attacks of the piece on sq (if there are any) and
+    // also update the squares attacked by that piece
     #[inline(always)]
     fn update_attacker(&mut self, sq: Square, updated: &mut BitBoard) {
         let mask = sq.into();
@@ -153,14 +158,14 @@ impl Board {
         }
     }
 
-    /// Update all bitboards with the given mask, color and piece
+    // Update all bitboards with the given mask, color and piece
     #[inline(always)]
     fn update_bitboards(&mut self, color: Color, piece: Piece, mask: BitBoard) {
         self.bitboards[color as usize][piece as usize] ^= mask;
         self.occ.update(color, mask);
     }
 
-    /// Fill a mailbox slot with a new piece
+    // Fill a mailbox slot with a new piece
     #[inline(always)]
     fn occupy_mailbox(&mut self, color: Color, piece: Piece, sq: Square) {
         let mailbox = &mut self.mailbox[sq as usize];
@@ -178,7 +183,7 @@ impl Board {
         };
     }
 
-    /// Replace the previous occupant of that mailbox slot with a new one
+    // Replace the previous occupant of that mailbox slot with a new one
     #[inline(always)]
     fn reoccupy_mailbox(&mut self, color: Color, piece: Piece, sq: Square) {
         let mailbox = &mut self.mailbox[sq as usize];
@@ -196,7 +201,7 @@ impl Board {
         };
     }
 
-    /// Empty a slot of the mailbox, discarding it's defend map and updating the attackers'
+    // Empty a slot of the mailbox, discarding it's defend map and updating the attackers'
     #[inline(always)]
     fn unoccupy_mailbox(&mut self, sq: Square) {
         match self.mailbox[sq as usize] {
@@ -212,7 +217,7 @@ impl Board {
         }
     }
 
-    /// Updates the attack and defend maps of an occupied Square
+    // Updates the attack and defend maps of an occupied Square
     #[inline(always)]
     fn update_occupied(&mut self, sq: Square, updated: &mut BitBoard) {
         match self.mailbox[sq as usize] {
@@ -227,7 +232,7 @@ impl Board {
         }
     }
 
-    /// Update the attack map of an unoccupied Square
+    // Update the attack map of an unoccupied Square
     #[inline(always)]
     fn update_unoccupied(&mut self, sq: Square, updated: &mut BitBoard) {
         match self.mailbox[sq as usize] {
@@ -240,7 +245,7 @@ impl Board {
         }
     }
 
-    /// Moves a king and a rook the proper way
+    // Moves a king and a rook the proper way
     #[inline(always)]
     fn castle(&mut self, color: Color, rook_from: Square, rook_to: Square, king_from: Square, king_to: Square) {
         self.update_bitboards(color, Piece::Rook, squares!(rook_from, rook_to));
@@ -353,7 +358,7 @@ impl Board {
         }
     }
 
-    /// Perform the move in reverse and modify the board accordingly
+    // Perform the move in reverse and modify the board accordingly
     #[inline]
     pub(crate) fn undo_move(&mut self, color: Color, mv: Move) {
         match mv {
@@ -444,7 +449,7 @@ impl Board {
 }
 
 impl Default for Board {
-    /// Return a new Board with the default chess position
+    // Return a new Board with the default chess position
     #[cold]
     fn default() -> Board {
         let mut board = Board {
@@ -565,8 +570,6 @@ mod tests {
         for mv in moves.iter() {
             board.do_move(color, *mv);
             color = color.invert();
-
-            println!("{}", board);
         }
 
         for mv in moves.iter().rev() {
@@ -574,10 +577,9 @@ mod tests {
             board.undo_move(color, *mv);
         }
 
-        println!("{}", board);
-
         let default = Board::default();
         
+        // Compare new board with the default one, they should be identical
         for i in 0..64 {
             assert_eq!(default.mailbox[i], board.mailbox[i]);
         }

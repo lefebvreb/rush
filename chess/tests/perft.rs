@@ -1,5 +1,6 @@
-use chess::Game;
-use chess::MoveGenerator;
+// cargo test --package chess --test perft -- perft_test --exact --nocapture
+
+use chess::prelude::*;
 
 const PERFT_RESULTS: &'static [u64] = &[
     1,

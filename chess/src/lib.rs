@@ -1,3 +1,4 @@
+#![feature(generator_trait, generators)]
 #![allow(dead_code, unused_variables, unused_macros)]
 
 /* ======== MEMO ===========
@@ -19,10 +20,19 @@ IMPLEMENTATION
 OPTIMISATIONS
 
 - replace all `unreachable!()` by `unsafe {unreacheable_unchecked()}`
+- replace all table lookup by unchecked accesses (`get_unchecked`)
 
 TESTS
 
 - perft
+
+========================= */
+
+/* ======== IDEA ===========
+
+FOR NEXT ITERATION
+
+- create a type `single_bit_bitboard`
 
 ========================= */
 
@@ -48,3 +58,8 @@ pub use moves::Move;
 pub use move_gen::MoveGenerator;
 pub use piece::Piece;
 pub use square::Square;
+
+// prelude module
+pub mod prelude {
+    pub use super::*;
+}

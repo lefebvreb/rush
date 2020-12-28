@@ -40,6 +40,27 @@ pub enum Move {
 }
 
 impl Move {
+    /// Return the square from which the move is performed
+    #[cold]
+    pub fn from(&self, color: Color) -> Square {
+        match self {
+            Move::Quiet {from, ..} | 
+            Move::Capture {from, ..} | 
+            Move::Promote {from, ..} | 
+            Move::PromoteCapture {from, ..} | 
+            Move::EnPassant {from, ..} | 
+            Move::DoublePush {from, ..} => *from,
+            Move::KingCastle | 
+            Move::QueenCastle => if color == Color::White {
+                Square::E1
+            } else {
+                Square::E8
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    /// Return the square to which the move is performed
     #[cold]
     pub fn to(&self, color: Color) -> Square {
         match self {
@@ -63,25 +84,7 @@ impl Move {
         }
     }
 
-    #[cold]
-    pub fn from(&self, color: Color) -> Square {
-        match self {
-            Move::Quiet {from, ..} | 
-            Move::Capture {from, ..} | 
-            Move::Promote {from, ..} | 
-            Move::PromoteCapture {from, ..} | 
-            Move::EnPassant {from, ..} | 
-            Move::DoublePush {from, ..} => *from,
-            Move::KingCastle | 
-            Move::QueenCastle => if color == Color::White {
-                Square::E1
-            } else {
-                Square::E8
-            }
-            _ => unreachable!(),
-        }
-    }
-
+    /// Return true if the move is none
     #[inline(always)]
     pub fn is_none(&self) -> bool {
         match self {
