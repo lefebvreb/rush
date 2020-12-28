@@ -97,7 +97,6 @@ impl Into<usize> for BitBoard {
 }
 
 /// A convenient macro to construct a BitBoard from a collection of Squares
-#[macro_export]
 macro_rules! squares {
     ($($sq: expr),*) => {
         BitBoard::EMPTY $(| $sq.into())*

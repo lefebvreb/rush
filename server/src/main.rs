@@ -3,6 +3,7 @@
 use actix_files as fs;
 use actix_web::{App, HttpServer};
 
+// Launch the server
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {

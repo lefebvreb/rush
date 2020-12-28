@@ -1,6 +1,5 @@
 use std::fmt;
 
-use crate::squares;
 use crate::attacks::attacks;
 use crate::bitboard::BitBoard;
 use crate::color::Color;

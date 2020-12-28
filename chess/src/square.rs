@@ -4,7 +4,7 @@ use crate::bitboard::BitBoard;
 use crate::bits::SHIFTS;
 use crate::color::Color;
 
-/// Represent a Square of the board
+/// Represent a Square of the board.
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Square {

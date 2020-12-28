@@ -38,6 +38,7 @@ FOR NEXT ITERATION
 
 // Modules
 mod attacks;
+#[macro_use]
 mod bitboard;
 mod bits;
 mod board;
@@ -51,6 +52,7 @@ mod ply;
 mod square;
 
 // Exports
+pub use bitboard::BitBoard;
 pub use board::Board;
 pub use color::Color;
 pub use game::Game;
@@ -60,6 +62,7 @@ pub use piece::Piece;
 pub use square::Square;
 
 // prelude module
+/// Contains every objects exported by the chess crate
 pub mod prelude {
     pub use super::*;
 }
