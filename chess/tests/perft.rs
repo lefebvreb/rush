@@ -22,13 +22,13 @@ fn perft(game: &mut Game, depth: usize) -> u64 {
     }
 
     let mut nodes = 0;
-    let mut move_gen = MoveGenerator::legals(unsafe {&mut *(game as *mut Game)}); // ugly
+    let mut move_gen = game.legals();
 
     loop {
         let mv = move_gen.next();
         if mv.is_none() {break}
         game.do_move(mv);
-        nodes += perft(game, depth-1);
+        nodes += perft(game, depth - 1);
         game.undo_move();
     }
 
@@ -39,7 +39,7 @@ fn perft(game: &mut Game, depth: usize) -> u64 {
 fn perft_test() {
     let mut game = Game::default();
 
-    let depth = 3;
+    let depth = 0;
 
     assert_eq!(perft(&mut game, depth), PERFT_RESULTS[depth]);
 }

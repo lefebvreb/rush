@@ -59,6 +59,8 @@ impl<G: Generator<(), Yield=Move, Return=()> + Unpin> MoveGenerator for G {
 impl Game {
     #[inline(always)]
     pub fn legals(&self) -> impl MoveGenerator {
+        let game = unsafe {&*(self as *const Game)};
+        
         move || {
             yield Move::None
         }
