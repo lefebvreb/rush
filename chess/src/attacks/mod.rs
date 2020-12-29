@@ -32,9 +32,7 @@ fn pawn_attacks(color: Color, sq: Square) -> BitBoard {
     })
 }
 
-// ==== NOT SATISFIED >:( CHANGE TO BITBOARDS PLS
-// ==== WHY ?
-
+// Return the pawn push destination from that square
 #[inline(always)]
 pub fn get_pawn_push(color: Color, sq: Square) -> Option<Square> {
     match match color {
@@ -46,6 +44,7 @@ pub fn get_pawn_push(color: Color, sq: Square) -> Option<Square> {
     }
 }
 
+// Return the pawn double push destination from that square
 #[inline(always)]
 pub fn get_pawn_double_push(color: Color, sq: Square) -> Option<Square> {
     match match color {
