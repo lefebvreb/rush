@@ -5,6 +5,7 @@ use crate::attacks::*;
 use crate::bitboard::BitBoard;
 use crate::castle_rights::CastleAvailability;
 use crate::game::Game;
+use crate::history::MoveHistory;
 use crate::moves::Move;
 use crate::piece::Piece;
 
@@ -46,7 +47,7 @@ impl<G: Generator<(), Yield=Move, Return=()> + Unpin> MoveGenerator for G {
     }
 }
 
-impl Game {
+impl<H: MoveHistory> Game<H> {
     /// Return a generator able to produce the legal moves associated
     /// to a specific position. Keeps a reference to `self`, for
     /// generation correctness, the value of `self` should not change
@@ -55,7 +56,7 @@ impl Game {
     pub fn legals(&self) -> impl MoveGenerator {
         // Second immutable reference to safe, needed to be able to do and undo moves
         // between each call to resume(())
-        let game = unsafe {& *(self as *const Game)};
+        let game = unsafe {& *(self as *const Game<_>)};
         
         move || {
             // Board and colors
@@ -196,7 +197,13 @@ impl Game {
             }
 
             // En passant
-            // TODO
+            match game.get_last_move() {
+                Move::DoublePush {to, ..} => {
+                    // get black pin with white king ?
+                    // See if to black pawn is "pinned"
+                }
+                _ => (),
+            }
 
             // Quiets mask
             let mask = check_mask & free;

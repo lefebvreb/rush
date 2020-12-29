@@ -1,7 +1,7 @@
 use crate::bitboard::BitBoard;
 use crate::color::Color;
 use crate::moves::Move;
-use crate::ply::Ply;
+use crate::history::Ply;
 use crate::square::Square;
 
 /// Convenient struct to carry the availability of castling moves

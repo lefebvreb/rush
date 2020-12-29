@@ -23,6 +23,8 @@ OPTIMISATIONS
 
 - replace all `unreachable!()` by `unsafe {unreacheable_unchecked()}`
 - replace all table lookup by unchecked accesses (`get_unchecked`)
+- replace unwrap() by unwrap_unchecked()
+- store pin masks inside of the board
 
 TESTS
 
@@ -50,21 +52,32 @@ mod game;
 mod moves;
 mod move_gen;
 mod piece;
-mod ply;
+mod history;
 mod square;
 
 // Exports
 pub use bitboard::BitBoard;
 pub use board::Board;
 pub use color::Color;
-pub use game::Game;
+pub use game::{FullGame, Game, SearchGame};
 pub use moves::Move;
 pub use move_gen::MoveGenerator;
 pub use piece::Piece;
 pub use square::Square;
 
-// prelude module
+/*// prelude module
 /// Contains every objects exported by the chess crate
 pub mod prelude {
-    pub use super::*;
-}
+    pub use super::{
+        BitBoard,
+        Board,
+        Color,
+        FullGame,
+        Game, 
+        Move,
+        MoveGenerator,
+        Piece,
+        SearchGame,
+        Square,
+    };
+}*/

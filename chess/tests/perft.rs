@@ -1,6 +1,6 @@
 // cargo test --package chess --test perft
 
-use chess::prelude::*;
+use chess::*;
 
 // The depth at which the perft test is carried, may be changed
 const DEPTH: usize = 2;
@@ -25,7 +25,7 @@ const PERFT_RESULTS: &[u64] = &[
 ];
 
 // The perft algorithm, counting the number of leaf nodes
-fn perft(game: &mut Game, depth: usize) -> u64 {
+fn perft(game: &mut SearchGame<14>, depth: usize) -> u64 {
     if depth == 0 {
         return 1;
     }
@@ -48,7 +48,8 @@ fn perft(game: &mut Game, depth: usize) -> u64 {
 // The test: run perft and compare with correct results
 #[test]
 fn run_perft() {
-    let mut game = Game::default();
+    let default = Game::default();
+    let mut game = default.search_game();
 
     assert_eq!(perft(&mut game, DEPTH), PERFT_RESULTS[DEPTH]);
 }

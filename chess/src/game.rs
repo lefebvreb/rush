@@ -2,19 +2,19 @@ use crate::board::Board;
 use crate::castle_rights::CastleRights;
 use crate::color::Color;
 use crate::moves::Move;
-use crate::ply::Ply;
+use crate::history::{LargeMoveHistory, MoveHistory, Ply, SmallMoveHistory};
 
 /// A struct that holds every information defining a complete game of chess
 #[derive(Debug)]
-pub struct Game {
-    pub board: Board,
-    pub castle_rights: CastleRights,
-    pub color: Color,
-    pub history: Vec<Move>,
-    pub ply: Ply,
+pub struct Game<H: MoveHistory> {
+    board: Board,
+    castle_rights: CastleRights,
+    color: Color,
+    history: H,
+    ply: Ply,
 }
 
-impl Game {
+impl<H: MoveHistory> Game<H> {
     /// Perform a new move and modifiy the game accordingly
     #[inline]
     pub fn do_move(&mut self, mv: Move) {
@@ -33,7 +33,7 @@ impl Game {
         self.ply.decr();
 
         self.color = self.color.invert();
-        let mv = self.history.pop().unwrap();
+        let mv = self.history.pop();
         
         self.castle_rights.undo_move(self.color, mv, self.ply);
         self.board.undo_move(self.color, mv);
@@ -60,32 +60,40 @@ impl Game {
     // Return the last move played
     #[inline(always)]
     pub(crate) fn get_last_move(&self) -> Move {
-        self.history.last().map_or(Move::None, |mv| *mv)
+        self.history.last()
     }
 }
 
-impl Default for Game {
-    #[cold]
-    fn default() -> Game {
-        Game {
-            board: Board::default(),
-            castle_rights: CastleRights::default(),
-            color: Color::default(),
-            history: Vec::with_capacity(128),
-            ply: Ply::default(),
-        }
-    }
-}
-
-impl Clone for Game {
-    #[inline]
-    fn clone(&self) -> Game {
+impl Game<LargeMoveHistory> {
+    /// Return a new SearchGame, able to be used
+    #[inline(always)]
+    pub fn search_game<const MAX: usize>(&self) -> SearchGame<MAX> {
         Game {
             board: self.board.clone(),
             castle_rights: self.castle_rights.clone(),
             color: self.color.clone(),
-            history: Vec::with_capacity(24),
+            history: SmallMoveHistory::default(),
+            ply: self.ply.clone(),
+        }
+    }
+}
+
+impl Default for FullGame {
+    #[cold]
+    fn default() -> FullGame {
+        Game {
+            board: Board::default(),
+            castle_rights: CastleRights::default(),
+            color: Color::default(),
+            history: LargeMoveHistory::default(),
             ply: Ply::default(),
         }
     }
 }
+
+/// A type used to record a full game from beginning to end
+pub type FullGame = Game<LargeMoveHistory>;
+
+/// A type used to explore the game tree, in which only MAX moves
+/// may be played
+pub type SearchGame<const MAX: usize> = Game<SmallMoveHistory<MAX>>;

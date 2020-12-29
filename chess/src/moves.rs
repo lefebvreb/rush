@@ -41,45 +41,42 @@ pub enum Move {
 
 impl Move {
     /// Return the square from which the move is performed
-    #[cold]
-    pub fn from(&self, color: Color) -> Square {
+    #[inline(always)]
+    pub fn from(self, color: Color) -> Square {
         match self {
             Move::Quiet {from, ..} | 
             Move::Capture {from, ..} | 
             Move::Promote {from, ..} | 
             Move::PromoteCapture {from, ..} | 
             Move::EnPassant {from, ..} | 
-            Move::DoublePush {from, ..} => *from,
+            Move::DoublePush {from, ..} => from,
             Move::KingCastle | 
-            Move::QueenCastle => if color == Color::White {
-                Square::E1
-            } else {
-                Square::E8
-            }
+            Move::QueenCastle => match color {
+                Color::White => Square::E1,
+                Color::Black => Square::E8,
+            },
             _ => unreachable!(),
         }
     }
 
     /// Return the square to which the move is performed
-    #[cold]
-    pub fn to(&self, color: Color) -> Square {
+    #[inline(always)]
+    pub fn to(self, color: Color) -> Square {
         match self {
             Move::Quiet {to, ..} | 
             Move::Capture {to, ..} | 
             Move::Promote {to, ..} | 
             Move::PromoteCapture {to, ..} | 
             Move::EnPassant {to, ..} | 
-            Move::DoublePush {to, ..} => *to,
-            Move::KingCastle => if color == Color::White {
-                Square::G1
-            } else {
-                Square::G8
-            }
-            Move::QueenCastle => if color == Color::White {
-                Square::C1
-            } else {
-                Square::C8
-            }
+            Move::DoublePush {to, ..} => to,
+            Move::KingCastle => match color {
+                Color::White => Square::G1,
+                Color::Black => Square::G8,
+            },
+            Move::QueenCastle => match color {
+                Color::White => Square::C1,
+                Color::Black => Square::C8,
+            },
             _ => unreachable!(),
         }
     }

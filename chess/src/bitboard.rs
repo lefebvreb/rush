@@ -59,30 +59,6 @@ impl BitBoard {
         self.0.count_ones() as u8
     }
 
-    /// Return the first square of the bitboard
-    #[inline(always)]
-    pub fn pop_first_square(&mut self) -> Option<Square> {
-        if self.is_empty() {
-            None
-        } else {
-            let old = *self;
-            *self &= *self - BitBoard(1);
-            Some((old ^ *self).as_square_unchecked())
-        }
-    }
-
-    /// Return the first bit of the bitboard
-    #[inline(always)]
-    pub fn pop_first_bitboard(&mut self) -> Option<BitBoard> {
-        if self.is_empty() {
-            None
-        } else {
-            let old = *self;
-            *self &= *self - BitBoard(1);
-            Some(old ^ *self)
-        }
-    }
-
     // Return the first square of the bitboard
     #[inline(always)]
     pub(crate) fn as_square_unchecked(self) -> Square {
