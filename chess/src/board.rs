@@ -99,6 +99,15 @@ impl Board {
         }
     }
 
+    /// Return true if the square sq is empty
+    #[inline(always)]
+    pub fn is_empty(&self, sq: Square) -> bool {
+        match self.mailbox[sq as usize] {
+            SquareInfo::Unoccupied {..} => true,
+            _ => false,
+        }
+    }
+
     // ================================ Unchecked accessers =====================================
 
     // Return the attacks from that square, assuming there is a piece there

@@ -33,9 +33,10 @@ fn pawn_attacks(color: Color, sq: Square) -> BitBoard {
 }
 
 // ==== NOT SATISFIED >:( CHANGE TO BITBOARDS PLS
+// ==== WHY ?
 
 #[inline(always)]
-pub fn pawn_push(color: Color, sq: Square) -> Option<Square> {
+pub fn get_pawn_push(color: Color, sq: Square) -> Option<Square> {
     match match color {
         Color::White => WHITE_PAWN_PUSHES[sq as usize],
         Color::Black => BLACK_PAWN_PUSHES[sq as usize],
@@ -46,7 +47,7 @@ pub fn pawn_push(color: Color, sq: Square) -> Option<Square> {
 }
 
 #[inline(always)]
-pub fn double_push(color: Color, sq: Square) -> Option<Square> {
+pub fn get_pawn_double_push(color: Color, sq: Square) -> Option<Square> {
     match match color {
         Color::White => WHITE_PAWN_DOUBLE_PUSHES[sq as usize],
         Color::Black => BLACK_PAWN_DOUBLE_PUSHES[sq as usize],
@@ -165,7 +166,7 @@ pub fn get_pinned(color: Color, board: &Board) -> BitBoard {
 
 // Return a mask in which the pinned piece can move freely
 #[inline(always)]
-pub fn pin_mask(king_square: Square, pinned_piece_square: Square) -> BitBoard {
+pub fn get_pin_mask(king_square: Square, pinned_piece_square: Square) -> BitBoard {
     BitBoard(SQUARES_MASK[king_square as usize * 64 + pinned_piece_square as usize])
 }
 

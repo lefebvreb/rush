@@ -15,7 +15,9 @@
 
 IMPLEMENTATION
 
-- Implement all functions of move_gen.rs
+- generate en passant moves
+- create a MiniVec type, and a "Vector" trait implemented by MiniVec and Vec,
+  then replace every samll Vec by MiniVec
 
 OPTIMISATIONS
 

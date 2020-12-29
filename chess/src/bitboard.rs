@@ -1,5 +1,6 @@
 use std::fmt;
 
+use crate::color::Color;
 use crate::square::Square;
 
 /// Represent a 64 bits BitBoard
@@ -86,6 +87,21 @@ impl BitBoard {
     #[inline(always)]
     pub(crate) fn as_square_unchecked(self) -> Square {
         Square::from(self.0.trailing_zeros() as u8)
+    }
+
+    /// Return true if that bitboard is on the last rank
+    #[inline(always)]
+    pub fn is_last_rank(self, color: Color) -> bool {
+        self.0 & match color {
+            Color::White => 0xFF00000000000000,
+            Color::Black => 0xFF,
+        } == self.0
+    }
+
+    /// Return true if that bitboard contains sq
+    #[inline(always)]
+    pub fn contains(self, sq: Square) -> bool {
+        (self & sq.into()).0 != 0
     }
 }
 
