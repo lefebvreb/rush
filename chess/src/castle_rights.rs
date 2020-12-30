@@ -4,7 +4,32 @@ use crate::moves::Move;
 use crate::history::Ply;
 use crate::square::Square;
 
-/// Convenient struct to carry the availability of castling moves
+#[derive(Clone, Default, Debug)]
+struct MiniVec {
+    cursor: u8,
+    plies: [Ply; 6],
+}
+
+impl MiniVec {
+    fn push(&mut self, ply: Ply) {
+        self.plies[self.cursor as usize] = ply;
+        self.cursor += 1;
+    }
+
+    fn remove_last(&mut self) {
+        self.cursor -= 1;
+    }
+
+    fn last(&self) -> Option<Ply> {
+        if self.cursor == 0 {
+            None
+        } else {
+            Some(self.plies[self.cursor as usize - 1])
+        }
+    }
+}
+
+// Convenient struct to carry the availability of castling moves
 #[repr(u8)]
 #[derive(PartialEq, Debug)]
 pub enum CastleAvailability {
@@ -14,57 +39,71 @@ pub enum CastleAvailability {
     Both,
 }
 
-/// Used to remember and handle the castling privileges associated
-/// to each color
+// Used to remember and handle the castling privileges associated
+// to each color
 #[derive(Clone, Debug)]
 pub struct CastleRights {
     kings: [bool; 2],
     king_rooks: [bool; 2],  
     queen_rooks: [bool; 2],  
-    history: Vec<Ply>,
+    history: MiniVec,
 }
 
 //#################################################################################################
 //
-//                                    Implementation
+//                                       Implementation
 //
 //#################################################################################################
 
 impl CastleRights {
-    /// Return the castling abilities of a certain player, based on the monochrome
-    /// occupancy bitboard and the attack bitboard of the opponent.
+    // Return the castling abilities of a certain player, based on the monochrome
+    // occupancy bitboard and the attack bitboard of the opponent
+    // GIVEN THE KING IS NOT IN CHECK
     #[inline]
     pub fn get_availability(&self, color: Color, occ: BitBoard, danger: BitBoard) -> CastleAvailability {
-        match match color {
-            Color::White if self.kings[0] => {(
-                    self.king_rooks[0] &&                
-                    (occ & squares!(Square::F1, Square::G1)).is_empty() &&
-                    (danger & squares!(Square::E1, Square::F1, Square::G1)).is_empty(),
-                    self.queen_rooks[0] &&
-                    (occ & squares!(Square::B1, Square::C1, Square::D1)).is_empty() &&
-                    (danger & squares!(Square::B1, Square::C1, Square::D1, Square::E1)).is_empty(),
-            )}
-            Color::Black if self.kings[1] => {(
-                    self.king_rooks[1] &&                
-                    (occ & squares!(Square::F8, Square::G8)).is_empty() &&
-                    (danger & squares!(Square::E8, Square::F8, Square::G8)).is_empty(),
-                    self.queen_rooks[1] &&
-                    (occ & squares!(Square::B8, Square::C8, Square::D8)).is_empty() &&
-                    (danger & squares!(Square::B8, Square::C8, Square::D8, Square::E8)).is_empty(),
-            )}
-            _ => return CastleAvailability::None,
-        } {
-            (false, false) => CastleAvailability::None,
-            (true, false) => CastleAvailability::KingSide,
-            (false, true) => CastleAvailability::QueenSide,
-            (true, true) => CastleAvailability::Both,
+        const BITBOARDS: [(BitBoard, BitBoard); 2] = [
+            (
+                BitBoard(0x60),
+                BitBoard(0xE),
+            ),
+            (
+                BitBoard(0x6000000000000000),
+                BitBoard(0xE00000000000000),
+            ),
+        ];
+
+        if self.kings[color as usize] {
+            let block = occ | danger;
+
+            let king_side = self.king_rooks[color as usize] && (
+                block & BITBOARDS[color as usize].0
+            ).is_empty();
+            let queen_side = self.queen_rooks[color as usize] && (
+                block & BITBOARDS[color as usize].1
+            ).is_empty();
+
+            if king_side {
+                if queen_side {
+                    CastleAvailability::Both
+                } else {
+                    CastleAvailability::KingSide
+                }
+            } else {
+                if queen_side {
+                    CastleAvailability::QueenSide
+                } else {
+                    CastleAvailability::None
+                }
+            }
+        } else {
+            CastleAvailability::None
         }
     }
 
-    /// Take into account the last move and modify the castling rights accordingly
+    // Take into account the last move and modify the castling rights accordingly
     #[inline]
     pub fn do_move(&mut self, color: Color, mv: Move, ply: Ply) {
-        let status = match mv {
+        /*let status = match mv {
             Move::PromoteCapture {to: Square::A1, ..} | 
             Move::PromoteCapture {to: Square::A8, ..} |
             Move::Capture {from: Square::A1, ..} |
@@ -100,13 +139,14 @@ impl CastleRights {
         if (*status)[color as usize] {
             (*status)[color as usize] = false;
             self.history.push(ply);
-        }
+        }*/
+        todo!()
     }
 
-    /// Undo the last move and modify the castling rights accordingly
+    // Undo the last move and modify the castling rights accordingly
     #[inline]
     pub fn undo_move(&mut self, color: Color, mv: Move, ply: Ply) {
-        if self.history.last().map_or(false, |p| *p == ply) {
+        /*if self.history.last().map_or(false, |p| *p == ply) {
             *match mv {
                 Move::PromoteCapture {to: Square::A1, ..} | 
                 Move::PromoteCapture {to: Square::A8, ..} |
@@ -139,7 +179,8 @@ impl CastleRights {
                     &mut self.king_rooks[color as usize],
                 _ => unreachable!()
             } = true;
-        }
+        }*/
+        todo!()
     }
 }
 
@@ -150,7 +191,7 @@ impl Default for CastleRights {
             queen_rooks: [true; 2],
             kings: [true; 2],
             king_rooks: [true; 2],    
-            history: Vec::with_capacity(6),
+            history: MiniVec::default(),
         }
     }
 }
