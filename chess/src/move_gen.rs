@@ -30,7 +30,7 @@ pub trait MoveGenerator {
     fn collect(&mut self) -> Vec<Move> {
         (0..)
             .map(|_| self.next())
-            .take_while(|mv| !mv.is_none())
+            .take_while(|mv| mv.is_some())
             .collect()
     }
 }

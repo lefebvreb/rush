@@ -89,4 +89,13 @@ impl Move {
             _ => false,
         }
     }
+
+     /// Return true if the move is not none
+     #[inline(always)]
+     pub fn is_some(&self) -> bool {
+         match self {
+             Move::None => false,
+             _ => true,
+         }
+     }
 }

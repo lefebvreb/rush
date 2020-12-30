@@ -4,6 +4,7 @@ use crate::moves::Move;
 use crate::history::Ply;
 use crate::square::Square;
 
+// A stack-only mini-vector used to store information about plies
 #[derive(Clone, Default, Debug)]
 struct MiniVec {
     cursor: u8,
@@ -61,16 +62,13 @@ impl CastleRights {
     // GIVEN THE KING IS NOT IN CHECK
     #[inline]
     pub fn get_availability(&self, color: Color, occ: BitBoard, danger: BitBoard) -> CastleAvailability {
-        const BITBOARDS: [(BitBoard, BitBoard); 2] = [
-            (
+        const BITBOARDS: [(BitBoard, BitBoard); 2] = [(
                 BitBoard(0x60),
                 BitBoard(0xE),
-            ),
-            (
+            ), (
                 BitBoard(0x6000000000000000),
                 BitBoard(0xE00000000000000),
-            ),
-        ];
+        )];
 
         if self.kings[color as usize] {
             let block = occ | danger;
@@ -103,84 +101,70 @@ impl CastleRights {
     // Take into account the last move and modify the castling rights accordingly
     #[inline]
     pub fn do_move(&mut self, color: Color, mv: Move, ply: Ply) {
-        /*let status = match mv {
-            Move::PromoteCapture {to: Square::A1, ..} | 
-            Move::PromoteCapture {to: Square::A8, ..} |
-            Move::Capture {from: Square::A1, ..} |
-            Move::Capture {from: Square::A8, ..} |
-            Move::Capture {to: Square::A1, ..} |
-            Move::Capture {to: Square::A8, ..} |
-            Move::Quiet {from: Square::A1, ..} |
-            Move::Quiet {from: Square::A8, ..} => 
-                &mut self.queen_rooks,
-            Move::PromoteCapture {to: Square::E1, ..} |
-            Move::PromoteCapture {to: Square::E8, ..} |
-            Move::Capture {from: Square::E1, ..} |
-            Move::Capture {from: Square::E8, ..} |
-            Move::Capture {to: Square::E1, ..} |
-            Move::Capture {to: Square::E8, ..} |
-            Move::Quiet {from: Square::E1, ..} |
-            Move::Quiet {from: Square::E8, ..} |       
-            Move::QueenCastle |
-            Move::KingCastle =>
-                &mut self.kings,
-            Move::PromoteCapture {to: Square::H1, ..} | 
-            Move::PromoteCapture {to: Square::H8, ..} |
-            Move::Capture {from: Square::H1, ..} |
-            Move::Capture {from: Square::H8, ..} |
-            Move::Capture {to: Square::H1, ..} |
-            Move::Capture {to: Square::H8, ..} |
-            Move::Quiet {from: Square::H1, ..} |
-            Move::Quiet {from: Square::H8, ..} => 
-                &mut self.king_rooks,            
-            _ => return,
-        };
+        // The expression of the flag
+        macro_rules! flag {
+            ($flag: ident, $i: expr) => {
+                self.$flag[$i]
+            }
+        }
 
-        if (*status)[color as usize] {
-            (*status)[color as usize] = false;
-            self.history.push(ply);
-        }*/
-        todo!()
+        // Set the flag to false
+        macro_rules! modify {
+            ($flag: ident, $i: expr) => {
+                flag!($flag, $i) = false;
+            };
+        }
+
+        // Perform a match on that square and mofifies the flags
+        macro_rules! on_square {
+            ($sq: expr, $catch_all: expr) => {
+                match $sq {
+                    Square::A1 if flag!(queen_rooks, 0) => modify!(queen_rooks, 0),
+                    Square::E1 if flag!(kings,       0) => modify!(kings, 0),
+                    Square::H1 if flag!(king_rooks,  0) => modify!(king_rooks, 0),
+                    Square::A8 if flag!(queen_rooks, 1) => modify!(queen_rooks, 1),
+                    Square::E8 if flag!(kings,       1) => modify!(kings, 1),
+                    Square::H8 if flag!(king_rooks,  1) => modify!(king_rooks, 1),
+                    _ => $catch_all,
+                }
+            }
+        }
+
+        on_square!(mv.from(color), on_square!(mv.to(color), return));
+        self.history.push(ply);
     }
 
     // Undo the last move and modify the castling rights accordingly
     #[inline]
     pub fn undo_move(&mut self, color: Color, mv: Move, ply: Ply) {
-        /*if self.history.last().map_or(false, |p| *p == ply) {
-            *match mv {
-                Move::PromoteCapture {to: Square::A1, ..} | 
-                Move::PromoteCapture {to: Square::A8, ..} |
-                Move::Capture {from: Square::A1, ..} |
-                Move::Capture {from: Square::A8, ..} |
-                Move::Capture {to: Square::A1, ..} |
-                Move::Capture {to: Square::A8, ..} |
-                Move::Quiet {from: Square::A1, ..} |
-                Move::Quiet {from: Square::A8, ..} => 
-                    &mut self.queen_rooks[color as usize],
-                Move::PromoteCapture {to: Square::E1, ..} |
-                Move::PromoteCapture {to: Square::E8, ..} |
-                Move::Capture {from: Square::E1, ..} |
-                Move::Capture {from: Square::E8, ..} |
-                Move::Capture {to: Square::E1, ..} |
-                Move::Capture {to: Square::E8, ..} |
-                Move::Quiet {from: Square::E1, ..} |
-                Move::Quiet {from: Square::E8, ..} |
-                Move::QueenCastle |
-                Move::KingCastle => 
-                    &mut self.kings[color as usize],
-                Move::PromoteCapture {to: Square::H1, ..} | 
-                Move::PromoteCapture {to: Square::H8, ..} |
-                Move::Capture {from: Square::H1, ..} |
-                Move::Capture {from: Square::H8, ..} |
-                Move::Capture {to: Square::H1, ..} |
-                Move::Capture {to: Square::H8, ..} |
-                Move::Quiet {from: Square::H1, ..} |
-                Move::Quiet {from: Square::H8, ..} => 
-                    &mut self.king_rooks[color as usize],
-                _ => unreachable!()
-            } = true;
-        }*/
-        todo!()
+        // Set the flag to true
+        macro_rules! modify {
+            ($flag: ident, $i: expr) => {
+                self.$flag[$i] = true;
+            };
+        }
+
+        // Perform a match on that square and mofifies the flags
+        macro_rules! on_square {
+            ($sq: expr, $catch_all: expr) => {
+                match $sq {
+                    Square::A1 => modify!(queen_rooks, 0),
+                    Square::E1 => modify!(kings, 0),
+                    Square::H1 => modify!(king_rooks, 0),
+                    Square::A8 => modify!(queen_rooks, 1),
+                    Square::E8 => modify!(kings, 1),
+                    Square::H8 => modify!(king_rooks, 1),
+                    _ => $catch_all,
+                }
+            }
+        }
+
+        if let Some(last_ply) = self.history.last() {
+            if ply == last_ply {
+                on_square!(mv.from(color), on_square!(mv.to(color), unreachable!()));
+                self.history.remove_last();
+            }    
+        }
     }
 }
 
