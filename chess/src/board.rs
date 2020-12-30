@@ -42,7 +42,7 @@ impl Occupancy {
 /// defend is the bitboard of the squares attacked by the piece
 #[repr(u8)]
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum SquareInfo {
+enum SquareInfo {
     Occupied {
         piece: Piece,
         color: Color,
@@ -105,6 +105,15 @@ impl Board {
         match self.mailbox[sq as usize] {
             SquareInfo::Unoccupied {..} => true,
             _ => false,
+        }
+    }
+
+    /// Return, if it exists, the piece and it's color present on that square
+    #[cold]
+    pub fn get_piece(&self, sq: Square) -> Option<(Color, Piece)> {
+        match self.mailbox[sq as usize] {
+            SquareInfo::Occupied {color, piece, ..} => Some((color, piece)),
+            _ => None,
         }
     }
 
@@ -354,11 +363,11 @@ impl Board {
                 self.update_unoccupied(from, &mut updated);
                 self.update_occupied(to, &mut updated);
             }
-            Move::KingCastle => match color {
+            Move::KingCastle {..} => match color {
                 Color::White => self.castle(Color::White, Square::H1, Square::F1, Square::E1, Square::G1),
                 Color::Black => self.castle(Color::Black, Square::H8, Square::F8, Square::E8, Square::G8),
             }
-            Move::QueenCastle => match color {
+            Move::QueenCastle {..} => match color {
                 Color::White => self.castle(Color::White, Square::A1, Square::C1, Square::E1, Square::B1),
                 Color::Black => self.castle(Color::Black, Square::A8, Square::C8, Square::E8, Square::B8),
             }
@@ -443,11 +452,11 @@ impl Board {
                 self.update_occupied(from, &mut updated);
                 self.update_unoccupied(to, &mut updated);
             }
-            Move::KingCastle => match color {
+            Move::KingCastle {..} => match color {
                 Color::White => self.castle(Color::White, Square::F1, Square::H1, Square::G1, Square::E1),
                 Color::Black => self.castle(Color::Black, Square::F8, Square::H8, Square::G8, Square::E8),
             }
-            Move::QueenCastle => match color {
+            Move::QueenCastle {..} => match color {
                 Color::White => self.castle(Color::White, Square::C1, Square::A1, Square::B1, Square::E1),
                 Color::Black => self.castle(Color::Black, Square::C8, Square::A8, Square::B8, Square::E8),
             }
@@ -511,7 +520,7 @@ impl Default for Board {
 
 impl fmt::Display for Board {
     #[cold]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const CHARS: [[char; 6]; 2] = [
             ['♙', '♖', '♘', '♗', '♕', '♔'],
             ['♟', '♜', '♞', '♝', '♛', '♚'],
@@ -562,10 +571,10 @@ mod tests {
             Move::EnPassant {from: Square::D5, to: Square::E6},
             Move::Quiet {from: Square::G8, to: Square::F6},
             Move::Quiet {from: Square::B1, to: Square::C3},
-            Move::KingCastle,
+            Move::KingCastle {color: Color::Black},
             Move::Quiet {from: Square::E2, to: Square::E5},
             Move::DoublePush {from: Square::B7, to: Square::B5},
-            Move::QueenCastle,
+            Move::QueenCastle {color: Color::White},
             Move::Quiet {from: Square::B5, to: Square::B4},
             Move::Capture {from: Square::E6, to: Square::D7, capture: Piece::Pawn},
             Move::Quiet {from: Square::B4, to: Square::B3},

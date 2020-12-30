@@ -103,14 +103,14 @@ macro_rules! squares {
 
 impl fmt::Debug for BitBoard {
     #[cold]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "BitBoard(0x{:X})", self.0)
     }
 }
 
 impl fmt::Display for BitBoard {
     #[cold]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut bits = self.0.reverse_bits();
 
         writeln!(f, "┌BitBoard┐").unwrap();

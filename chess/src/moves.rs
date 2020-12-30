@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::color::Color;
 use crate::piece::Piece;
 use crate::square::Square;
@@ -35,14 +37,18 @@ pub enum Move {
         from: Square,
         to: Square,
     },
-    KingCastle,
-    QueenCastle,
+    KingCastle {
+        color: Color,
+    },
+    QueenCastle {
+        color: Color,
+    },
 }
 
 impl Move {
     /// Return the square from which the move is performed
     #[inline(always)]
-    pub fn from(self, color: Color) -> Square {
+    pub fn from(self) -> Square {
         match self {
             Move::Quiet {from, ..} | 
             Move::Capture {from, ..} | 
@@ -50,8 +56,8 @@ impl Move {
             Move::PromoteCapture {from, ..} | 
             Move::EnPassant {from, ..} | 
             Move::DoublePush {from, ..} => from,
-            Move::KingCastle | 
-            Move::QueenCastle => match color {
+            Move::KingCastle {color} | 
+            Move::QueenCastle {color} => match color {
                 Color::White => Square::E1,
                 Color::Black => Square::E8,
             },
@@ -61,7 +67,7 @@ impl Move {
 
     /// Return the square to which the move is performed
     #[inline(always)]
-    pub fn to(self, color: Color) -> Square {
+    pub fn to(self) -> Square {
         match self {
             Move::Quiet {to, ..} | 
             Move::Capture {to, ..} | 
@@ -69,11 +75,11 @@ impl Move {
             Move::PromoteCapture {to, ..} | 
             Move::EnPassant {to, ..} | 
             Move::DoublePush {to, ..} => to,
-            Move::KingCastle => match color {
+            Move::KingCastle {color} => match color {
                 Color::White => Square::G1,
                 Color::Black => Square::G8,
             },
-            Move::QueenCastle => match color {
+            Move::QueenCastle {color} => match color {
                 Color::White => Square::C1,
                 Color::Black => Square::C8,
             },
@@ -98,4 +104,23 @@ impl Move {
              _ => true,
          }
      }
+}
+
+// Display a move using pure algebraic coordinate notation
+impl fmt::Display for Move {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let promote = match self {
+            Move::Promote {promote, ..} |
+            Move::PromoteCapture {promote, ..} => match promote {
+                Piece::Rook => "r",
+                Piece::Knight => "n",
+                Piece::Bishop => "b",
+                Piece::Queen => "q",
+                _ => unreachable!(),
+            }
+            _ => "",
+        };
+
+        write!(fmt, "{}{}{}", self.from(), self.to(), promote)
+    }
 }

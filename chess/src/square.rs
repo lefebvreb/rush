@@ -1,3 +1,4 @@
+use std::fmt;
 use std::mem::transmute;
 
 use crate::bitboard::BitBoard;
@@ -72,5 +73,15 @@ impl Into<BitBoard> for Square {
     #[inline(always)]
     fn into(self) -> BitBoard {
         BitBoard(SHIFTS[self as usize])
+    }
+}
+
+impl fmt::Display for Square {
+    #[cold]
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const FILES: [char; 8] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        const RANKS: [char; 8] = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+        write!(f, "{}{}", FILES[self.x() as usize], RANKS[self.y() as usize])
     }
 }

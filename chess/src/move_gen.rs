@@ -97,11 +97,11 @@ impl<H: MoveHistory> Game<H> {
             let check_mask = match king_attacks.count_bits() {
                 0 => { // No checkers: may castle
                     match game.get_castle_rights().get_availability(color, occ, danger) {
-                        CastleAvailability::KingSide => yield Move::KingCastle,
-                        CastleAvailability::QueenSide => yield Move::QueenCastle,
+                        CastleAvailability::KingSide => yield Move::KingCastle {color},
+                        CastleAvailability::QueenSide => yield Move::QueenCastle {color},
                         CastleAvailability::Both => {
-                            yield Move::KingCastle;
-                            yield Move::QueenCastle;
+                            yield Move::KingCastle {color};
+                            yield Move::QueenCastle {color};
                         }
                         _ => (),
                     };

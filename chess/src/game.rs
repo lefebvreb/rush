@@ -19,7 +19,7 @@ impl<H: MoveHistory> Game<H> {
     #[inline]
     pub fn do_move(&mut self, mv: Move) {
         self.board.do_move(self.color, mv);
-        self.castle_rights.do_move(self.color, mv, self.ply);
+        self.castle_rights.do_move(mv, self.ply);
 
         self.history.push(mv);
         self.color = self.color.invert();
@@ -35,7 +35,7 @@ impl<H: MoveHistory> Game<H> {
         self.color = self.color.invert();
         let mv = self.history.pop();
         
-        self.castle_rights.undo_move(self.color, mv, self.ply);
+        self.castle_rights.undo_move(mv, self.ply);
         self.board.undo_move(self.color, mv);
     }
 

@@ -11,13 +11,13 @@
 
 ========================= */
 
+
+
 /* ======== TODO ===========
 
 IMPLEMENTATION
 
 - generate en passant moves
-- create a MiniVec type, and a "Vector" trait implemented by MiniVec and Vec,
-  then replace every samll Vec by MiniVec
 
 OPTIMISATIONS
 
@@ -32,14 +32,6 @@ TESTS
 
 ========================= */
 
-/* ======== IDEA ===========
-
-FOR NEXT ITERATION
-
-- create a type `single_bit_bitboard`
-
-========================= */
-
 // Modules
 mod attacks;
 #[macro_use]
@@ -51,6 +43,7 @@ mod color;
 mod game;
 mod moves;
 mod move_gen;
+mod parsing;
 mod piece;
 mod history;
 mod square;
@@ -64,20 +57,3 @@ pub use moves::Move;
 pub use move_gen::MoveGenerator;
 pub use piece::Piece;
 pub use square::Square;
-
-/*// prelude module
-/// Contains every objects exported by the chess crate
-pub mod prelude {
-    pub use super::{
-        BitBoard,
-        Board,
-        Color,
-        FullGame,
-        Game, 
-        Move,
-        MoveGenerator,
-        Piece,
-        SearchGame,
-        Square,
-    };
-}*/

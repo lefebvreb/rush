@@ -100,7 +100,7 @@ impl CastleRights {
 
     // Take into account the last move and modify the castling rights accordingly
     #[inline]
-    pub fn do_move(&mut self, color: Color, mv: Move, ply: Ply) {
+    pub fn do_move(&mut self, mv: Move, ply: Ply) {
         // The expression of the flag
         macro_rules! flag {
             ($flag: ident, $i: expr) => {
@@ -130,13 +130,13 @@ impl CastleRights {
             }
         }
 
-        on_square!(mv.from(color), on_square!(mv.to(color), return));
+        on_square!(mv.from(), on_square!(mv.to(), return));
         self.history.push(ply);
     }
 
     // Undo the last move and modify the castling rights accordingly
     #[inline]
-    pub fn undo_move(&mut self, color: Color, mv: Move, ply: Ply) {
+    pub fn undo_move(&mut self, mv: Move, ply: Ply) {
         // Set the flag to true
         macro_rules! modify {
             ($flag: ident, $i: expr) => {
@@ -161,7 +161,7 @@ impl CastleRights {
 
         if let Some(last_ply) = self.history.last() {
             if ply == last_ply {
-                on_square!(mv.from(color), on_square!(mv.to(color), unreachable!()));
+                on_square!(mv.from(), on_square!(mv.to(), unreachable!()));
                 self.history.remove_last();
             }    
         }
