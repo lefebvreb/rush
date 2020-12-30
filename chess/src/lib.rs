@@ -25,6 +25,7 @@ OPTIMISATIONS
 - replace all table lookup by unchecked accesses (`get_unchecked`)
 - replace unwrap() by unwrap_unchecked()
 - store pin masks inside of the board
+- use the Piece type in argument to `update_occupied` so to save a match
 
 TESTS
 
@@ -41,8 +42,8 @@ mod board;
 mod castle_rights;
 mod color;
 mod game;
-mod moves;
 mod move_gen;
+mod moves;
 mod parsing;
 mod piece;
 mod history;

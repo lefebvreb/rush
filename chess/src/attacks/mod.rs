@@ -1,5 +1,5 @@
-mod bmi2;
-use bmi2::*;
+mod bmi2_tables;
+use bmi2_tables::*;
 
 mod non_sliders_attacks;
 use non_sliders_attacks::*;
