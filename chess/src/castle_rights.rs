@@ -4,34 +4,7 @@ use std::str::FromStr;
 use crate::bitboard::BitBoard;
 use crate::color::Color;
 use crate::moves::Move;
-use crate::history::Ply;
 use crate::square::Square;
-
-// A stack-only mini-vector used to store information about plies
-#[derive(Clone, Default, Debug)]
-struct MiniVec {
-    cursor: u8,
-    plies: [Ply; 6],
-}
-
-impl MiniVec {
-    fn push(&mut self, ply: Ply) {
-        self.plies[self.cursor as usize] = ply;
-        self.cursor += 1;
-    }
-
-    fn remove_last(&mut self) {
-        self.cursor -= 1;
-    }
-
-    fn last(&self) -> Option<Ply> {
-        if self.cursor == 0 {
-            None
-        } else {
-            Some(self.plies[self.cursor as usize - 1])
-        }
-    }
-}
 
 // Convenient struct to carry the availability of castling moves
 #[repr(u8)]
@@ -43,15 +16,13 @@ pub enum CastleAvailability {
     Both,
 }
 
-// Used to remember and handle the castling privileges associated
-// to each color
-#[derive(Clone, Debug)]
-pub struct CastleRights {
-    kings: [bool; 2],
-    king_rooks: [bool; 2],  
-    queen_rooks: [bool; 2],  
-    history: MiniVec,
-}
+// Used to represent castle availability:
+// bit 0: White king side rights
+// bit 1: White queen side rights
+// bit 2: Black king side rights
+// bit 3: Black queen side rights
+#[derive(Copy, Clone, Debug)]
+pub struct CastleRights(u8);
 
 //#################################################################################################
 //
@@ -60,138 +31,127 @@ pub struct CastleRights {
 //#################################################################################################
 
 impl CastleRights {
+    // Empty castle rights
+    pub(crate) const NONE: CastleRights = CastleRights(0);
+
     // Return the castling abilities of a certain player, based on the monochrome
     // occupancy bitboard and the attack bitboard of the opponent
     // GIVEN THE KING IS NOT IN CHECK
-    #[inline]
-    pub fn get_availability(&self, color: Color, occ: BitBoard, danger: BitBoard) -> CastleAvailability {
-        const BITBOARDS: [(BitBoard, BitBoard); 2] = [(
-                BitBoard(0x60),
-                BitBoard(0xE),
-            ), (
-                BitBoard(0x6000000000000000),
-                BitBoard(0xE00000000000000),
-        )];
+    #[inline(always)]
+    pub fn get_availability(self, color: Color, occ: BitBoard, danger: BitBoard) -> CastleAvailability {
+        let block = occ | danger;
 
-        if self.kings[color as usize] {
-            let block = occ | danger;
+        let (king_side, queen_side) = match color {
+            Color::White => (
+                self.0 & 0b0001 != 0 && (block & BitBoard(0x60)).is_empty(),
+                self.0 & 0b0010 != 0 && (block & BitBoard(0x0E)).is_empty(),
+            ),
+            Color::Black => (
+                self.0 & 0b0100 != 0 && (block & BitBoard(0x600000000000000)).is_empty(),
+                self.0 & 0b1000 != 0 && (block & BitBoard(0x0E0000000000000)).is_empty(),
+            ),
+        };
 
-            let king_side = self.king_rooks[color as usize] && (
-                block & BITBOARDS[color as usize].0
-            ).is_empty();
-            let queen_side = self.queen_rooks[color as usize] && (
-                block & BITBOARDS[color as usize].1
-            ).is_empty();
-
-            if king_side {
-                if queen_side {
-                    CastleAvailability::Both
-                } else {
-                    CastleAvailability::KingSide
-                }
+        if king_side {
+            if queen_side {
+                CastleAvailability::Both
             } else {
-                if queen_side {
-                    CastleAvailability::QueenSide
-                } else {
-                    CastleAvailability::None
-                }
+                CastleAvailability::KingSide
             }
         } else {
-            CastleAvailability::None
+            if queen_side {
+                CastleAvailability::QueenSide
+            } else {
+                CastleAvailability::None
+            }
         }
     }
 
-    // Take into account the last move and modify the castling rights accordingly
-    #[inline]
-    pub fn do_move(&mut self, mv: Move, ply: Ply) {
-        // The expression of the flag
-        macro_rules! flag {
-            ($flag: ident, $i: expr) => {
-                self.$flag[$i]
-            }
-        }
-
-        // Set the flag to false
+    // Update castling rights
+    #[inline(always)]
+    pub(crate) fn update(self, color: Color, mv: Move) -> CastleRights {
         macro_rules! modify {
-            ($flag: ident, $i: expr) => {
-                flag!($flag, $i) = false;
+            ($mask: literal) => {
+                CastleRights(self.0 & !$mask)
             };
         }
 
-        // Perform a match on that square and mofifies the flags
-        macro_rules! on_square {
-            ($sq: expr, $catch_all: expr) => {
-                match $sq {
-                    Square::A1 if flag!(queen_rooks, 0) => modify!(queen_rooks, 0),
-                    Square::E1 if flag!(kings,       0) => modify!(kings, 0),
-                    Square::H1 if flag!(king_rooks,  0) => modify!(king_rooks, 0),
-                    Square::A8 if flag!(queen_rooks, 1) => modify!(queen_rooks, 1),
-                    Square::E8 if flag!(kings,       1) => modify!(kings, 1),
-                    Square::H8 if flag!(king_rooks,  1) => modify!(king_rooks, 1),
-                    _ => $catch_all,
+        match color {
+            Color::White => match mv.from() {
+                Square::H1 => modify!(0b0001),
+                Square::E1 => modify!(0b0011),
+                Square::A1 => modify!(0b0010),
+                _ => match mv.to() {
+                    Square::H8 => modify!(0b0100),
+                    Square::A8 => modify!(0b1000),
+                    _ => self,
                 }
             }
-        }
-
-        on_square!(mv.from(), on_square!(mv.to(), return));
-        self.history.push(ply);
-    }
-
-    // Undo the last move and modify the castling rights accordingly
-    #[inline]
-    pub fn undo_move(&mut self, mv: Move, ply: Ply) {
-        // Set the flag to true
-        macro_rules! modify {
-            ($flag: ident, $i: expr) => {
-                self.$flag[$i] = true;
-            };
-        }
-
-        // Perform a match on that square and mofifies the flags
-        macro_rules! on_square {
-            ($sq: expr, $catch_all: expr) => {
-                match $sq {
-                    Square::A1 => modify!(queen_rooks, 0),
-                    Square::E1 => modify!(kings, 0),
-                    Square::H1 => modify!(king_rooks, 0),
-                    Square::A8 => modify!(queen_rooks, 1),
-                    Square::E8 => modify!(kings, 1),
-                    Square::H8 => modify!(king_rooks, 1),
-                    _ => $catch_all,
+            Color::Black => match mv.from() {
+                Square::H8 => modify!(0b0100),
+                Square::E8 => modify!(0b1100),
+                Square::A8 => modify!(0b1000),
+                _ => match mv.to() {
+                    Square::H1 => modify!(0b0001),
+                    Square::A1 => modify!(0b0010),
+                    _ => self,
                 }
-            }
-        }
-
-        if let Some(last_ply) = self.history.last() {
-            if ply == last_ply {
-                on_square!(mv.from(), on_square!(mv.to(), unreachable!()));
-                self.history.remove_last();
-            }    
+            },
         }
     }
 }
 
 impl Default for CastleRights {
+    // The default castle rights: all of them
     fn default() -> CastleRights {
-        CastleRights {
-            queen_rooks: [true; 2],
-            kings: [true; 2],
-            king_rooks: [true; 2],    
-            history: MiniVec::default(),
-        }
+        CastleRights(0b1111)
     }
 }
 
 impl fmt::Display for CastleRights {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        todo!()
+    // To FEN castle rights notation
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", match self.0 {
+            0b0000 => "-",
+            0b0001 => "K",
+            0b0010 => "Q",
+            0b0011 => "KQ",
+            0b0100 => "k",
+            0b0101 => "Kk",
+            0b0111 => "KQk",
+            0b1000 => "q",
+            0b1001 => "Kq",
+            0b1010 => "Qq",
+            0b1011 => "KQq",
+            0b1100 => "kq",
+            0b1101 => "Kkq",
+            0b1111 => "KQkq",
+            _ => unreachable!(),
+        })
     }
 }
 
 impl FromStr for CastleRights {
     type Err = String;
 
+    // From FEN castle rights notation
     fn from_str(s: &str) -> Result<CastleRights, String> {
-        todo!()
+        Ok(CastleRights(match s {
+            "-"    => 0b0000,
+            "K"    => 0b0001,
+            "Q"    => 0b0010,
+            "KQ"   => 0b0011,
+            "k"    => 0b0100,
+            "Kk"   => 0b0101,
+            "KQk"  => 0b0111,
+            "q"    => 0b1000,
+            "Kq"   => 0b1001,
+            "Qq"   => 0b1010,
+            "KQq"  => 0b1011,
+            "kq"   => 0b1100,
+            "Kkq"  => 0b1101,
+            "KQkq" => 0b1111,
+            _ => return Err("Invalid castle rights format".to_owned()),
+        }))
     }
 }

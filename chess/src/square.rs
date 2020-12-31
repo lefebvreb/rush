@@ -21,6 +21,7 @@ pub enum Square {
 }
 
 impl Square {
+    /// An array containing all squares in order: ranks first then files, starting from A1.
     pub const SQUARES: [Square; 64] = [
         Square::A1, Square::B1, Square::C1, Square::D1, Square::E1, Square::F1, Square::G1, Square::H1,
         Square::A2, Square::B2, Square::C2, Square::D2, Square::E2, Square::F2, Square::G2, Square::H2,
@@ -54,6 +55,23 @@ impl Square {
     }
 }
 
+impl fmt::Display for Square {
+    // Give the square's pure algebraic coordinates notation
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const FILES: [char; 8] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        const RANKS: [char; 8] = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+        write!(f, "{}{}", FILES[self.x() as usize], RANKS[self.y() as usize])
+    }
+}
+
+impl Into<BitBoard> for Square {
+    #[inline(always)]
+    fn into(self) -> BitBoard {
+        BitBoard(SHIFTS[self as usize])
+    }
+}
+
 impl From<u8> for Square {
     // Undefined behaviour if i > 63
     #[inline(always)]
@@ -70,25 +88,11 @@ impl From<(u8, u8)> for Square {
     }
 }
 
-impl Into<BitBoard> for Square {
-    #[inline(always)]
-    fn into(self) -> BitBoard {
-        BitBoard(SHIFTS[self as usize])
-    }
-}
-
-impl fmt::Display for Square {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const FILES: [char; 8] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-        const RANKS: [char; 8] = ['1', '2', '3', '4', '5', '6', '7', '8'];
-
-        write!(f, "{}{}", FILES[self.x() as usize], RANKS[self.y() as usize])
-    }
-}
 
 impl FromStr for Square {
     type Err = String;
 
+    // Try to construct a square from a pure algebraic coordinates notation
     fn from_str(s: &str) -> Result<Square, String> {
         if s.len() == 2 {
             let mut chars = s.chars();

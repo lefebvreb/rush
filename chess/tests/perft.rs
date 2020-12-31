@@ -4,7 +4,6 @@ use chess::*;
 
 // The depth at which the perft test is carried, may be changed
 const DEPTH: usize = 3;
-// min: 0, max: 13
 
 // Pre-computed perft results, taken from https://www.chessprogramming.org/Perft_Results
 const PERFT_RESULTS: &[u64] = &[

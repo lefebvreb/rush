@@ -23,12 +23,10 @@ impl<H: MoveHistory> Game<H> {
     /// Perform a new move and modifiy the game accordingly
     #[inline]
     pub fn do_move(&mut self, mv: Move) {
-        self.board.do_move(self.color, mv);
-        self.castle_rights.do_move(mv, self.ply);
-
-        self.history.push(mv);
+        self.board.do_move(self.color, mv);        
+        self.history.push(mv, self.castle_rights);
+        self.castle_rights = self.castle_rights.update(self.color, mv);
         self.color = self.color.invert();
-
         self.ply.incr();
     }
 
@@ -36,11 +34,9 @@ impl<H: MoveHistory> Game<H> {
     #[inline]
     pub fn undo_move(&mut self) {
         self.ply.decr();
-
         self.color = self.color.invert();
-        let mv = self.history.pop();
-        
-        self.castle_rights.undo_move(mv, self.ply);
+        let (mv, castle_rights) = self.history.pop();    
+        self.castle_rights = castle_rights;
         self.board.undo_move(self.color, mv);
     }
 
@@ -65,7 +61,7 @@ impl<H: MoveHistory> Game<H> {
     // Return the last move played
     #[inline(always)]
     pub(crate) fn get_last_move(&self) -> Move {
-        self.history.last()
+        self.history.last_move()
     }
 
     /// Try to parse a move from current position with given coordinates,
@@ -85,7 +81,7 @@ impl<H: MoveHistory> Game<H> {
                     'n' => Piece::Knight,
                     'b' => Piece::Bishop,
                     'q' => Piece::Queen,
-                    c => return Err(format!("Unrecognized promotion: '{}', valid promotions are: \"rnbq\"", c))
+                    c => return Err(format!("Unrecognized promotion: {:?}, valid promotions are: \"rnbq\"", c))
                 };
     
                 if let Some((_, capture)) = self.board.get_piece(to) {
@@ -108,8 +104,8 @@ impl<H: MoveHistory> Game<H> {
     }
 
     /// Try to parse a position from fen notation.
-    pub fn from_fen(fen: &str) -> Result<Self, ()> {
-        todo!()
+    pub fn from_fen(fen: &str) -> Result<Game<H>, String> {
+        Game::from_str(fen)
     }
 }
 
@@ -128,6 +124,7 @@ impl Game<LargeMoveHistory> {
 }
 
 impl Default for FullGame {
+    // Return a new full game, with the starting position of chess
     fn default() -> FullGame {
         Game {
             board: Board::default(),
@@ -140,6 +137,7 @@ impl Default for FullGame {
 }
 
 impl<H: MoveHistory> fmt::Display for Game<H> {
+    // Give the FEN representation of the board
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         todo!()
     }
@@ -148,7 +146,8 @@ impl<H: MoveHistory> fmt::Display for Game<H> {
 impl<H: MoveHistory> FromStr for Game<H> {
     type Err = String;
 
-    fn from_str(s: &str) -> Result<Self, String> {
+    // Try to construct a board from a given FEN notation
+    fn from_str(s: &str) -> Result<Game<H>, String> {
         todo!()
     }
 }

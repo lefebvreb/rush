@@ -1,14 +1,14 @@
 mod bmi2_tables;
 use bmi2_tables::*;
 
-mod non_sliders_attacks;
-use non_sliders_attacks::*;
+mod non_sliders_attacks_table;
+use non_sliders_attacks_table::*;
 
 mod pin_tables;
 use pin_tables::*;
 
-mod slider_attacks;
-use slider_attacks::*;
+mod slider_attacks_tables;
+use slider_attacks_tables::*;
 
 use crate::bitboard::BitBoard;
 use crate::bits::{pext, pdep};
@@ -16,12 +16,6 @@ use crate::board::Board;
 use crate::color::Color;
 use crate::piece::Piece;
 use crate::square::Square;
-
-//#################################################################################################
-//
-//                                           Pawns
-//
-//#################################################################################################
 
 // Return the attacks BitBoard of a Pawn of Color color located on square sq with Board occupancy occ
 #[inline(always)]
@@ -56,42 +50,11 @@ pub fn get_pawn_double_push(color: Color, sq: Square) -> Option<Square> {
     }
 }
 
-//#################################################################################################
-//
-//                              Bishops, Rooks, Queens
-//
-//#################################################################################################
-
-// Return the attacks BitBoard of a Bishop located on square sq, with Board occupancy occ
-#[inline(always)]
-fn bishop_attacks(sq: Square, occ: BitBoard) -> BitBoard {
-    let bmi2 = BISHOP_BMI2[sq as usize];
-    BitBoard(pdep(SLIDER_ATTACKS[bmi2.0 + pext(occ.0, bmi2.1) as usize] as u64, bmi2.2))
-}
-
 // Return the attacks BitBoard of a Rook located on square sq, with Board occupancy occ
 #[inline(always)]
 fn rook_attacks(sq: Square, occ: BitBoard) -> BitBoard {
-    let bmi2 = ROOK_BMI2[sq as usize];
-    BitBoard(pdep(SLIDER_ATTACKS[bmi2.0 + pext(occ.0, bmi2.1) as usize] as u64, bmi2.2))
-}
-
-// Return the attacks BitBoard of a Queen located on square sq, with Board occupancy occ
-#[inline(always)]
-fn queen_attacks(sq: Square, occ: BitBoard) -> BitBoard {
-    bishop_attacks(sq, occ) | rook_attacks(sq, occ)
-}
-
-//#################################################################################################
-//
-//                                 King, Knight
-//
-//#################################################################################################
-
-// Return the attacks BitBoard of a King located on square sq
-#[inline(always)]
-fn king_attacks(sq: Square) -> BitBoard {
-    BitBoard(KING_ATTACKS[sq as usize])
+    let (shift, mask1, mask2) = ROOK_BMI2[sq as usize];
+    BitBoard(pdep(SLIDER_ATTACKS[shift + pext(occ.0, mask1) as usize] as u64, mask2))
 }
 
 // Return the attacks BitBoard of a Knight located on square sq
@@ -100,11 +63,24 @@ fn knight_attacks(sq: Square) -> BitBoard {
     BitBoard(KNIGHT_ATTACKS[sq as usize])
 }
 
-//#################################################################################################
-//
-//                                 Generate attack
-//
-//#################################################################################################
+// Return the attacks BitBoard of a Bishop located on square sq, with Board occupancy occ
+#[inline(always)]
+fn bishop_attacks(sq: Square, occ: BitBoard) -> BitBoard {
+    let (shift, mask1, mask2) = BISHOP_BMI2[sq as usize];
+    BitBoard(pdep(SLIDER_ATTACKS[shift + pext(occ.0, mask1) as usize] as u64, mask2))
+}
+
+// Return the attacks BitBoard of a Queen located on square sq, with Board occupancy occ
+#[inline(always)]
+fn queen_attacks(sq: Square, occ: BitBoard) -> BitBoard {
+    bishop_attacks(sq, occ) | rook_attacks(sq, occ)
+}
+
+// Return the attacks BitBoard of a King located on square sq
+#[inline(always)]
+fn king_attacks(sq: Square) -> BitBoard {
+    BitBoard(KING_ATTACKS[sq as usize])
+}
 
 // Generate the attacks of a given piece, with the corresponding color and on square sq
 #[inline(always)]
@@ -119,12 +95,6 @@ pub fn attacks(color: Color, piece: Piece, sq: Square, occ: BitBoard) -> BitBoar
     }
 }
 
-//#################################################################################################
-//
-//                                         Pin
-//
-//#################################################################################################
-
 // Return a bitboard containing all pinned pieces
 #[inline(always)]
 pub fn get_pinned(color: Color, board: &Board) -> BitBoard {
@@ -136,29 +106,24 @@ pub fn get_pinned(color: Color, board: &Board) -> BitBoard {
 
     let mut pinned = BitBoard::EMPTY;
 
-    for rook_square in (board.get_bitboard(color_inv, Piece::Rook) | queens).iter_squares() {
-        let between = BitBoard(SQUARES_BETWEEN_STRAIGHT[king_offset + rook_square as usize]);
-
-        if (occ & between).count_bits() == 1 {
-            let maybe_pinned = us & between;
-
-            if maybe_pinned.is_not_empty() {
-                pinned |= maybe_pinned;
+    macro_rules! detect_pins {
+        ($piece: ident, $table: ident) => {
+            for sq in (board.get_bitboard(color_inv, Piece::$piece) | queens).iter_squares() {
+                let between = BitBoard($table[king_offset + sq as usize]);
+        
+                if (occ & between).count_bits() == 1 {
+                    let maybe_pinned = us & between;
+        
+                    if maybe_pinned.is_not_empty() {
+                        pinned |= maybe_pinned;
+                    }
+                }
             }
         }
     }
 
-    for bishop_square in (board.get_bitboard(color_inv, Piece::Bishop) | queens).iter_squares() {
-        let between = BitBoard(SQUARES_BETWEEN_DIAGONAL[king_offset + bishop_square as usize]);
-
-        if (occ & between).count_bits() == 1 {
-            let maybe_pinned = us & between;
-
-            if maybe_pinned.is_not_empty() {
-                pinned |= maybe_pinned;
-            }
-        }
-    }
+    detect_pins!(Rook, SQUARES_BETWEEN_STRAIGHT);
+    detect_pins!(Bishop, SQUARES_BETWEEN_DIAGONAL);
 
     pinned
 }

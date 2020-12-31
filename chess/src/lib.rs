@@ -17,6 +17,7 @@
 
 IMPLEMENTATION
 
+- Finish Game's fen implementations
 - generate en passant moves
 
 OPTIMISATIONS

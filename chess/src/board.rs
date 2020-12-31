@@ -55,12 +55,6 @@ enum SquareInfo {
     },
 }
 
-//#################################################################################################
-//
-//                                    Implementation
-//
-//#################################################################################################
-
 impl Board {
     // ==================================== Accessers ======================================
 
@@ -475,7 +469,7 @@ impl Board {
 
     /// Pretty-prints the board to stdout, using utf-8 characters
     /// to represent the pieces
-    pub fn print_board(&self) {
+    pub fn pretty_print(&self) {
         const CHARS: [[char; 6]; 2] = [
             ['♙', '♖', '♘', '♗', '♕', '♔'],
             ['♟', '♜', '♞', '♝', '♛', '♚'],
@@ -498,58 +492,13 @@ impl Board {
 
 impl Default for Board {
     // Return a new Board with the default chess position
-    #[cold]
     fn default() -> Board {
-        let mut board = Board {
-            bitboards: [[BitBoard::EMPTY; 6]; 2],
-            mailbox: [SquareInfo::Unoccupied {attack: BitBoard::EMPTY}; 64],
-            occ: Occupancy {
-                white: BitBoard::EMPTY,
-                black: BitBoard::EMPTY,
-                all: BitBoard::EMPTY,
-                free: BitBoard::FULL,
-            }
-        };
-
-        for (color, pieces_squares) in &[
-            (Color::White, vec![
-                (Piece::Pawn, vec![Square::A2, Square::B2, Square::C2, Square::D2, Square::E2, Square::F2, Square::G2, Square::H2]),
-                (Piece::Rook, vec![Square::A1, Square::H1]),
-                (Piece::Knight, vec![Square::B1, Square::G1]),
-                (Piece::Bishop, vec![Square::C1, Square::F1]),
-                (Piece::Queen, vec![Square::D1]),
-                (Piece::King, vec![Square::E1]),
-            ]),
-            (Color::Black, vec![
-                (Piece::Pawn, vec![Square::A7, Square::B7, Square::C7, Square::D7, Square::E7, Square::F7, Square::G7, Square::H7]),
-                (Piece::Rook, vec![Square::A8, Square::H8]),
-                (Piece::Knight, vec![Square::B8, Square::G8]),
-                (Piece::Bishop, vec![Square::C8, Square::F8]),
-                (Piece::Queen, vec![Square::D8]),
-                (Piece::King, vec![Square::E8]),
-            ]),
-        ] {
-            for (piece, squares) in pieces_squares {
-                for sq in squares {
-                    board.update_bitboards(*color, *piece, (*sq).into());
-                    board.occupy_mailbox(*color, *piece, *sq);
-                    let mut updated = BitBoard::EMPTY;
-                    board.update_occupied(*sq, &mut updated);
-                }
-            }
-        }
-
-        return board;
+        Board::from_str("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR").unwrap()
     }
 }
 
-//#################################################################################################
-//
-//                                         Format
-//
-//#################################################################################################
-
 impl fmt::Display for Board {
+    // Give the FEN notation of the board
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         macro_rules! write_if_not_zero {
             ($i: expr) => {
@@ -575,7 +524,9 @@ impl fmt::Display for Board {
             }
 
             write_if_not_zero!(streak);
-            write!(f, "/")?;
+            if y != 0 {
+                write!(f, "/")?;
+            }
         }
 
         Ok(())
@@ -585,11 +536,12 @@ impl fmt::Display for Board {
 impl FromStr for Board {
     type Err = String;
 
+    // Try to construct a board from a fen notation
     fn from_str(s: &str) -> Result<Board, String> {
         let ranks = s.split("/").into_iter().collect::<Vec<_>>();
 
         if ranks.len() != 8 {
-            return Err("Not enough ranks in FEN board".to_owned());
+            return Err(format!("Not enough ranks in FEN board {:?}", s));
         }
 
         let mut board = Board {
@@ -611,7 +563,7 @@ impl FromStr for Board {
                     '1'..='8' => j += c as u8 - '1' as u8,
                     _ => {
                         let (color, piece) = Piece::from_char(c)?;
-                        let sq = Square::from(j + i as u8 * 8);
+                        let sq = Square::from(j + (7 - i as u8) * 8);
     
                         board.update_bitboards(color, piece, sq.into());
                         board.occupy_mailbox(color, piece, sq);
@@ -621,7 +573,7 @@ impl FromStr for Board {
                 }
 
                 if j > 8 {
-                    return Err(format!("Rank {} is too large in FEN board", i).to_owned())
+                    return Err(format!("Rank #{} is too large in FEN board {:?}", i, s))
                 }
             }
         }

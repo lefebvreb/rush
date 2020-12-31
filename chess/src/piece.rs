@@ -15,6 +15,7 @@ pub enum Piece {
 }
 
 impl Piece {
+    // Try to parse a piece from a single char
     pub(crate) fn from_char(c: char) -> Result<(Color, Piece), String> {
         match c {
             'P' => Ok((Color::White, Piece::Pawn)),
@@ -35,6 +36,7 @@ impl Piece {
 }
 
 impl fmt::Display for Piece {
+    // Display the piece
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", match self {
             Piece::Pawn => 'p',

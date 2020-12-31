@@ -106,8 +106,8 @@ impl Move {
      }
 }
 
-// Display a move using pure algebraic coordinate notation
 impl fmt::Display for Move {
+    // Display a move using pure algebraic coordinate notation
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let promote = match self {
             Move::Promote {promote, ..} |

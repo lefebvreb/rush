@@ -8,12 +8,6 @@ use crate::square::Square;
 #[derive(Copy, Clone, PartialEq)]
 pub struct BitBoard(pub u64);
 
-//#################################################################################################
-//
-//                                     Implementation
-//
-//#################################################################################################
-
 impl BitBoard {
     /// An empty BitBoard
     pub const EMPTY: BitBoard = BitBoard(0);
@@ -81,13 +75,6 @@ impl BitBoard {
     }
 }
 
-impl Into<usize> for BitBoard {
-    #[inline(always)]
-    fn into(self) -> usize {
-        self.0 as usize
-    }
-}
-
 /// A convenient macro to construct a BitBoard from a collection of Squares
 macro_rules! squares {
     ($($sq: expr),*) => {
@@ -95,21 +82,15 @@ macro_rules! squares {
     };
 }
 
-//#################################################################################################
-//
-//                                          Format
-//
-//#################################################################################################
-
 impl fmt::Debug for BitBoard {
-    #[cold]
+    // Print the bitboard in hex form for quick debugging
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "BitBoard(0x{:X})", self.0)
     }
 }
 
 impl fmt::Display for BitBoard {
-    #[cold]
+    // Pretty-print the bitboard for human eyes
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut bits = self.0.reverse_bits();
 
@@ -122,12 +103,6 @@ impl fmt::Display for BitBoard {
         writeln!(f, "└────────┘")
     }
 }
-
-//#################################################################################################
-//
-//                                         Operators
-//
-//#################################################################################################
 
 impl std::ops::Add<BitBoard> for BitBoard {
     type Output = BitBoard;
