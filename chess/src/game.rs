@@ -1,8 +1,13 @@
+use std::fmt;
+use std::str::FromStr;
+
 use crate::board::Board;
 use crate::castle_rights::CastleRights;
 use crate::color::Color;
-use crate::moves::Move;
 use crate::history::{LargeMoveHistory, MoveHistory, Ply, SmallMoveHistory};
+use crate::moves::Move;
+use crate::piece::Piece;
+use crate::square::Square;
 
 /// A struct that holds every information defining a complete game of chess
 #[derive(Debug)]
@@ -62,6 +67,50 @@ impl<H: MoveHistory> Game<H> {
     pub(crate) fn get_last_move(&self) -> Move {
         self.history.last()
     }
+
+    /// Try to parse a move from current position with given coordinates,
+    /// in pure algebraic notation, of course.
+    /// Does not verify validity of the move.
+    pub fn parse_move(&self, s: &str) -> Result<Move, String> {
+        let from = Square::from_str(&s[0..2])?;
+        let to = Square::from_str(&s[2..4])?;
+
+        match s.len() {
+            4 => {
+                todo!()
+            }
+            5 => {
+                let promote = match s.chars().nth(4).unwrap() {
+                    'r' => Piece::Rook,
+                    'n' => Piece::Knight,
+                    'b' => Piece::Bishop,
+                    'q' => Piece::Queen,
+                    c => return Err(format!("Unrecognized promotion: '{}', valid promotions are: \"rnbq\"", c))
+                };
+    
+                if let Some((_, capture)) = self.board.get_piece(to) {
+                    Ok(Move::PromoteCapture {
+                        from, 
+                        to, 
+                        capture, 
+                        promote,
+                    })
+                } else {
+                    Ok(Move::Promote {
+                        from, 
+                        to, 
+                        promote,
+                    })
+                }
+            }
+            _ => Err("A move should be encoded in pure algebraic coordinate notation".to_owned())
+        }
+    }
+
+    /// Try to parse a position from fen notation.
+    pub fn from_fen(fen: &str) -> Result<Self, ()> {
+        todo!()
+    }
 }
 
 impl Game<LargeMoveHistory> {
@@ -79,7 +128,6 @@ impl Game<LargeMoveHistory> {
 }
 
 impl Default for FullGame {
-    #[cold]
     fn default() -> FullGame {
         Game {
             board: Board::default(),
@@ -88,6 +136,20 @@ impl Default for FullGame {
             history: LargeMoveHistory::default(),
             ply: Ply::default(),
         }
+    }
+}
+
+impl<H: MoveHistory> fmt::Display for Game<H> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        todo!()
+    }
+}
+
+impl<H: MoveHistory> FromStr for Game<H> {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, String> {
+        todo!()
     }
 }
 

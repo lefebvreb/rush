@@ -1,4 +1,5 @@
 use std::fmt;
+use std::str::FromStr;
 
 use crate::attacks::attacks;
 use crate::bitboard::BitBoard;
@@ -99,6 +100,15 @@ impl Board {
         }
     }
 
+    /// Return true if the square sq is occupied
+    #[inline(always)]
+    pub fn is_occupied(&self, sq: Square) -> bool {
+        match self.mailbox[sq as usize] {
+            SquareInfo::Occupied {..} => true,
+            _ => false,
+        }
+    }
+
     /// Return true if the square sq is empty
     #[inline(always)]
     pub fn is_empty(&self, sq: Square) -> bool {
@@ -109,7 +119,6 @@ impl Board {
     }
 
     /// Return, if it exists, the piece and it's color present on that square
-    #[cold]
     pub fn get_piece(&self, sq: Square) -> Option<(Color, Piece)> {
         match self.mailbox[sq as usize] {
             SquareInfo::Occupied {color, piece, ..} => Some((color, piece)),
@@ -117,7 +126,7 @@ impl Board {
         }
     }
 
-    // ================================ Unchecked accessers =====================================
+    // ================================ crate accessers =====================================
 
     // Return the attacks from that square, assuming there is a piece there
     #[inline(always)]
@@ -463,6 +472,28 @@ impl Board {
             _ => (),
         }
     }
+
+    /// Pretty-prints the board to stdout, using utf-8 characters
+    /// to represent the pieces
+    pub fn print_board(&self) {
+        const CHARS: [[char; 6]; 2] = [
+            ['♙', '♖', '♘', '♗', '♕', '♔'],
+            ['♟', '♜', '♞', '♝', '♛', '♚'],
+        ];
+
+        println!("  a b c d e f g h");
+        for y in (0..8).rev() {
+            print!("{} ", y + 1);
+            for x in 0..8 {
+                if let SquareInfo::Occupied {piece, color, ..} = self.mailbox[x + 8*y] {
+                    print!("{} ", CHARS[color as usize][piece as usize]);
+                } else {
+                    print!("- ");
+                }
+            }
+            println!()
+        }
+    }
 }
 
 impl Default for Board {
@@ -519,27 +550,90 @@ impl Default for Board {
 //#################################################################################################
 
 impl fmt::Display for Board {
-    #[cold]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const CHARS: [[char; 6]; 2] = [
-            ['♙', '♖', '♘', '♗', '♕', '♔'],
-            ['♟', '♜', '♞', '♝', '♛', '♚'],
-        ];
-
-        writeln!(f, "  a b c d e f g h").unwrap();
+        macro_rules! write_if_not_zero {
+            ($i: expr) => {
+                if $i != 0 {
+                    write!(f, "{}", ('0' as u8 + $i) as char)?
+                }
+            };
+        }
+        
         for y in (0..8).rev() {
-            write!(f, "{} ", y+1).unwrap();
+            let mut streak = 0;
+
             for x in 0..8 {
-                if let SquareInfo::Occupied {piece, color, ..} = self.mailbox[x + 8*y] {
-                    write!(f, "{} ", CHARS[color as usize][piece as usize]).unwrap();
+                if let Some((color, piece)) = self.get_piece(Square::from((x, y))) {
+                    write_if_not_zero!(streak);
+                    write!(f, "{}", match color {
+                        Color::White => piece.to_string().to_uppercase(),
+                        Color::Black => piece.to_string(),
+                    })?;
                 } else {
-                    write!(f, "- ").unwrap();
+                    streak += 1;
                 }
             }
-            writeln!(f).unwrap();
+
+            write_if_not_zero!(streak);
+            write!(f, "/")?;
         }
 
         Ok(())
+    }
+}
+
+impl FromStr for Board {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Board, String> {
+        let ranks = s.split("/").into_iter().collect::<Vec<_>>();
+
+        if ranks.len() != 8 {
+            return Err("Not enough ranks in FEN board".to_owned());
+        }
+
+        let mut board = Board {
+            bitboards: [[BitBoard::EMPTY; 6]; 2],
+            mailbox: [SquareInfo::Unoccupied {attack: BitBoard::EMPTY}; 64],
+            occ: Occupancy {
+                white: BitBoard::EMPTY,
+                black: BitBoard::EMPTY,
+                all: BitBoard::EMPTY,
+                free: BitBoard::FULL,
+            }
+        };
+
+        for (i, rank) in ranks.iter().enumerate() {
+            let mut j = 0;
+
+            for c in rank.chars() {
+                match c {
+                    '1'..='8' => j += c as u8 - '1' as u8,
+                    _ => {
+                        let (color, piece) = Piece::from_char(c)?;
+                        let sq = Square::from(j + i as u8 * 8);
+    
+                        board.update_bitboards(color, piece, sq.into());
+                        board.occupy_mailbox(color, piece, sq);
+
+                        j += 1;
+                    }
+                }
+
+                if j > 8 {
+                    return Err(format!("Rank {} is too large in FEN board", i).to_owned())
+                }
+            }
+        }
+
+        let mut updated = BitBoard::EMPTY;
+        for sq in &Square::SQUARES {
+            if board.is_occupied(*sq) {
+                board.update_occupied(*sq, &mut updated);
+            }
+        }
+
+        Ok(board)
     }
 }
 

@@ -111,14 +111,8 @@ impl fmt::Display for Move {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let promote = match self {
             Move::Promote {promote, ..} |
-            Move::PromoteCapture {promote, ..} => match promote {
-                Piece::Rook => "r",
-                Piece::Knight => "n",
-                Piece::Bishop => "b",
-                Piece::Queen => "q",
-                _ => unreachable!(),
-            }
-            _ => "",
+            Move::PromoteCapture {promote, ..} => promote.to_string(),
+            _ => "".to_owned(),
         };
 
         write!(fmt, "{}{}{}", self.from(), self.to(), promote)

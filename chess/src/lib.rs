@@ -44,7 +44,6 @@ mod color;
 mod game;
 mod move_gen;
 mod moves;
-mod parsing;
 mod piece;
 mod history;
 mod square;

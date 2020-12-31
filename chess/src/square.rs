@@ -1,5 +1,6 @@
 use std::fmt;
 use std::mem::transmute;
+use std::str::FromStr;
 
 use crate::bitboard::BitBoard;
 use crate::bits::SHIFTS;
@@ -20,7 +21,7 @@ pub enum Square {
 }
 
 impl Square {
-    /*pub const SQUARES: [Square; 64] = [
+    pub const SQUARES: [Square; 64] = [
         Square::A1, Square::B1, Square::C1, Square::D1, Square::E1, Square::F1, Square::G1, Square::H1,
         Square::A2, Square::B2, Square::C2, Square::D2, Square::E2, Square::F2, Square::G2, Square::H2,
         Square::A3, Square::B3, Square::C3, Square::D3, Square::E3, Square::F3, Square::G3, Square::H3,
@@ -29,7 +30,7 @@ impl Square {
         Square::A6, Square::B6, Square::C6, Square::D6, Square::E6, Square::F6, Square::G6, Square::H6,
         Square::A7, Square::B7, Square::C7, Square::D7, Square::E7, Square::F7, Square::G7, Square::H7,
         Square::A8, Square::B8, Square::C8, Square::D8, Square::E8, Square::F8, Square::G8, Square::H8,
-    ];*/
+    ];
 
     /// Return the x coodinate of that square
     #[inline(always)]
@@ -77,11 +78,36 @@ impl Into<BitBoard> for Square {
 }
 
 impl fmt::Display for Square {
-    #[cold]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const FILES: [char; 8] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
         const RANKS: [char; 8] = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
         write!(f, "{}{}", FILES[self.x() as usize], RANKS[self.y() as usize])
+    }
+}
+
+impl FromStr for Square {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Square, String> {
+        if s.len() == 2 {
+            let mut chars = s.chars();
+
+            let file = chars.next().unwrap();
+            let rank = chars.next().unwrap();
+
+            Ok(Square::from((
+                match file {
+                    'a'..='h' => file as u8 - 'a' as u8,
+                    _ => return Err("First character of a square should be a letter between a and h".to_owned()),
+                },
+                match chars.next().unwrap() {
+                    '1'..='8' => rank as u8 - '1' as u8,
+                    _ => return Err("Second character of a square should be a digit between 1 and 8".to_owned()),
+                },
+            )))
+        } else {
+            Err("A square should be exactly 2 characters long".to_owned())
+        }
     }
 }

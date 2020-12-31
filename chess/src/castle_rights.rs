@@ -1,3 +1,6 @@
+use std::fmt;
+use std::str::FromStr;
+
 use crate::bitboard::BitBoard;
 use crate::color::Color;
 use crate::moves::Move;
@@ -169,7 +172,6 @@ impl CastleRights {
 }
 
 impl Default for CastleRights {
-    #[cold]
     fn default() -> CastleRights {
         CastleRights {
             queen_rooks: [true; 2],
@@ -177,5 +179,19 @@ impl Default for CastleRights {
             king_rooks: [true; 2],    
             history: MiniVec::default(),
         }
+    }
+}
+
+impl fmt::Display for CastleRights {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        todo!()
+    }
+}
+
+impl FromStr for CastleRights {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<CastleRights, String> {
+        todo!()
     }
 }
