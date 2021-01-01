@@ -4,6 +4,7 @@ use std::str::FromStr;
 use crate::attacks::attacks;
 use crate::bitboard::BitBoard;
 use crate::color::Color;
+use crate::errors::ParseFenError;
 use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
@@ -534,14 +535,14 @@ impl fmt::Display for Board {
 }
 
 impl FromStr for Board {
-    type Err = String;
+    type Err = ParseFenError;
 
     // Try to construct a board from a fen notation
-    fn from_str(s: &str) -> Result<Board, String> {
+    fn from_str(s: &str) -> Result<Board, ParseFenError> {
         let ranks = s.split("/").into_iter().collect::<Vec<_>>();
 
         if ranks.len() != 8 {
-            return Err(format!("Not enough ranks in FEN board {:?}", s));
+            return Err(ParseFenError::new(format!("not enough ranks in FEN board {:?}", s)));
         }
 
         let mut board = Board {
@@ -573,7 +574,7 @@ impl FromStr for Board {
                 }
 
                 if j > 8 {
-                    return Err(format!("Rank #{} is too large in FEN board {:?}", i, s))
+                    return Err(ParseFenError::new(format!("rank #{} is too large in FEN board {:?}", i, s)))
                 }
             }
         }

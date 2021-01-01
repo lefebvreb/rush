@@ -1,5 +1,6 @@
 use std::fmt;
 
+use crate::board::Board;
 use crate::color::Color;
 use crate::piece::Piece;
 use crate::square::Square;
@@ -89,21 +90,31 @@ impl Move {
 
     /// Return true if the move is none
     #[inline(always)]
-    pub fn is_none(&self) -> bool {
+    pub fn is_none(self) -> bool {
         match self {
             Move::None => true,
             _ => false,
         }
     }
 
-     /// Return true if the move is not none
-     #[inline(always)]
-     pub fn is_some(&self) -> bool {
-         match self {
-             Move::None => false,
-             _ => true,
-         }
-     }
+    /// Return true if the move is not none
+    #[inline(always)]
+    pub fn is_some(self) -> bool {
+        match self {
+            Move::None => false,
+            _ => true,
+        }
+    }
+
+    // Return true if the move is reversible (according to FIDE rules)
+    #[inline(always)]
+    pub(crate) fn is_reversible(self, board: &Board) -> bool {
+        match self {
+            Move::KingCastle {..} | Move::QueenCastle {..} => true,
+            Move::Quiet {from, ..} => board.get_piece_unchecked(from) != Piece::Pawn,
+            _ => false,
+        }
+    }
 }
 
 impl fmt::Display for Move {

@@ -4,7 +4,8 @@ use std::str::FromStr;
 use crate::board::Board;
 use crate::castle_rights::CastleRights;
 use crate::color::Color;
-use crate::history::{LargeMoveHistory, MoveHistory, Ply, SmallMoveHistory};
+use crate::errors::ParseFenError;
+use crate::history::{LargeMoveHistory, MoveHistory, MoveCounter, SmallMoveHistory};
 use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
@@ -16,27 +17,31 @@ pub struct Game<H: MoveHistory> {
     castle_rights: CastleRights,
     color: Color,
     history: H,
-    ply: Ply,
+    clock: MoveCounter,
 }
 
 impl<H: MoveHistory> Game<H> {
     /// Perform a new move and modifiy the game accordingly
     #[inline]
     pub fn do_move(&mut self, mv: Move) {
-        self.board.do_move(self.color, mv);        
-        self.history.push(mv, self.castle_rights);
+        self.history.push(mv, self.castle_rights, self.clock);
+        self.clock = self.clock.increment(self.color, mv, &self.board);
         self.castle_rights = self.castle_rights.update(self.color, mv);
+
+        self.board.do_move(self.color, mv);  
+
         self.color = self.color.invert();
-        self.ply.incr();
     }
 
     /// Revert the last move. Panic if there is no move in history
     #[inline]
     pub fn undo_move(&mut self) {
-        self.ply.decr();
         self.color = self.color.invert();
-        let (mv, castle_rights) = self.history.pop();    
+
+        let (mv, castle_rights, clock) = self.history.pop();    
         self.castle_rights = castle_rights;
+        self.clock = clock;
+
         self.board.undo_move(self.color, mv);
     }
 
@@ -66,14 +71,50 @@ impl<H: MoveHistory> Game<H> {
 
     /// Try to parse a move from current position with given coordinates,
     /// in pure algebraic notation, of course.
-    /// Does not verify validity of the move.
-    pub fn parse_move(&self, s: &str) -> Result<Move, String> {
+    /// Does not verify the validity of the move.
+    pub fn parse_move(&self, s: &str) -> Result<Move, ParseFenError> {
         let from = Square::from_str(&s[0..2])?;
         let to = Square::from_str(&s[2..4])?;
 
         match s.len() {
             4 => {
-                todo!()
+                match self.board.get_piece_unchecked(from) {
+                    Piece::Pawn => if from.x() != to.x() && self.board.is_empty(to) {
+                        return Ok(Move::EnPassant {
+                            from,
+                            to,
+                        })
+                    } else {
+                        let diff = from.y() as i8 - to.y() as i8;
+                        if diff == 2 || diff == -2 {
+                            return Ok(Move::DoublePush {
+                                from,
+                                to,
+                            })
+                        }
+                    }
+                    Piece::King => match (from, to) {
+                        (Square::E1, Square::G1) | 
+                        (Square::E8, Square::G8) => return Ok(Move::KingCastle {color: self.color}),
+                        (Square::E1, Square::C1) | 
+                        (Square::E8, Square::C8) => return Ok(Move::QueenCastle {color: self.color}),
+                        _ => (),
+                    }
+                    _ => (),
+                }
+
+                if let Some((_, capture)) = self.board.get_piece(to) {
+                    Ok(Move::Capture {
+                        from,
+                        to,
+                        capture,
+                    })
+                } else {
+                    Ok(Move::Quiet {
+                        from, 
+                        to,
+                    })
+                }
             }
             5 => {
                 let promote = match s.chars().nth(4).unwrap() {
@@ -81,7 +122,7 @@ impl<H: MoveHistory> Game<H> {
                     'n' => Piece::Knight,
                     'b' => Piece::Bishop,
                     'q' => Piece::Queen,
-                    c => return Err(format!("Unrecognized promotion: {:?}, valid promotions are: \"rnbq\"", c))
+                    c => return Err(ParseFenError::new(format!("unrecognized promotion: {:?}, valid promotions are: \"rnbq\"", c))),
                 };
     
                 if let Some((_, capture)) = self.board.get_piece(to) {
@@ -99,7 +140,7 @@ impl<H: MoveHistory> Game<H> {
                     })
                 }
             }
-            _ => Err("A move should be encoded in pure algebraic coordinate notation".to_owned())
+            _ => Err(ParseFenError::new("a move should be encoded in pure algebraic coordinate notation")),
         }
     }
 
@@ -118,7 +159,7 @@ impl Game<LargeMoveHistory> {
             castle_rights: self.castle_rights.clone(),
             color: self.color.clone(),
             history: SmallMoveHistory::default(),
-            ply: self.ply.clone(),
+            clock: self.clock.clone(),
         }
     }
 }
@@ -131,7 +172,7 @@ impl Default for FullGame {
             castle_rights: CastleRights::default(),
             color: Color::default(),
             history: LargeMoveHistory::default(),
-            ply: Ply::default(),
+            clock: MoveCounter::default(),
         }
     }
 }
@@ -139,7 +180,15 @@ impl Default for FullGame {
 impl<H: MoveHistory> fmt::Display for Game<H> {
     // Give the FEN representation of the board
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        todo!()
+        write!(
+            f,
+            "{} {} {} {} {}",
+            self.board,
+            self.color,
+            self.castle_rights,
+            self.history.en_passant_square(),
+            self.clock,
+        )
     }
 }
 

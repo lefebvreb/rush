@@ -5,6 +5,7 @@ use std::str::FromStr;
 use crate::bitboard::BitBoard;
 use crate::bits::SHIFTS;
 use crate::color::Color;
+use crate::errors::ParseFenError;
 
 /// Represent a Square of the board.
 #[repr(u8)]
@@ -90,10 +91,10 @@ impl From<(u8, u8)> for Square {
 
 
 impl FromStr for Square {
-    type Err = String;
+    type Err = ParseFenError;
 
     // Try to construct a square from a pure algebraic coordinates notation
-    fn from_str(s: &str) -> Result<Square, String> {
+    fn from_str(s: &str) -> Result<Square, ParseFenError> {
         if s.len() == 2 {
             let mut chars = s.chars();
 
@@ -103,15 +104,15 @@ impl FromStr for Square {
             Ok(Square::from((
                 match file {
                     'a'..='h' => file as u8 - 'a' as u8,
-                    _ => return Err("First character of a square should be a letter between a and h".to_owned()),
+                    _ => return Err(ParseFenError::new("first character of a square should be a letter between a and h")),
                 },
                 match chars.next().unwrap() {
                     '1'..='8' => rank as u8 - '1' as u8,
-                    _ => return Err("Second character of a square should be a digit between 1 and 8".to_owned()),
+                    _ => return Err(ParseFenError::new("second character of a square should be a digit between 1 and 8")),
                 },
             )))
         } else {
-            Err("A square should be exactly 2 characters long".to_owned())
+            Err(ParseFenError::new("a square should be exactly 2 characters long"))
         }
     }
 }

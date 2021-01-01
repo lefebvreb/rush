@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::color::Color;
+use crate::errors::ParseFenError;
 
 /// Represent a piece
 #[repr(u8)]
@@ -16,7 +17,7 @@ pub enum Piece {
 
 impl Piece {
     // Try to parse a piece from a single char
-    pub(crate) fn from_char(c: char) -> Result<(Color, Piece), String> {
+    pub(crate) fn from_char(c: char) -> Result<(Color, Piece), ParseFenError> {
         match c {
             'P' => Ok((Color::White, Piece::Pawn)),
             'R' => Ok((Color::White, Piece::Rook)),
@@ -30,7 +31,7 @@ impl Piece {
             'b' => Ok((Color::Black, Piece::Bishop)),
             'q' => Ok((Color::Black, Piece::Queen)),
             'k' => Ok((Color::Black, Piece::King)),
-            _ => Err(format!("Unrecognized piece literal: \"{}\"", c).to_owned()),
+            _ => Err(ParseFenError::new(format!("unrecognized piece literal: \"{}\"", c))),
         }
     }
 }

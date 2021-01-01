@@ -42,6 +42,7 @@ mod bits;
 mod board;
 mod castle_rights;
 mod color;
+mod errors;
 mod game;
 mod move_gen;
 mod moves;
