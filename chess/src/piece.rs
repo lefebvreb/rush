@@ -16,6 +16,12 @@ pub enum Piece {
 }
 
 impl Piece {
+    // List of all pieces
+    pub const PIECES: [Piece; 6] = [
+        Piece::Pawn, Piece::Rook, Piece::Knight, 
+        Piece::Bishop, Piece::Queen, Piece::King,
+    ];
+
     // Try to parse a piece from a single char
     pub(crate) fn from_char(c: char) -> Result<(Color, Piece), ParseFenError> {
         match c {

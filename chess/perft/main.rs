@@ -8,6 +8,7 @@ use chess::*;
 
 // The perft algorithm, counting the number of leaf nodes
 fn perft(game: &mut SearchGame<15>, depth: usize) -> u64 {
+
     if depth == 0 {
         return 1;
     }
@@ -39,31 +40,23 @@ fn main() {
     let fen = args.next().expect("Cannot find FEN argument");
     let mut game = SearchGame::from_fen(&fen).expect("Cannot parse FEN");
 
-    let mut moves = game.legals();
-    let map = moves.to_map();
-
     let mut total = 0;
 
-    if args.len() == 0 {
-        for (s, mv) in map {
-            game.do_move(mv);
-            let count = perft(&mut game, depth-1);
-            println!("{} {}", s, count);
-            total += count;
-            game.undo_move();
+    if args.len() != 0 {
+        for s in args.next().unwrap().split(" ") {
+            game.do_move(game
+                .parse_move(&s)
+                .expect("Couldn't parse move")
+            );
         }
-    } else {
-        for s in args {
-            if let Some(mv) = map.get(&s) {
-                game.do_move(*mv);
-                let count = perft(&mut game, depth-1);
-                println!("{} {}", s, count);
-                total += count;
-                game.undo_move();
-            } else {
-                panic!("Move seems invalid to me: {}", s);
-            }
-        }
+    } 
+
+    for (s, mv) in game.legals().to_map() {
+        game.do_move(mv);
+        let count = perft(&mut game, depth-1);
+        println!("{} {}", s, count);
+        total += count;
+        game.undo_move();
     }
 
     println!("\n{}", total);

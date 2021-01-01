@@ -89,7 +89,6 @@ impl From<(u8, u8)> for Square {
     }
 }
 
-
 impl FromStr for Square {
     type Err = ParseFenError;
 
@@ -106,7 +105,7 @@ impl FromStr for Square {
                     'a'..='h' => file as u8 - 'a' as u8,
                     _ => return Err(ParseFenError::new("first character of a square should be a letter between a and h")),
                 },
-                match chars.next().unwrap() {
+                match rank {
                     '1'..='8' => rank as u8 - '1' as u8,
                     _ => return Err(ParseFenError::new("second character of a square should be a digit between 1 and 8")),
                 },

@@ -87,9 +87,13 @@ impl<H: MoveHistory> Game<H> {
             let king_attacks = board.get_attacks(king_sq) & them;
 
             // King's danger and safety bitboards
-            let danger = king_attacks.iter_squares()
-                .fold(BitBoard::EMPTY, |danger, sq| {
-                    danger | board.get_defend_unchecked(sq)
+            let danger = (&Piece::PIECES).iter()
+                .fold(BitBoard::EMPTY, |danger, &piece| {
+                    danger | board.get_bitboard(color_inv, piece)
+                        .iter_squares()
+                        .fold(BitBoard::EMPTY, |danger, sq| {
+                            danger | board.get_defend_unchecked(sq)
+                        })
                 });
 
             // Pinned pieces bitboard
@@ -223,22 +227,22 @@ impl<H: MoveHistory> Game<H> {
 
             // Pawn quiets and double pushes
             for from in board.get_bitboard(color, Piece::Pawn).iter_squares() {
-                let pin = pin!(from);
+                let mask = mask & pin!(from);
 
-                if let Some(to) = get_pawn_push(color, from) {
-                    if board.is_empty(to) & pin.contains(to) {
+                if let Some(to_single) = get_pawn_push(color, from) {
+                    if mask.contains(to_single) {
                         yield Move::Quiet {
                             from,
-                            to,
+                            to: to_single,
                         };
+                    }
 
-                        if let Some(to) = get_pawn_double_push(color, from) {
-                            if board.is_empty(to) & pin.contains(to) {
-                                yield Move::DoublePush {
-                                    from,
-                                    to,
-                                };
-                            }
+                    if let Some(to_double) = get_pawn_double_push(color, from) {
+                        if mask.contains(to_double) & board.is_empty(to_single) {
+                            yield Move::DoublePush {
+                                from,
+                                to: to_double,
+                            };
                         }
                     }
                 }
@@ -285,7 +289,7 @@ mod tests {
     #[test]
     fn openings() {
         let game = Game::default();
-        let moves = game.legals().collect();
+        let moves = game.legals().to_vec();
 
         assert_eq!(moves, vec![
             Move::Quiet {from: Square::A2, to: Square::A3}, 
