@@ -242,7 +242,7 @@ impl Board {
     #[inline(always)]
     fn update_occupied(&mut self, sq: Square, updated: &mut BitBoard) {
         match self.mailbox[sq as usize] {
-            SquareInfo::Occupied {piece, color, attack, ref mut defend} => {
+            SquareInfo::Occupied {attack, ..} => {
                 self.update_attacker(sq, updated);
 
                 for sq in attack.iter_squares() {

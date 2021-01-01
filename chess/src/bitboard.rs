@@ -36,16 +36,6 @@ impl BitBoard {
             Square::from(lsb as u8)
         })
     }
-
-    /// Return an iterator over the BitBoards of each bits of the BitBoard `self`
-    #[inline(always)]
-    pub fn iter_bitboards(mut self) -> impl Iterator<Item = BitBoard> {
-        (0..self.0.count_ones()).map(move |_| {
-            let old = self;
-            self &= self - BitBoard(1);
-            old ^ self
-        })
-    }
     
     /// Count the bits of `self` that are 1
     #[inline(always)]

@@ -1,5 +1,4 @@
 #![feature(generator_trait, generators)]
-#![allow(dead_code, unused_variables, unused_macros)]
 
 /* ======== MEMO ===========
 

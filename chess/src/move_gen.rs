@@ -87,7 +87,7 @@ impl<H: MoveHistory> Game<H> {
             let king_attacks = board.get_attacks(king_sq) & them;
 
             // King's danger and safety bitboards
-            let danger = (&Piece::PIECES).iter()
+            let danger = Piece::PIECES.iter()
                 .fold(BitBoard::EMPTY, |danger, &piece| {
                     danger | board.get_bitboard(color_inv, piece)
                         .iter_squares()
@@ -285,7 +285,7 @@ mod tests {
     // Quick test to check the correctness of the
     // move generator. For a more in-depth, full test,
     // perft is used. It is implemented in the file
-    // chess/tests/perft.rs
+    // chess/perft/main.rs
     #[test]
     fn openings() {
         let game = Game::default();

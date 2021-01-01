@@ -244,5 +244,6 @@ impl<H: MoveHistory> FromStr for Game<H> {
 pub type FullGame = Game<LargeMoveHistory>;
 
 /// A type used to explore the game tree, in which only MAX moves
-/// may be played
+/// may be played. It is a little bit more efficient, since it
+/// does not involves any heap allocations
 pub type SearchGame<const MAX: usize> = Game<SmallMoveHistory<MAX>>;

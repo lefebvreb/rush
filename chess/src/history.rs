@@ -62,7 +62,7 @@ pub trait MoveHistory: 'static + Default {
     // Return a string representing the en passant target square, required by FEN notation
     fn en_passant_square(&self) -> String {
         match self.last_move() {
-            Move::DoublePush {from, to} => Square::from((from.x(), (from.x() + from.y()) / 2)).to_string(),
+            Move::DoublePush {from, to} => Square::from((from.x(), (from.y() + to.y()) / 2)).to_string(),
             _ => "-".to_owned(),
         }
     }
