@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ops::{Generator, GeneratorState};
 use std::pin::Pin;
 
@@ -26,12 +27,24 @@ pub trait MoveGenerator {
     fn next(&mut self) -> Move;
 
     /// Collect the generator into a `Vec` of `Move`
-    #[cold]
-    fn collect(&mut self) -> Vec<Move> {
+    fn to_vec(&mut self) -> Vec<Move> {
         (0..)
             .map(|_| self.next())
             .take_while(|mv| mv.is_some())
             .collect()
+    }
+
+    /// Collect the generator into a `HashMap` with `String` as keys and `Move` as values
+    fn to_map(&mut self) -> HashMap<String, Move> {
+        let mut map = HashMap::new();
+
+        loop {
+            let mv = self.next();
+            if mv.is_none() {break}
+            map.insert(mv.to_string(), mv);
+        }
+
+        map
     }
 }
 
