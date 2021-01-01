@@ -49,7 +49,7 @@ impl fmt::Display for MoveCounter {
 }
 
 // A trait defining a move history aka a Vec of Move, CastleRights and MoveCounter
-pub trait MoveHistory: Default + 'static {
+pub trait MoveHistory: 'static + Default {
     // Return the last move in history
     fn last_move(&self) -> Move;
 

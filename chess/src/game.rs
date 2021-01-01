@@ -14,8 +14,8 @@ use crate::square::Square;
 #[derive(Debug)]
 pub struct Game<H: MoveHistory> {
     board: Board,
-    castle_rights: CastleRights,
     color: Color,
+    castle_rights: CastleRights,
     history: H,
     clock: MoveCounter,
 }
@@ -145,7 +145,7 @@ impl<H: MoveHistory> Game<H> {
     }
 
     /// Try to parse a position from fen notation.
-    pub fn from_fen(fen: &str) -> Result<Game<H>, String> {
+    pub fn from_fen(fen: &str) -> Result<Game<H>, ParseFenError> {
         Game::from_str(fen)
     }
 }
@@ -193,11 +193,50 @@ impl<H: MoveHistory> fmt::Display for Game<H> {
 }
 
 impl<H: MoveHistory> FromStr for Game<H> {
-    type Err = String;
+    type Err = ParseFenError;
 
     // Try to construct a board from a given FEN notation
-    fn from_str(s: &str) -> Result<Game<H>, String> {
-        todo!()
+    fn from_str(s: &str) -> Result<Game<H>, ParseFenError> {
+        let strings = s.split("/").into_iter().collect::<Vec<_>>();
+
+        if strings.len() == 6 {
+            return Err(ParseFenError::new("missing informations on FEN notation"));
+        }
+
+        let castle_rights = CastleRights::from_str(strings[2])?;
+        let clock = MoveCounter::from_strs(strings[4], strings[5])?;
+
+        Ok(Game {
+            board: Board::from_str(strings[0])?,
+            color: Color::from_str(strings[1])?,
+            castle_rights,
+            history: {
+                let mut history = H::default();
+
+                match strings[3] {
+                    "-" => (),
+                    s => {
+                        let sq = Square::from_str(s)?;
+                        let (x, y) = (sq.x(), sq.y());
+                        let mv = match y {
+                            2 => Move::DoublePush {
+                                from: Square::from((x, 1)),
+                                to: Square::from((x, 3)),
+                            },
+                            5 => Move::DoublePush {
+                                from: Square::from((x, 6)),
+                                to: Square::from((x, 4)),
+                            },
+                            _ => return Err(ParseFenError::new("invalid en passant square")),
+                        };
+                        history.push(mv, castle_rights, clock);
+                    }
+                }
+
+                history
+            },
+            clock,
+        })
     }
 }
 

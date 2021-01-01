@@ -1,6 +1,8 @@
 use std::fmt;
 use std::str::FromStr;
 
+use crate::errors::ParseFenError;
+
 /// Represent the color of a player
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Color {
@@ -41,13 +43,13 @@ impl fmt::Display for Color {
 }
 
 impl FromStr for Color {
-    type Err = String;
+    type Err = ParseFenError;
 
-    fn from_str(s: &str) -> Result<Color, String> {
+    fn from_str(s: &str) -> Result<Color, ParseFenError> {
         match s {
             "w" => Ok(Color::White),
             "b" => Ok(Color::Black),
-            _ => Err(format!("Invalid color litteral: {:?}", s)),
+            _ => Err(ParseFenError::new(format!("Invalid color litteral: {:?}", s))),
         }
     }
 }

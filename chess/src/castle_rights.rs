@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 use crate::bitboard::BitBoard;
 use crate::color::Color;
+use crate::errors::ParseFenError;
 use crate::moves::Move;
 use crate::square::Square;
 
@@ -132,10 +133,10 @@ impl fmt::Display for CastleRights {
 }
 
 impl FromStr for CastleRights {
-    type Err = String;
+    type Err = ParseFenError;
 
     // From FEN castle rights notation
-    fn from_str(s: &str) -> Result<CastleRights, String> {
+    fn from_str(s: &str) -> Result<CastleRights, ParseFenError> {
         Ok(CastleRights(match s {
             "-"    => 0b0000,
             "K"    => 0b0001,
@@ -151,7 +152,7 @@ impl FromStr for CastleRights {
             "kq"   => 0b1100,
             "Kkq"  => 0b1101,
             "KQkq" => 0b1111,
-            _ => return Err("Invalid castle rights format".to_owned()),
+            _ => return Err(ParseFenError::new("Invalid castle rights format".to_owned())),
         }))
     }
 }
