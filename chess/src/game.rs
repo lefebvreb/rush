@@ -197,9 +197,9 @@ impl<H: MoveHistory> FromStr for Game<H> {
 
     // Try to construct a board from a given FEN notation
     fn from_str(s: &str) -> Result<Game<H>, ParseFenError> {
-        let strings = s.split("/").into_iter().collect::<Vec<_>>();
-
-        if strings.len() == 6 {
+        let strings = s.split(" ").into_iter().collect::<Vec<_>>();
+        
+        if strings.len() != 6 {
             return Err(ParseFenError::new("missing informations on FEN notation"));
         }
 

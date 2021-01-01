@@ -47,8 +47,7 @@ fn perft(game: &mut SearchGame<14>, depth: usize) -> u64 {
 // The test: run perft and compare with correct results
 #[test]
 fn run_perft() {
-    let default = Game::default();
-    let mut game = default.search_game();
+    let mut game = SearchGame::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
 
     assert_eq!(perft(&mut game, DEPTH), PERFT_RESULTS[DEPTH]);
 }
