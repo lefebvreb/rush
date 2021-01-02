@@ -6,4 +6,4 @@ edition = "2018"
 
 [[bin]]
 name = "perft"
-path = "tests/script.rs"
+path = "perft/main.rs"

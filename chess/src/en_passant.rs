@@ -67,18 +67,30 @@ impl EnPassantAvailability {
                 0b00 => return EnPassantAvailability::None,
                 0b01 | 0b10 => if pawn_sq.y() == king_sq.y() {
                     let sliders = board.get_bitboard(color_inv, Piece::Rook) | queens;
+                    let occ = board.get_occupancy();
 
                     for sq in sliders.iter_squares() {
                         if sq.y() == king_sq.y() {
                             let between = squares_between(king_sq, sq);
 
-                            if between.contains(pawn_sq) && between.count_bits() == 2 {
+                            if between.contains(pawn_sq) && (between & occ).count_bits() == 2 {
                                 return EnPassantAvailability::None;
                             }
                         }
                     }
                 }
                 _ => (),
+            }
+
+            let sliders = board.get_bitboard(color_inv, Piece::Bishop) | queens;
+
+            // Check if capturing may reveal a diagonal slider
+            for sq in sliders.iter_squares() {
+                let between = squares_between(king_sq, sq);
+
+                if between.contains(pawn_sq) && between.count_bits() == 1 {
+                    return EnPassantAvailability::None;
+                }
             }
 
             match flags {

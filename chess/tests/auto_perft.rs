@@ -1,12 +1,30 @@
 use chess::*;
 
-mod perft;
-use perft::perft;
+// The perft algorithm, counting the number of leaf nodes
+pub fn perft(game: &mut SearchGame<15>, depth: usize) -> u64 {
+    if depth == 0 {
+        return 1;
+    }
+
+    let mut nodes = 0;
+    let mut move_gen = game.legals();
+
+    loop {
+        let mv = move_gen.next();
+        if mv.is_none() {break}
+
+        game.do_move(mv);
+        nodes += perft(game, depth - 1);
+        game.undo_move();
+    }
+
+    nodes
+}
 
 #[test]
 pub fn perft1() {
     let mut game = Game::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
-    assert_eq!(perft(&mut game, 5), 4_865_609)
+    assert_eq!(perft(&mut game, 6), 119_060_324)
 }
 
 #[test]

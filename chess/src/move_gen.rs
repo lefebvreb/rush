@@ -177,12 +177,12 @@ impl<H: MoveHistory> Game<H> {
 
                 if defend.is_last_rank(color) {
                     for to in defend.iter_squares() {
-                        for promote in PROMOTIONS {
+                        for &promote in PROMOTIONS {
                             yield Move::PromoteCapture {
                                 from, 
                                 to, 
                                 capture: board.get_piece_unchecked(to),
-                                promote: *promote,
+                                promote,
                             };
                         }
                     }
@@ -229,14 +229,20 @@ impl<H: MoveHistory> Game<H> {
 
             // En passant
             match game.get_last_move() {
-                Move::DoublePush {from, to} if !(pinned.contains(to)) => {
+                Move::DoublePush {from, to} => {
                     let en_passant = EnPassantAvailability::get(color, color_inv, to, king_sq, board);
 
                     let mid = from.get_mid(to);
 
+                    let mask = if check_mask.contains(to) {
+                        BitBoard::FULL
+                    } else {
+                        check_mask
+                    };
+
                     macro_rules! yield_en_passant {
                         ($from: ident) => {
-                            if (check_mask & pin!($from)).contains(mid) {
+                            if (mask & pin!($from)).contains(mid) {
                                 yield Move::EnPassant {
                                     from: $from,
                                     to: mid,
@@ -253,7 +259,7 @@ impl<H: MoveHistory> Game<H> {
                             yield_en_passant!(right);
                         }
                         _ => (),
-                    }
+                    }                    
                 }
                 _ => (),
             }
@@ -267,10 +273,20 @@ impl<H: MoveHistory> Game<H> {
 
                 if let Some(to_single) = get_pawn_push(color, from) {
                     if mask.contains(to_single) {
-                        yield Move::Quiet {
-                            from,
-                            to: to_single,
-                        };
+                        if to_single.is_last_rank(color) {
+                            for &promote in PROMOTIONS {
+                                yield Move::Promote {
+                                    from,
+                                    to: to_single,
+                                    promote,
+                                };
+                            }
+                        } else {
+                            yield Move::Quiet {
+                                from,
+                                to: to_single,
+                            };
+                        }                        
                     }
 
                     if let Some(to_double) = get_pawn_double_push(color, from) {
