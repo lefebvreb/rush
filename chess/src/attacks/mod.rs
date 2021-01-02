@@ -106,18 +106,6 @@ pub fn get_pinned(color: Color, board: &Board) -> BitBoard {
 
     let mut pinned = BitBoard::EMPTY;
 
-    macro_rules! detect_pins {
-        ($piece: ident, $table: ident) => {
-            for sq in (board.get_bitboard(color_inv, Piece::$piece) | queens).iter_squares() {
-                let between = BitBoard($table[king_offset + sq as usize]);
-        
-                if (occ & between).count_bits() == 1 {
-                    pinned |= us & between;
-                }
-            }
-        }
-    }
-
     for sq in (board.get_bitboard(color_inv, Piece::Rook) | queens).iter_squares() {
         let between = BitBoard(SQUARES_BETWEEN_STRAIGHT[king_offset + sq as usize]);
 
@@ -141,19 +129,12 @@ pub fn get_pinned(color: Color, board: &Board) -> BitBoard {
 #[inline(always)]
 pub fn get_projected_mask(from: Square, to: Square) -> BitBoard {
     let i = from as usize * 64 + to as usize;
-    BitBoard(SQUARES_MASK[i])
+    BitBoard(PROJECTION_MASKS[i])
 }
 
 // Return the squares strictly contained between the two arguments
 #[inline(always)]
 pub fn squares_between(sq1: Square, sq2: Square) -> BitBoard {
     let i = sq1 as usize + 64 * sq2 as usize;
-    BitBoard(SQUARES_BETWEEN_STRAIGHT[i] | SQUARES_BETWEEN_DIAGONAL[i])
-}
-
-// Return the squares strictly contained between the two arguments, if there are on a diagonal
-#[inline(always)]
-pub fn squares_between_diagonal(sq1: Square, sq2: Square) -> BitBoard {
-    let i = sq1 as usize + 64 * sq2 as usize;
-    BitBoard(SQUARES_BETWEEN_DIAGONAL[i])
+    BitBoard(SQUARES_BETWEEN[i])
 }

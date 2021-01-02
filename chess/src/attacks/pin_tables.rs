@@ -1028,7 +1028,19 @@ pub const SQUARES_BETWEEN_DIAGONAL: [u64; 4096] = [
     0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
 ];
 
-pub const SQUARES_MASK: [u64; 4096] = [
+pub const SQUARES_BETWEEN: [u64; 4096] = {
+    let mut tab = [0; 4096];
+    let mut i = 0;
+
+    while i < 4096 {
+        tab[i] = SQUARES_BETWEEN_STRAIGHT[i] | SQUARES_BETWEEN_DIAGONAL[i];
+        i += 1;
+    }
+    
+    tab
+};
+
+pub const PROJECTION_MASKS: [u64; 4096] = [
     0x0, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE,
     0x101010101010100, 0x8040201008040200, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
     0x101010101010100, 0x0, 0x8040201008040200, 0x0, 0x0, 0x0, 0x0, 0x0,

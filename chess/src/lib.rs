@@ -1,5 +1,4 @@
 #![feature(generator_trait, generators)]
-#![allow(dead_code, unused_variables, unused_macros)]
 
 /* ======== TODO ===========
 
@@ -11,8 +10,6 @@ OPTIMISATIONS
 
 - store pin masks inside of the board
 - use the Piece type in argument to `update_occupied` so to save a match
-- reuse pinned bitboard for en passant
-- make a between_squares functions that don't necessitates two lookups
 
 ========================= */
 

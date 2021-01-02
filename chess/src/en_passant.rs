@@ -1,5 +1,4 @@
 use crate::attacks::squares_between;
-use crate::bitboard::BitBoard;
 use crate::board::Board;
 use crate::color::Color;
 use crate::piece::Piece;
@@ -21,11 +20,6 @@ pub enum EnPassantAvailability {
 impl EnPassantAvailability {
     // Get the en passant availability of a position
     pub fn get(color: Color, color_inv: Color, pawn_sq: Square, king_sq: Square, board: &Board) -> EnPassantAvailability {
-        const FILES: [BitBoard; 2] = [
-            BitBoard(0xFF00000000),
-            BitBoard(0xFF000000),
-        ];
-
         let x = pawn_sq.x();
 
         if x == 0 {

@@ -3,10 +3,12 @@
 pub const SHIFTS: [u64; 64] = {
     let mut tab = [0; 64];
     let mut i = 0;
+
     while i < 64 {
         tab[i] = 1u64 << i;
         i += 1;
     }
+    
     tab
 };
 
