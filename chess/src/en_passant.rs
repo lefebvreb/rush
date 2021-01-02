@@ -81,17 +81,6 @@ impl EnPassantAvailability {
                 _ => (),
             }
 
-            let sliders = board.get_bitboard(color_inv, Piece::Bishop) | queens;
-
-            // Check if capturing may reveal a diagonal slider
-            for sq in sliders.iter_squares() {
-                let between = squares_between(king_sq, sq);
-
-                if between.contains(pawn_sq) && between.count_bits() == 1 {
-                    return EnPassantAvailability::None;
-                }
-            }
-
             match flags {
                 0b01 => EnPassantAvailability::Left(left),
                 0b10 => EnPassantAvailability::Right(right),

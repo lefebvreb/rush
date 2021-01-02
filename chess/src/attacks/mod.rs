@@ -112,11 +112,7 @@ pub fn get_pinned(color: Color, board: &Board) -> BitBoard {
                 let between = BitBoard($table[king_offset + sq as usize]);
         
                 if (occ & between).count_bits() == 1 {
-                    let maybe_pinned = us & between;
-        
-                    if maybe_pinned.is_not_empty() {
-                        pinned |= maybe_pinned;
-                    }
+                    pinned |= occ & between;
                 }
             }
         }

@@ -372,8 +372,8 @@ impl Board {
                 Color::Black => self.castle(Color::Black, Square::H8, Square::F8, Square::E8, Square::G8),
             }
             Move::QueenCastle {..} => match color {
-                Color::White => self.castle(Color::White, Square::A1, Square::C1, Square::E1, Square::B1),
-                Color::Black => self.castle(Color::Black, Square::A8, Square::C8, Square::E8, Square::B8),
+                Color::White => self.castle(Color::White, Square::A1, Square::D1, Square::E1, Square::C1),
+                Color::Black => self.castle(Color::Black, Square::A8, Square::D8, Square::E8, Square::C8),
             }
             _ => (),
         }
@@ -461,8 +461,8 @@ impl Board {
                 Color::Black => self.castle(Color::Black, Square::F8, Square::H8, Square::G8, Square::E8),
             }
             Move::QueenCastle {..} => match color {
-                Color::White => self.castle(Color::White, Square::C1, Square::A1, Square::B1, Square::E1),
-                Color::Black => self.castle(Color::Black, Square::C8, Square::A8, Square::B8, Square::E8),
+                Color::White => self.castle(Color::White, Square::D1, Square::A1, Square::C1, Square::E1),
+                Color::Black => self.castle(Color::Black, Square::D8, Square::A8, Square::C8, Square::E8),
             }
             _ => (),
         }
@@ -470,24 +470,29 @@ impl Board {
 
     /// Pretty-prints the board to stdout, using utf-8 characters
     /// to represent the pieces
-    pub fn pretty_print(&self) {
+    pub fn pretty_print(&self) -> String {
         const CHARS: [[char; 6]; 2] = [
             ['♙', '♖', '♘', '♗', '♕', '♔'],
             ['♟', '♜', '♞', '♝', '♛', '♚'],
         ];
 
-        println!("  a b c d e f g h");
+        let mut res = String::new();
+
+        res += "  a b c d e f g h\n";
         for y in (0..8).rev() {
-            print!("{} ", y + 1);
+            res += &(y + 1).to_string();
             for x in 0..8 {
                 if let SquareInfo::Occupied {piece, color, ..} = self.mailbox[x + 8*y] {
-                    print!("{} ", CHARS[color as usize][piece as usize]);
+                    res += &CHARS[color as usize][piece as usize].to_string();
+                    res.push(' ');
                 } else {
-                    print!("- ");
+                    res += "- ";
                 }
             }
-            println!()
+            res.push('\n')
         }
+
+        res
     }
 }
 
@@ -568,10 +573,10 @@ impl FromStr for Board {
     
                         board.update_bitboards(color, piece, sq.into());
                         board.occupy_mailbox(color, piece, sq);
-
-                        j += 1;
                     }
                 }
+
+                j += 1;
 
                 if j > 8 {
                     return Err(ParseFenError::new(format!("rank #{} is too large in FEN board {:?}", i, s)))

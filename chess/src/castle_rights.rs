@@ -40,16 +40,14 @@ impl CastleRights {
     // GIVEN THE KING IS NOT IN CHECK
     #[inline(always)]
     pub fn get_availability(self, color: Color, occ: BitBoard, danger: BitBoard) -> CastleAvailability {
-        let block = occ | danger;
-
         let (king_side, queen_side) = match color {
             Color::White => (
-                self.0 & 0b0001 != 0 && (block & BitBoard(0x60)).is_empty(),
-                self.0 & 0b0010 != 0 && (block & BitBoard(0x0E)).is_empty(),
+                self.0 & 0b0001 != 0 && ((occ | danger) & BitBoard(0x60)).is_empty(),
+                self.0 & 0b0010 != 0 && (occ & BitBoard(0xE) | danger & BitBoard(0xC)).is_empty()
             ),
             Color::Black => (
-                self.0 & 0b0100 != 0 && (block & BitBoard(0x600000000000000)).is_empty(),
-                self.0 & 0b1000 != 0 && (block & BitBoard(0x0E0000000000000)).is_empty(),
+                self.0 & 0b0100 != 0 && ((occ | danger) & BitBoard(0x6000000000000000)).is_empty(),
+                self.0 & 0b1000 != 0 && (occ & BitBoard(0xE00000000000000) | danger & BitBoard(0xC00000000000000)).is_empty(),
             ),
         };
 
