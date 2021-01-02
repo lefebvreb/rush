@@ -1,5 +1,12 @@
-// cargo run --bin perft -- <depth> "<fen>" "(<moves> )+"?
-// cargo build --bin perft --release
+// The goal of that binary is to be used by perftree (https://github.com/agausmann/perftree)
+// to help debug the move generator
+// Usage: 
+//   ./perft <depth> <fen> <moves>
+//   <depth> : The depth at which the perft needs to be carried
+//   <fen>   : the fen string to be used, put it into quotes
+//   <moves> : (optional) a list of space seperated moves, in pure algebraic
+//             coordinates notation, to be performed before node counting.
+//             Needs to be a single arguments, use quotes
 
 use std::env::args;
 use std::str::FromStr;
@@ -7,7 +14,7 @@ use std::str::FromStr;
 use chess::*;
 
 // The perft algorithm, counting the number of leaf nodes
-pub fn perft(game: &mut SearchGame<15>, depth: usize) -> u64 {
+pub fn perft(game: &mut SearchGame<10>, depth: usize) -> u64 {
     if depth == 0 {
         return 1;
     }
@@ -27,8 +34,6 @@ pub fn perft(game: &mut SearchGame<15>, depth: usize) -> u64 {
     nodes
 }
 
-// How to use the perft script:
-// cargo run --bin perft --release -- <depth> "<fen>" "(<moves> )+"?
 fn main() {
     let mut args = args();
     
@@ -37,6 +42,7 @@ fn main() {
 
     // Perft depth
     let depth = usize::from_str(&args.next().expect("Cannot find depth argument")).expect("Cannot parse depth");
+    assert!(depth < 10, "A depth of {} is way too much, 10 is max", depth);
 
     // FEN position
     let fen = args.next().expect("Cannot find FEN argument");

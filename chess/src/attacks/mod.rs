@@ -118,8 +118,21 @@ pub fn get_pinned(color: Color, board: &Board) -> BitBoard {
         }
     }
 
-    detect_pins!(Rook, SQUARES_BETWEEN_STRAIGHT);
-    detect_pins!(Bishop, SQUARES_BETWEEN_DIAGONAL);
+    for sq in (board.get_bitboard(color_inv, Piece::Rook) | queens).iter_squares() {
+        let between = BitBoard(SQUARES_BETWEEN_STRAIGHT[king_offset + sq as usize]);
+
+        if (occ & between).count_bits() == 1 {
+            pinned |= us & between;
+        }
+    }
+
+    for sq in (board.get_bitboard(color_inv, Piece::Bishop) | queens).iter_squares() {
+        let between = BitBoard(SQUARES_BETWEEN_DIAGONAL[king_offset + sq as usize]);
+
+        if (occ & between).count_bits() == 1 {
+            pinned |= occ & between;
+        }
+    }
 
     pinned
 }

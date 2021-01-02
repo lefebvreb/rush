@@ -229,7 +229,7 @@ impl<H: MoveHistory> Game<H> {
 
             // En passant
             match game.get_last_move() {
-                Move::DoublePush {from, to} => {
+                Move::DoublePush {from, to} if !(pinned.contains(to)) => {
                     let en_passant = EnPassantAvailability::get(color, color_inv, to, king_sq, board);
 
                     let mid = from.get_mid(to);
