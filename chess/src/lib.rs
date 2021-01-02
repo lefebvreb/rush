@@ -8,9 +8,6 @@ OPTIMISATIONS
 - replace all table lookup by unchecked accesses (`get_unchecked`)
 - replace unwrap() by unwrap_unchecked()
 
-- store pin masks inside of the board
-- use the Piece type in argument to `update_occupied` so to save a match
-
 ========================= */
 
 // Modules

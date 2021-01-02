@@ -1,4 +1,9 @@
+body {
+    background-color: #63605c;
+}
+
 canvas {
+    background-color: #eae1b2;
     position: relative;
     width: 75vmin;
     height: 75vmin;
