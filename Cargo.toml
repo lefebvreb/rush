@@ -4,3 +4,6 @@ members = [
 	"engine",
 	"server",
 ]
+
+[profile.test]
+opt-level = 3
