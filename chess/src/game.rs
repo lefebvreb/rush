@@ -158,7 +158,14 @@ impl Game<LargeMoveHistory> {
             board: self.board.clone(),
             castle_rights: self.castle_rights.clone(),
             color: self.color.clone(),
-            history: SmallMoveHistory::default(),
+            history: {
+                let mut history = SmallMoveHistory::default();
+                let last_move = self.history.last_move();
+                if last_move.is_some() {
+                    history.push(last_move, CastleRights::default(), MoveCounter::default());
+                }
+                history
+            },
             clock: self.clock.clone(),
         }
     }

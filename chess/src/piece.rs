@@ -22,6 +22,14 @@ impl Piece {
         Piece::Bishop, Piece::Queen, Piece::King,
     ];
 
+    // Return true if piece is a slider
+    pub(crate) fn is_slider(self) -> bool {
+        match self {
+            Piece::Rook | Piece::Bishop | Piece::Queen => true,
+            _ => false,
+        }
+    }
+
     // Try to parse a piece from a single char
     pub(crate) fn from_char(c: char) -> Result<(Color, Piece), ParseFenError> {
         match c {

@@ -1,4 +1,5 @@
 #![feature(generator_trait, generators)]
+#![allow(dead_code, unused_variables, unused_macros)]
 
 /* ======== MEMO ===========
 
@@ -26,6 +27,7 @@ OPTIMISATIONS
 - replace unwrap() by unwrap_unchecked()
 - store pin masks inside of the board
 - use the Piece type in argument to `update_occupied` so to save a match
+- reuse pinned bitboard for en passant
 
 TESTS
 
@@ -41,6 +43,7 @@ mod bits;
 mod board;
 mod castle_rights;
 mod color;
+mod en_passant;
 mod errors;
 mod game;
 mod move_gen;

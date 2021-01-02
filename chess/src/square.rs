@@ -54,6 +54,25 @@ impl Square {
             Color::Black => 0,
         }
     }
+
+    // Return the square immediately left of that square 
+    // (from white's point of view)
+    #[inline(always)]
+    pub(crate) fn get_left_unchecked(self) -> Square {
+        Square::from((self.x() - 1, self.y()))
+    }
+
+    // Return the square immediately right of that square 
+    // (from white's point of view)
+    #[inline(always)]
+    pub(crate) fn get_right_unchecked(self) -> Square {
+        Square::from((self.x() + 1, self.y()))
+    }
+
+    #[inline(always)]
+    pub(crate) fn get_mid(self, other: Square) -> Square {
+        Square::from((self.x(), (self.y() + other.y()) / 2))
+    }
 }
 
 impl fmt::Display for Square {

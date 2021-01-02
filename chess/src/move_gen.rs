@@ -5,6 +5,7 @@ use std::pin::Pin;
 use crate::attacks::*;
 use crate::bitboard::BitBoard;
 use crate::castle_rights::CastleAvailability;
+use crate::en_passant::EnPassantAvailability;
 use crate::game::Game;
 use crate::history::MoveHistory;
 use crate::moves::Move;
@@ -86,7 +87,7 @@ impl<H: MoveHistory> Game<H> {
             let king_sq = board.get_bitboard(color, Piece::King).as_square_unchecked();
             let king_attacks = board.get_attacks(king_sq) & them;
 
-            // King's danger and safety bitboards
+            // All squares attacked by them
             let danger = Piece::PIECES.iter()
                 .fold(BitBoard::EMPTY, |danger, &piece| {
                     danger | board.get_bitboard(color_inv, piece)
@@ -95,6 +96,19 @@ impl<H: MoveHistory> Game<H> {
                             danger | board.get_defend_unchecked(sq)
                         })
                 });
+            // The king's unreachable squares
+            macro_rules! king_danger {
+                () => {
+                    danger | king_attacks.iter_squares()
+                        .fold(BitBoard::EMPTY, |danger, checker_sq|
+                            danger | if board.get_piece_unchecked(checker_sq).is_slider() {
+                                get_projected_mask(checker_sq, king_sq)
+                            } else {
+                                BitBoard::EMPTY
+                            }
+                        );
+                }
+            }
 
             // Pinned pieces bitboard
             let pinned = get_pinned(color, board);
@@ -103,7 +117,7 @@ impl<H: MoveHistory> Game<H> {
             macro_rules! pin {
                 ($from: expr) => {
                     if pinned.contains($from) {
-                        get_pin_mask(king_sq, $from)
+                        get_projected_mask(king_sq, $from)
                     } else {
                         BitBoard::FULL
                     }
@@ -127,10 +141,10 @@ impl<H: MoveHistory> Game<H> {
                 }
                 1 => { // One checker: extra mask to apply to during move generation
                     let checker_sq = king_attacks.as_square_unchecked();
-                    squares_between(king_sq, checker_sq)
+                    squares_between(king_sq, checker_sq) | checker_sq.into()
                 }
                 2 => { // Two checkers: can only capture with king or move with king
-                    let king_defend = board.get_defend_unchecked(king_sq) & !danger;
+                    let king_defend = board.get_defend_unchecked(king_sq) & !king_danger!();
 
                     // King captures
                     for to in (king_defend & them).iter_squares() {
@@ -185,9 +199,9 @@ impl<H: MoveHistory> Game<H> {
 
             // Rook, Bishop, Knight and Queen captures
             for from in (
-                board.get_bitboard(color, Piece::Rook)
+                board.get_bitboard(color, Piece::Knight)
                 | board.get_bitboard(color, Piece::Bishop)
-                | board.get_bitboard(color, Piece::Knight)
+                | board.get_bitboard(color, Piece::Rook)
                 | board.get_bitboard(color, Piece::Queen)
             ).iter_squares() {
                 let defend = board.get_defend_unchecked(from) & mask & pin!(from);
@@ -202,7 +216,7 @@ impl<H: MoveHistory> Game<H> {
             }
 
             // The defend bitboard of the king
-            let king_defend = board.get_defend_unchecked(king_sq) & !danger;
+            let king_defend = board.get_defend_unchecked(king_sq) & !king_danger!();
 
             // King captures
             for to in (king_defend & them).iter_squares() {
@@ -215,9 +229,31 @@ impl<H: MoveHistory> Game<H> {
 
             // En passant
             match game.get_last_move() {
-                Move::DoublePush {to, ..} => {
-                    // get black pin with white king ?
-                    // See if to black pawn is "pinned"
+                Move::DoublePush {from, to} => {
+                    let en_passant = EnPassantAvailability::get(color, color_inv, to, king_sq, board);
+
+                    let mid = from.get_mid(to);
+
+                    macro_rules! yield_en_passant {
+                        ($from: ident) => {
+                            if (check_mask & pin!($from)).contains(mid) {
+                                yield Move::EnPassant {
+                                    from: $from,
+                                    to: mid,
+                                };
+                            }
+                        }
+                    }
+
+                    match en_passant {
+                        EnPassantAvailability::Left(left) => yield_en_passant!(left),
+                        EnPassantAvailability::Right(right) => yield_en_passant!(right),
+                        EnPassantAvailability::Both {left, right} => {
+                            yield_en_passant!(left);
+                            yield_en_passant!(right);
+                        }
+                        _ => (),
+                    }
                 }
                 _ => (),
             }

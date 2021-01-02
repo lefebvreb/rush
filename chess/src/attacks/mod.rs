@@ -130,8 +130,9 @@ pub fn get_pinned(color: Color, board: &Board) -> BitBoard {
 
 // Return a mask in which the pinned piece can move freely
 #[inline(always)]
-pub fn get_pin_mask(king_square: Square, pinned_piece_square: Square) -> BitBoard {
-    BitBoard(SQUARES_MASK[king_square as usize * 64 + pinned_piece_square as usize])
+pub fn get_projected_mask(from: Square, to: Square) -> BitBoard {
+    let i = from as usize * 64 + to as usize;
+    BitBoard(SQUARES_MASK[i])
 }
 
 // Return the squares strictly contained between the two arguments
@@ -139,4 +140,11 @@ pub fn get_pin_mask(king_square: Square, pinned_piece_square: Square) -> BitBoar
 pub fn squares_between(sq1: Square, sq2: Square) -> BitBoard {
     let i = sq1 as usize + 64 * sq2 as usize;
     BitBoard(SQUARES_BETWEEN_STRAIGHT[i] | SQUARES_BETWEEN_DIAGONAL[i])
+}
+
+// Return the squares strictly contained between the two arguments, if there are on a diagonal
+#[inline(always)]
+pub fn squares_between_diagonal(sq1: Square, sq2: Square) -> BitBoard {
+    let i = sq1 as usize + 64 * sq2 as usize;
+    BitBoard(SQUARES_BETWEEN_DIAGONAL[i])
 }
