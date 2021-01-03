@@ -1,9 +1,9 @@
 body {
-    background-color: #63605c;
+    background-image: linear-gradient(#1b1b1b, #474747);
 }
 
 canvas {
-    background-color: #eae1b2;
+    background-color: #e5d792;
     position: relative;
     width: 75vmin;
     height: 75vmin;
@@ -13,5 +13,4 @@ canvas {
     bottom: 0;
     left: 0;
     right: 0;
-    border: 3px solid;
 }
