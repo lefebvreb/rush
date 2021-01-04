@@ -2,10 +2,10 @@
 
 // The colors used in the game
 const COLOR = {
-    beige: "#e5d792",
-    green: "#578940",
-    select: "#f7eb4c",
-    lastMove: "#82d1d0",
+    beige:     "#e5d792",
+    green:     "#578940",
+    select:    "#f7eb4c",
+    lastMove:  "#82d1d0",
     validMove: "#df89e0",
 }
 
@@ -18,25 +18,59 @@ const ROLE = {
 
 // All pieces, their representing chars and position in atlas
 const PIECE = {
-    wPawn:   {char: "P", src: [0, 0]},
-    wRook:   {char: "R", src: [128, 0]},
-    wKnight: {char: "N", src: [256, 0]},
-    wBishop: {char: "B", src: [384, 0]},
-    wQueen:  {char: "Q", src: [512, 0]},
-    wKing:   {char: "K", src: [640, 0]},
-    bPawn:   {char: "p", src: [0, 128]},
-    bRook:   {char: "r", src: [128, 128]},
-    bKnight: {char: "n", src: [256, 128]},
-    bBishop: {char: "b", src: [384, 128]},
-    bQueen:  {char: "q", src: [512, 128]},
-    bKing:   {char: "k", src: [640, 128]},
+    wPawn:   {char: "P", role: ROLE.white, src: [0, 0]},
+    wRook:   {char: "R", role: ROLE.white, src: [128, 0]},
+    wKnight: {char: "N", role: ROLE.white, src: [256, 0]},
+    wBishop: {char: "B", role: ROLE.white, src: [384, 0]},
+    wQueen:  {char: "Q", role: ROLE.white, src: [512, 0]},
+    wKing:   {char: "K", role: ROLE.white, src: [640, 0]},
+    bPawn:   {char: "p", role: ROLE.black, src: [0, 128]},
+    bRook:   {char: "r", role: ROLE.black, src: [128, 128]},
+    bKnight: {char: "n", role: ROLE.black, src: [256, 128]},
+    bBishop: {char: "b", role: ROLE.black, src: [384, 128]},
+    bQueen:  {char: "q", role: ROLE.black, src: [512, 128]},
+    bKing:   {char: "k", role: ROLE.black, src: [640, 128]},
+}
+
+// ==================================== TYPES
+
+class Square {
+    // Construct a new square and compute it's screen coordinates
+    constructor(x, y) {
+        this.x = x
+        if (role == ROLE.white)
+            this.y = 7-y
+        else
+            this.y = y
+        this.screenX = x*128
+        this.screenY = y*128
+    }
+
+    // Gives the string representation of this square
+    toString() {
+        return "abcdefgh"[this.x] + "12345678"[this.y]
+    }
+
+    // Test for equality against another square
+    equals(other) {
+        return this.x == other.x && this.y == other.y
+    }
+}
+
+class Board {
+    constructor() {
+        this.pieces = new Array(64)
+    }
+
+    pieceAt(x, y) {
+        return this.pieces[x + 8*y]
+    }
 }
 
 // ==================================== GLOBAL VARIABLES
 
 // The websocket connected to the server
 var socket
-
 // The canvas context2D
 var ctx
 // The atlas image
@@ -44,30 +78,59 @@ var atlas
 
 // The role of the client
 var role = ROLE.white
+
+// The selected squares
+var select //= {x: 0, y: 0}
+// The lastMove played
+var lastMove //= {from: {x: 5, y: 6}, to: {x: 5, y: 7}}
+// The list of valid moves
+var validMoves //= [{x: 0, y: 7}, {x: 0, y: 0}] //= [{x: 1, y: 1}, {x:1, y: 2}]
+
 // The board of the game
 var board
-
-// The lastMove played
-var lastMove
-// The selected squares
-var select
-// The list of valid moves
-var validMoves
+// Whether or not the client is playing
+var playing = true
+// Whether or not the client is promoting
+var promote
 
 // ==================================== BOARD UTIL
 
 // Initializes the board
 function initBoard() {
     board = new Array(8)
+
     for (let x = 0; x < 8; x++)
         board[x] = new Array(8)
+
+    board[0][6] = PIECE.wPawn
+    board[0][1] = PIECE.bPawn
 }
 
-// ==================================== PARSE UTIL
+function tryMove(from, to) {
+    if (validMoves)
+        for (move of validMoves)
+            if (to.equals(move)) {
+                let piece = board[from.x][from.y]
+                board[from.x][from.y] = null
 
-// Converts a square to a string
-function squareToString(sq) {
-    return "abcdefgh"[sq.x] + "12345678"[sq.y]
+                let x = to.x
+                let y = to.y
+                
+                if (piece == PIECE.wPawn && to.y == 7)
+                    promote = {role: ROLE.white, sq: {x, y}, x: x*128}
+                else if (piece == PIECE.bPawn && to.y == 0)
+                    promote = {role: ROLE.black, sq: {x, y}, x: x*128}
+                else {
+                    board[to.x][to.y] = piece
+                    socket.send("move " + squareToString(from) + squareToString(to))
+                }
+
+                break
+            }
+}
+
+function tryPromote(i) {
+
 }
 
 // ==================================== DRAWING UTIL
@@ -78,26 +141,26 @@ function setAlpha(alpha) {
 }
 
 // Fills the square x, y with the given color and alpha
-function fillSquare(x, y, color) {
+function fillSquare(sq, color) {
     ctx.fillStyle = color
-    ctx.fillRect(x, y, 128, 128)
+    ctx.fillRect(sq.screenX, sq.screenY, 128, 128)
 }
 
 // Draws the character c to x, y, with the specified color
-function drawCharacter(c, x, y, color) {
+function drawCharacter(c, sq, dx, dy, color) {
     ctx.fillStyle = color
-    ctx.fillText(c, x , y)
+    ctx.fillText(c, sq.screenX+dx, sq.screenY+dy)
 }
 
 // Draws the given piece to x, y
-function drawPiece(piece, x, y) {
-    ctx.drawImage(atlas, piece.src[0], piece.src[1], 128, 128, x, y, 128, 128)
+function drawImage(src, x, y) {
+    ctx.drawImage(atlas, src[0], src[1], 128, 128, x, y, 128, 128)
 }
 
 // ==================================== DRAWING
 
 // Draws the square sq, positionned at x, y on the canvas
-function drawSquare(sq, x, y) {
+function drawSquare(sq) {
     let color1, color2
     if ((sq.x + sq.y) % 2 == 0) {
         color1 = COLOR.green
@@ -107,37 +170,64 @@ function drawSquare(sq, x, y) {
         color2 = COLOR.green
     }
 
-    if (color1 == COLOR.green)
-        fillSquare(x, y, color1, 1)
-    if (x == 0)
-        drawCharacter("12345678"[sq.y], x+5, y+40, color2)
-    if (y == 896)
-        drawCharacter("abcdefgh"[sq.x], x+95, y+120, color2)
+    setAlpha(1)
+    fillSquare(sq, color1)
+    if (sq.screenX == 0)
+        drawCharacter("12345678"[sq.y], sq, 5, 40, color2)
+    if (sq.screenY == 896)
+        drawCharacter("abcdefgh"[sq.y], sq, 95, 120, color2)
+}
 
+function drawPiece(sq) {
     let piece = board[sq.x][sq.y]
     if (piece)
-        drawPiece(piece, x, y)
+        drawImage(piece.src, sq.screenX, sq.screenY)
+}
+
+function drawPromote() {    
+    let pieces
+    if (promote.role == ROLE.white)
+        pieces = [PIECE.wQueen, PIECE.wRook, PIECE.wBishop, PIECE.wKnight]
+    else
+        pieces = [PIECE.bQueen, PIECE.bRook, PIECE.bBishop, PIECE.bKnight]
+
+    function draw(i, dx, dy) {
+        let src = pieces[i].src
+        ctx.drawImage(atlas, src[0], src[1], 128, 128, promote.screenX+dx, dy, 64, 64)
+    }
+
+    draw(0, 0, 0)
+    draw(1, 64, 0)
+    draw(2, 0, 64)
+    draw(3, 64, 64)
 }
 
 // Draw the page
 function draw() {
+    setAlpha(1)
     for (let y = 0; y < 8; y++)
-        for (let x = 0; x < 8; x++) {
-            if (role == ROLE.black)
-                drawSquare({x, y}, x*128, y*128)
-            else
-                drawSquare({x, y}, x*128, (7-y)*128)
-        }
+        for (let x = 0; x < 8; x++)
+            drawSquare(new Square(x, y))
 
-    if (select) {
-        setAlpha(0.5)
-        fillSquare(select.x*128, y, COLOR.select)
-    }
-
+    setAlpha(0.5)
+    if (select && !promote)
+        fillSquare(select, COLOR.select)
     if (lastMove) {
-        setAlpha(0.3)
-        fillSquare(x, y, COLOR.lastMove)
+        fillSquare(lastMove.from, COLOR.lastMove)
+        fillSquare(lastMove.to, COLOR.lastMove)
     }
+    if (validMoves && !promote) {
+        for (let i = 0; i < validMoves.length; i++)
+        fillSquare(validMoves[i], COLOR.validMove)
+    }
+
+    setAlpha(1)
+    for (let y = 0; y < 8; y++)
+        for (let x = 0; x < 8; x++)
+            drawPiece(new Square(x, y))
+
+    if (promote)
+        drawPromote()
 }
 
 // ==================================== WINDOW EVENTS HANDLING
@@ -152,23 +242,45 @@ window.onload = function() {
     
     atlas = document.createElement("img")
     atlas.src = "atlas.png"
-    atlas.onload = draw
-
-    canvas.addEventListener("click", onCanvasClicked)
+    atlas.onload = function() {
+        draw()
+        canvas.addEventListener("click", onCanvasClicked)
+    }
 }
 
 // Gets the coordinates of the click event and transforms them into board coordinates
 function onCanvasClicked(e) {
+    if (!playing)
+        return
+
     let rect = e.target.getBoundingClientRect();
     let x = Math.floor(e.offsetX * 8 / (rect.right - rect.left))
     let y = Math.floor(e.offsetY * 8 / (rect.bottom - rect.top))
 
-    if (role == ROLE.white)
-        y = 7-y
+    let sq = new Square(x, y)
 
-    let sq = {x, y}
+    console.log(sq.toString())
 
-    console.log(squareToString(sq))
+    function trySelect() {
+        let piece = board[sq.x][sq.y]
+        if (piece && piece.role == role) {
+            select = sq
+            return false
+        }
+        return true
+    }
+
+    if (promote && compareSquares(promote.sq, sq)) {
+        //tryPromote(x)
+    } else if (select) {
+        if (!trySelect())
+            tryMove(select, sq)
+        else
+            select = null
+    } else 
+        trySelect()
+
+    draw()
 }
 
 // ==================================== SOCKET EVENTS HANDLING
@@ -194,7 +306,5 @@ function socketMessaged(msg) {
 }
 
 // ==================================== INIT
-
-initBoard()
 
 initSocket()

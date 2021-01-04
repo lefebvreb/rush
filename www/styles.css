@@ -4,7 +4,6 @@ body {
 
 canvas {
     background-color: #e5d792;
-    position: relative;
     width: 75vmin;
     height: 75vmin;
     margin: auto;

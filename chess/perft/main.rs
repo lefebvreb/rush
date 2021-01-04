@@ -1,13 +1,18 @@
 // The goal of this binary is to be used by perftree (https://github.com/agausmann/perftree)
 // to help debug the move generator. 
 // It can also be used for profiling.
+//
 // Usage: 
-//   ./perft <depth> <fen> <moves>
-//   <depth> : The depth at which the perft needs to be carried
-//   <fen>   : the fen string to be used, put it into quotes
-//   <moves> : (optional) a list of space seperated moves, in pure algebraic
-//             coordinates notation, to be performed before node counting.
-//             Needs to be a single arguments, use quotes
+//   $ ./perft <depth> <fen> <moves>
+//     <depth> : The depth at which the perft needs to be carried
+//     <fen>   : the fen string to be used, put it into quotes
+//     <moves> : (optional) a list of space seperated moves, in pure algebraic
+//               coordinates notation, to be performed before node counting.
+//               Needs to be a single arguments, use quotes
+//
+// For profiling with perf:
+//   $ perf record --call-graph dwarf target/debug/perft 3 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+//   $ perf report
 
 use std::env::args;
 use std::str::FromStr;

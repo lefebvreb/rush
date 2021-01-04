@@ -1,42 +1,29 @@
+#![allow(dead_code, unused_variables)]
+
 // $ sudo ./target/debug/server
 // Open http://82.65.218.243 in browser
 
-use actix::{Actor, StreamHandler};
+use std::sync::Mutex;
+
 use actix_files as fs;
 use actix_web::{App, Error, HttpRequest, HttpResponse, HttpServer, web};
 use actix_web_actors::ws;
 
-struct MyWebSocket;
+mod game;
+use game::OnlineGame;
 
-async fn ws_index(r: HttpRequest, stream: web::Payload) -> Result<HttpResponse, Error> {
-    ws::start(MyWebSocket, &r, stream)
-}
-
-impl Actor for MyWebSocket {
-    type Context = ws::WebsocketContext<Self>;
-}
-
-impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWebSocket {
-    fn handle(
-        &mut self,
-        msg: Result<ws::Message, ws::ProtocolError>,
-        ctx: &mut Self::Context, 
-    ) {
-        match msg {
-            Ok(ws::Message::Text(text)) => {
-                println!("Got a message: {}", text);
-                ctx.text("Hello from server");
-            },
-            _ => ctx.close(None),
-        }
-    }
+async fn ws_index(request: HttpRequest, stream: web::Payload, game: web::Data<OnlineGame>) -> Result<HttpResponse, Error> {
+    ws::start(game.lock().unwrap(), &request, stream)
 }
 
 // Launch the server
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
+        let game = web::Data::new(OnlineGame::default());
+
         App::new()
+            .app_data(game)
             .service(web::resource("/ws/").route(web::get().to(ws_index)))
             .service(fs::Files::new("/", "www/").index_file("index.html"))
     })

@@ -19,7 +19,7 @@ async fn main() {
     let (_, mut ws) = Client::new()
         .ws(match args.next() {
             Some(uri) => uri,
-            _ => DEFAULT_URI,
+            _ => DEFAULT_URI.to_owned(),
         })
         .connect()
         .await
