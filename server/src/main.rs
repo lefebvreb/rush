@@ -1,15 +1,6 @@
 // $ sudo ./target/debug/server
 // Open http://82.65.218.243 in browser
 
-// Communication protocol:
-
-// semi-fen: <board> <color> <moves>
-
-// Client commands:
-// fen => get the semi-fen of the game
-// play <move> => tries to play the move, get the resulting fen
-// role => "w" if white, "b" if black, "s" if spectator
-
 use actix::{Actor, StreamHandler};
 use actix_files as fs;
 use actix_web::{App, Error, HttpRequest, HttpResponse, HttpServer, web};
@@ -29,17 +20,14 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWebSocket {
     fn handle(
         &mut self,
         msg: Result<ws::Message, ws::ProtocolError>,
-        ctx: &mut Self::Context,
+        ctx: &mut Self::Context, 
     ) {
         match msg {
             Ok(ws::Message::Text(text)) => {
                 println!("Got a message: {}", text);
-                ctx.text("Hello from rust");
+                ctx.text("Hello from server");
             },
-            /*Ok(ws::Message::Close(reason)) => {
-                ctx.close(reason);
-            }*/
-            _ => (),
+            _ => ctx.close(None),
         }
     }
 }

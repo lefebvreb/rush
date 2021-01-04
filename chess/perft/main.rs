@@ -1,5 +1,6 @@
-// The goal of that binary is to be used by perftree (https://github.com/agausmann/perftree)
-// to help debug the move generator
+// The goal of this binary is to be used by perftree (https://github.com/agausmann/perftree)
+// to help debug the move generator. 
+// It can also be used for profiling.
 // Usage: 
 //   ./perft <depth> <fen> <moves>
 //   <depth> : The depth at which the perft needs to be carried

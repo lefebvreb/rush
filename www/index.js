@@ -2,7 +2,7 @@
 
 // The colors used in the game
 const COLOR = {
-    beige: "#e0ca5e",
+    beige: "#e5d792",
     green: "#578940",
     select: "#f7eb4c",
     lastMove: "#82d1d0",
@@ -154,11 +154,11 @@ window.onload = function() {
     atlas.src = "atlas.png"
     atlas.onload = draw
 
-    canvas.addEventListener("click", onclick)
+    canvas.addEventListener("click", onCanvasClicked)
 }
 
 // Gets the coordinates of the click event and transforms them into board coordinates
-function onclick(e) {
+function onCanvasClicked(e) {
     let rect = e.target.getBoundingClientRect();
     let x = Math.floor(e.offsetX * 8 / (rect.right - rect.left))
     let y = Math.floor(e.offsetY * 8 / (rect.bottom - rect.top))
@@ -185,7 +185,7 @@ function initSocket() {
 // Fired when the socket is opened for the first time
 function socketOpened() {
     console.log("Socket opened")
-    socket.send("Hello from javascript")
+    socket.send("Hello from web client")
 }
 
 // Fired when the socket just received a message
