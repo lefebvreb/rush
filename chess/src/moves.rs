@@ -122,7 +122,7 @@ impl fmt::Display for Move {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let promote = match self {
             Move::Promote {promote, ..} |
-            Move::PromoteCapture {promote, ..} => promote.to_string(),
+            Move::PromoteCapture {promote, ..} => promote.to_string().to_lowercase(),
             _ => "".to_owned(),
         };
 

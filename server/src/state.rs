@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use actix::{Actor, Addr, Context, Handler};
-use chess::{Color, FullGame};
 
-use crate::ws_client::WsClient;
-use crate::messages::{Connect, Disconnect};
+use chess::{Color, FullGame, Move, MoveGenerator};
+
+use crate::wsclient::WsClient;
+use crate::messages::{ClientCommand, Connect, Disconnect, ServerCommand};
 
 // The role of a client
 enum Role {
@@ -15,8 +16,33 @@ enum Role {
 // The global state of the website
 #[derive(Default)]
 pub struct State {
-    connections: HashMap<Addr<WsClient>, Role>,
+    clients: HashMap<Addr<WsClient>, Role>,
     game: FullGame,
+    moves: HashMap<String, Move>,
+    white: Option<Addr<WsClient>>,
+    black: Option<Addr<WsClient>>,
+}
+
+impl State {
+    // Return true if that client is playing
+    fn is_playing(&self, addr: &Addr<WsClient>) -> bool {
+        match match self.game.get_color() {
+            Color::White => &self.white,
+            Color::Black => &self.black,
+        } {
+            Some(a) => *a == *addr,
+            _ => false,
+        }
+    }
+
+    // Return the string that needs to be sent when giving an update
+    fn update_info(&self) -> String {
+        format!(
+            "{} {}", 
+            self.game.get_board().to_string(),
+            self.game.get_color().to_string(),
+        )
+    }
 }
 
 impl Actor for State {
@@ -28,7 +54,7 @@ impl Handler<Connect> for State {
     type Result = ();
 
     fn handle(&mut self, msg: Connect, ctx: &mut Self::Context) -> Self::Result {
-        self.connections.insert(msg.addr, Role::Spectating);
+        self.clients.insert(msg.addr, Role::Spectating);
     }
 }
 
@@ -37,6 +63,68 @@ impl Handler<Disconnect> for State {
     type Result = ();
 
     fn handle(&mut self, msg: Disconnect, ctx: &mut Self::Context) -> Self::Result {
-        self.connections.remove(&msg.addr);
+        self.clients.remove(&msg.addr);
+
+        match &self.white {
+            Some(a) if *a == msg.addr => self.white = None,
+            _ => (),
+        }
+        match &self.black {
+            Some(a) if *a == msg.addr => self.black = None,
+            _ => (),
+        }
+    }
+}
+
+impl Handler<ClientCommand> for State {
+    type Result = ();
+
+    // Upon receiving a command from a client
+    fn handle(&mut self, msg: ClientCommand, ctx: &mut Self::Context) -> Self::Result {
+        match msg {
+            // A demand to see the legal moves of that position
+            ClientCommand::Legals {addr} =>
+                addr.do_send(ServerCommand::Legals(
+                    self.moves
+                        .keys()
+                        .fold(String::new(), |acc, s| acc + s + " ")
+                )),
+            // A demand to play a move
+            ClientCommand::Move {addr, s} => if self.is_playing(&addr) {
+                if let Some(&mv) = self.moves.get(&s) {
+                    self.game.do_move(mv);
+                    self.moves = self.game.legals().to_map();
+
+                    let ans = ServerCommand::Update(self.update_info());
+                    for addr in self.clients.keys() {
+                        addr.do_send(ans.clone());
+                    }
+                }
+            }
+            // A demand to get the authorization to play
+            ClientCommand::Play {addr} => {
+                if self.is_playing(&addr) {
+                    return;
+                }
+
+                match &self.white {
+                    None => {
+                        if let Some(r) = self.clients.get_mut(&addr) {
+                            *r = Role::Playing(Color::White);
+                        }
+                        addr.do_send(ServerCommand::Role("w".to_string()));
+                    }
+                    _ => match &self.black {
+                        None => {
+                            if let Some(r) = self.clients.get_mut(&addr) {
+                                *r = Role::Playing(Color::Black);
+                            }
+                            addr.do_send(ServerCommand::Role("b".to_string()));
+                        }
+                        _ => (),
+                    },
+                }
+            }
+        }
     }
 }

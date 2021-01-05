@@ -8,11 +8,11 @@ use actix_files as fs;
 use actix_web::{App, Error, HttpRequest, HttpResponse, HttpServer, web};
 use actix_web_actors::ws;
 
-mod ws_client;
+mod wsclient;
 mod messages;
 mod state;
 
-use ws_client::WsClient;
+use wsclient::WsClient;
 use state::State;
 
 // The default IP address
