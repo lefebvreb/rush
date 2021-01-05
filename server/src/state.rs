@@ -34,15 +34,6 @@ impl State {
             _ => false,
         }
     }
-
-    // Return the string that needs to be sent when giving an update
-    fn update_info(&self) -> String {
-        format!(
-            "{} {}", 
-            self.game.get_board().to_string(),
-            self.game.get_color().to_string(),
-        )
-    }
 }
 
 impl Actor for State {
@@ -53,7 +44,7 @@ impl Actor for State {
 impl Handler<Connect> for State {
     type Result = ();
 
-    fn handle(&mut self, msg: Connect, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: Connect, _: &mut Self::Context) -> Self::Result {
         self.clients.insert(msg.addr, Role::Spectating);
     }
 }
@@ -62,7 +53,7 @@ impl Handler<Connect> for State {
 impl Handler<Disconnect> for State {
     type Result = ();
 
-    fn handle(&mut self, msg: Disconnect, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: Disconnect, _: &mut Self::Context) -> Self::Result {
         self.clients.remove(&msg.addr);
 
         match &self.white {
@@ -80,7 +71,7 @@ impl Handler<ClientCommand> for State {
     type Result = ();
 
     // Upon receiving a command from a client
-    fn handle(&mut self, msg: ClientCommand, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: ClientCommand, _: &mut Self::Context) -> Self::Result {
         match msg {
             // A demand to see the legal moves of that position
             ClientCommand::Legals {addr} =>
@@ -95,7 +86,7 @@ impl Handler<ClientCommand> for State {
                     self.game.do_move(mv);
                     self.moves = self.game.legals().to_map();
 
-                    let ans = ServerCommand::Update(self.update_info());
+                    let ans = ServerCommand::Fen(self.game.to_string());
                     for addr in self.clients.keys() {
                         addr.do_send(ans.clone());
                     }

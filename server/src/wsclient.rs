@@ -70,7 +70,7 @@ impl Handler<ServerCommand> for WsClient {
         match msg {
             ServerCommand::Role(s)   => ctx.text(format!("role {}", s)),
             ServerCommand::Legals(s) => ctx.text(format!("legals {}", s)),
-            ServerCommand::Update(s) => ctx.text(format!("update {}", s)),
+            ServerCommand::Fen(s)    => ctx.text(format!("fen {}", s)),
         }
     }
 }

@@ -38,5 +38,5 @@ pub enum ClientCommand {
 pub enum ServerCommand {
     Legals(String),
     Role(String),
-    Update(String),
+    Fen(String),
 }

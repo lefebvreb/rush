@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_variables)]
-
 // $ sudo ./target/debug/server
 // Open http://82.65.218.243 in browser
 
