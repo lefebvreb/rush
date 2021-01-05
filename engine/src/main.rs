@@ -16,6 +16,7 @@ async fn main() {
     // Exectuable's path
     args.next().unwrap();
 
+    // Open the websocket connection
     let (_, mut ws) = Client::new()
         .ws(match args.next() {
             Some(uri) => uri,
@@ -25,9 +26,11 @@ async fn main() {
         .await
         .expect("Cannot connect to server");
 
+    // Send a message
     ws.send(Message::Text("Hello from engine client".to_string()))
         .await
         .expect("Cannot send message to server");
 
+    // Listen for a message
     println!("{:?}", ws.next().await);
 }
