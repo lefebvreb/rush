@@ -20,7 +20,7 @@ use std::str::FromStr;
 use chess::*;
 
 // The perft algorithm, counting the number of leaf nodes
-pub fn perft(game: &mut SearchGame<10>, depth: usize) -> u64 {
+pub fn perft(game: Game, depth: usize) -> u64 {
     if depth == 0 {
         return 1;
     }
@@ -32,9 +32,7 @@ pub fn perft(game: &mut SearchGame<10>, depth: usize) -> u64 {
         let mv = move_gen.next();
         if mv.is_none() {break}
 
-        let mut game = game.clone();
-        game.do_move(mv);
-        nodes += perft(&mut game, depth - 1);
+        nodes += perft(game.do_move(mv), depth - 1);
     }
 
     nodes
@@ -57,21 +55,17 @@ fn main() {
     // Moves to apply
     if args.len() != 0 {
         for s in args.next().unwrap().split(" ") {
-            game.do_move(game.parse_move(&s).expect("Could not parse move"));
+            let mv = game.parse_move(&s).expect("Could not parse move");
+            game = game.do_move(mv);
         }
     }
 
     // Total number of positions found
     let mut total = 0;
-    // A search-game
-    let game = game.search_game();
 
     // Do perft and count nodes
     for (s, mv) in game.legals().to_map() {
-        let mut game = game.clone();
-        game.do_move(mv);        
-
-        let count = perft(&mut game, depth-1);
+        let count = perft(game.do_move(mv), depth-1);
         println!("{} {}", s, count);
         total += count;
     }

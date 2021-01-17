@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use actix::{Actor, Addr, Context, Handler};
 
-use chess::{Color, FullGame, Move, MoveGenerator};
+use chess::{Color, Game, Move, MoveGenerator};
 
 use crate::wsclient::WsClient;
 use crate::messages::{ClientCommand, Connect, Disconnect, ServerCommand};
@@ -17,7 +17,7 @@ enum Role {
 #[derive(Default)]
 pub struct State {
     clients: HashMap<Addr<WsClient>, Role>,
-    game: FullGame,
+    game: Game,
     moves: HashMap<String, Move>,
     white: Option<Addr<WsClient>>,
     black: Option<Addr<WsClient>>,

@@ -379,95 +379,6 @@ impl Board {
         }
     }
 
-    // Perform the move in reverse and modify the board accordingly
-    #[inline]
-    pub(crate) fn undo_move(&mut self, color: Color, mv: Move) {
-        match mv {
-            Move::Quiet {from, to} => {
-                let piece = self.get_piece_unchecked(to);
-
-                self.update_bitboards(color, piece, squares!(from, to));
-
-                self.occupy_mailbox(color, piece, from);
-                self.unoccupy_mailbox(to);
-
-                let mut updated = BitBoard::EMPTY;
-                self.update_occupied(from, &mut updated);
-                self.update_unoccupied(to, &mut updated);
-            }
-            Move::Capture {from, to, capture} => {
-                let piece = self.get_piece_unchecked(to);
-
-                self.update_bitboards(color, piece, squares!(from, to));
-                self.update_bitboards(color.invert(), capture, to.into());
-
-                self.occupy_mailbox(color, piece, from);
-                self.reoccupy_mailbox(color.invert(), capture, to);
-
-                let mut updated = BitBoard::EMPTY;
-                self.update_occupied(from, &mut updated);
-                self.update_occupied(to, &mut updated);
-            }
-            Move::Promote {from, to, promote} => {
-                self.update_bitboards(color, Piece::Pawn, from.into());
-                self.update_bitboards(color, promote, to.into());
-
-                self.occupy_mailbox(color, Piece::Pawn, from);
-                self.unoccupy_mailbox(to);
-
-                let mut updated = BitBoard::EMPTY;
-                self.update_occupied(from, &mut updated);
-                self.update_unoccupied(to, &mut updated);
-            }
-            Move::PromoteCapture {from, to, capture, promote} => {
-                self.update_bitboards(color, Piece::Pawn, from.into());
-                self.update_bitboards(color, promote, to.into());
-                self.update_bitboards(color.invert(), capture, to.into());
-
-                self.reoccupy_mailbox(color.invert(), capture, to);
-                self.occupy_mailbox(color, Piece::Pawn, from);
-
-                let mut updated = BitBoard::EMPTY;
-                self.update_occupied(from, &mut updated);
-                self.update_occupied(to, &mut updated);
-            }
-            Move::EnPassant {from, to} => {
-                let mid = Square::from((to.x(), from.y()));
-
-                self.update_bitboards(color, Piece::Pawn, squares!(from, to));
-                self.update_bitboards(color.invert(), Piece::Pawn, mid.into());
-
-                self.occupy_mailbox(color, Piece::Pawn, from);
-                self.occupy_mailbox(color.invert(), Piece::Pawn, mid);
-                self.unoccupy_mailbox(to);
-
-                let mut updated = BitBoard::EMPTY;
-                self.update_occupied(from, &mut updated);
-                self.update_occupied(mid, &mut updated);
-                self.update_unoccupied(to, &mut updated);
-            }
-            Move::DoublePush {from, to} => {
-                self.update_bitboards(color, Piece::Pawn, squares!(from, to));
-
-                self.occupy_mailbox(color, Piece::Pawn, from);
-                self.unoccupy_mailbox(to);
-
-                let mut updated = BitBoard::EMPTY;
-                self.update_occupied(from, &mut updated);
-                self.update_unoccupied(to, &mut updated);
-            }
-            Move::KingCastle {..} => match color {
-                Color::White => self.castle(Color::White, Square::F1, Square::H1, Square::G1, Square::E1),
-                Color::Black => self.castle(Color::Black, Square::F8, Square::H8, Square::G8, Square::E8),
-            }
-            Move::QueenCastle {..} => match color {
-                Color::White => self.castle(Color::White, Square::D1, Square::A1, Square::C1, Square::E1),
-                Color::Black => self.castle(Color::Black, Square::D8, Square::A8, Square::C8, Square::E8),
-            }
-            _ => (),
-        }
-    }
-
     /// Pretty-prints the board to stdout, using utf-8 characters
     /// to represent the pieces
     pub fn pretty_print(&self) -> String {
@@ -601,7 +512,7 @@ impl FromStr for Board {
 //
 //#################################################################################################
 
-#[cfg(test)]
+/*#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -667,3 +578,4 @@ mod tests {
     }
 
 }
+*/

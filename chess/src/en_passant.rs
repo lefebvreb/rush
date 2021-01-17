@@ -1,8 +1,55 @@
+use std::fmt;
+use std::str::FromStr;
+
 use crate::attacks::squares_between;
 use crate::board::Board;
 use crate::color::Color;
+use crate::errors::ParseFenError;
+use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
+
+#[repr(u8)]
+#[derive(Copy, Clone, Debug)]
+pub enum EnPassantRights {
+    May(Square),
+    None,
+}
+
+impl EnPassantRights {
+    pub fn get(last_move: Move) -> EnPassantRights {
+        match last_move {
+            Move::DoublePush {from, to} => EnPassantRights::May(from.get_mid(to)),
+            _ => EnPassantRights::None,
+        }
+    }
+}
+
+impl Default for EnPassantRights {
+    fn default() -> EnPassantRights {
+        EnPassantRights::None
+    }
+}
+
+impl fmt::Display for EnPassantRights {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            EnPassantRights::May(mid) => write!(f, "{}", mid),
+            _ => write!(f, "-"),
+        }
+    }
+}
+
+impl FromStr for EnPassantRights {
+    type Err = ParseFenError;
+
+    fn from_str(s: &str) -> Result<EnPassantRights, ParseFenError> {
+        Ok(match s {
+            "-" => EnPassantRights::None,
+            s => EnPassantRights::May(Square::from_str(s)?),
+        })
+    }
+}
 
 // A type to represent en passant availability
 #[repr(u8)]
@@ -21,6 +68,8 @@ impl EnPassantAvailability {
     // Get the en passant availability of a position
     pub fn get(color: Color, color_inv: Color, pawn_sq: Square, king_sq: Square, board: &Board) -> EnPassantAvailability {
         let x = pawn_sq.x();
+
+        eprintln!("{:?}", x);
 
         if x == 0 {
             // Left-most

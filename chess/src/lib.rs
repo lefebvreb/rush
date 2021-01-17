@@ -31,7 +31,7 @@ mod square;
 pub use bitboard::BitBoard;
 pub use board::Board;
 pub use color::Color;
-pub use game::{FullGame, Game, SearchGame};
+pub use game::Game;
 pub use moves::Move;
 pub use move_gen::MoveGenerator;
 pub use piece::Piece;

@@ -5,11 +5,12 @@ use std::pin::Pin;
 use crate::attacks::*;
 use crate::bitboard::BitBoard;
 use crate::castle_rights::CastleAvailability;
-use crate::en_passant::EnPassantAvailability;
+use crate::color::Color;
+use crate::en_passant::{EnPassantAvailability, EnPassantRights};
 use crate::game::Game;
-use crate::history::MoveHistory;
 use crate::moves::Move;
 use crate::piece::Piece;
+use crate::square::Square;
 
 // A table containing the promotions of a pawn, in the ordered
 // in which there are generated
@@ -61,7 +62,7 @@ impl<G: Generator<(), Yield=Move, Return=()> + Unpin> MoveGenerator for G {
     }
 }
 
-impl<H: MoveHistory> Game<H> {
+impl Game {
     /// Return a generator able to produce the legal moves associated
     /// to a specific position. Keeps a reference to `self`, for
     /// generation correctness, the value of `self` should not change
@@ -70,7 +71,7 @@ impl<H: MoveHistory> Game<H> {
     pub fn legals(&self) -> impl MoveGenerator {
         // Second immutable reference to safe, needed to be able to do and undo moves
         // between each call to resume(())
-        let game = unsafe {& *(self as *const Game<_>)};
+        let game = unsafe {& *(self as *const Game)};
         
         move || {
             // Board and colors
@@ -228,11 +229,14 @@ impl<H: MoveHistory> Game<H> {
             }
 
             // En passant
-            match game.get_last_move() {
-                Move::DoublePush {from, to} if !(pinned.contains(to)) => {
-                    let en_passant = EnPassantAvailability::get(color, color_inv, to, king_sq, board);
+            if let EnPassantRights::May(mid) = game.get_ep_rights() {
+                let to = match color_inv {
+                    Color::White => Square::from((mid.x(), 3)),
+                    Color::Black => Square::from((mid.x(), 4)),
+                };
 
-                    let mid = from.get_mid(to);
+                if !(pinned.contains(to)) {
+                    let en_passant = EnPassantAvailability::get(color, color_inv, to, king_sq, board);
 
                     let mask = if check_mask.contains(to) {
                         BitBoard::FULL
@@ -261,7 +265,6 @@ impl<H: MoveHistory> Game<H> {
                         _ => (),
                     }                    
                 }
-                _ => (),
             }
 
             // Quiets mask

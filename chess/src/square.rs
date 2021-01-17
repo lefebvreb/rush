@@ -69,9 +69,19 @@ impl Square {
         Square::from((self.x() + 1, self.y()))
     }
 
+    // Return the square between from and to
     #[inline(always)]
     pub(crate) fn get_mid(self, other: Square) -> Square {
         Square::from((self.x(), (self.y() + other.y()) / 2))
+    }
+
+    // Return the destination square of a en passant capture, if possible
+    #[inline(always)]
+    pub(crate) fn ep_to(self, color: Color) -> Square {
+        Square::from((self.x(), match color {
+            Color::White => 1,
+            Color::Black => 7,
+        }))
     }
 }
 
