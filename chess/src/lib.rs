@@ -17,6 +17,7 @@ mod bitboard;
 mod bits;
 mod board;
 mod castle_rights;
+mod clock;
 mod color;
 mod en_passant;
 mod errors;
@@ -24,7 +25,6 @@ mod game;
 mod move_gen;
 mod moves;
 mod piece;
-mod history;
 mod square;
 
 // Exports

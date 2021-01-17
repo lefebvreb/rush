@@ -9,44 +9,46 @@ use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
 
+// Keep track off the en passant target square
 #[repr(u8)]
 #[derive(Copy, Clone, Debug)]
-pub enum EnPassantRights {
-    May(Square),
+pub enum EnPassantSquare {
+    Some(Square),
     None,
 }
 
-impl EnPassantRights {
-    pub fn get(last_move: Move) -> EnPassantRights {
+impl EnPassantSquare {
+    // Get the en passant square from the last_move played
+    pub fn get(last_move: Move) -> EnPassantSquare {
         match last_move {
-            Move::DoublePush {from, to} => EnPassantRights::May(from.get_mid(to)),
-            _ => EnPassantRights::None,
+            Move::DoublePush {from, to} => EnPassantSquare::Some(from.get_mid(to)),
+            _ => EnPassantSquare::None,
         }
     }
 }
 
-impl Default for EnPassantRights {
-    fn default() -> EnPassantRights {
-        EnPassantRights::None
+impl Default for EnPassantSquare {
+    fn default() -> EnPassantSquare {
+        EnPassantSquare::None
     }
 }
 
-impl fmt::Display for EnPassantRights {
+impl fmt::Display for EnPassantSquare {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            EnPassantRights::May(mid) => write!(f, "{}", mid),
+            EnPassantSquare::Some(mid) => write!(f, "{}", mid),
             _ => write!(f, "-"),
         }
     }
 }
 
-impl FromStr for EnPassantRights {
+impl FromStr for EnPassantSquare {
     type Err = ParseFenError;
 
-    fn from_str(s: &str) -> Result<EnPassantRights, ParseFenError> {
+    fn from_str(s: &str) -> Result<EnPassantSquare, ParseFenError> {
         Ok(match s {
-            "-" => EnPassantRights::None,
-            s => EnPassantRights::May(Square::from_str(s)?),
+            "-" => EnPassantSquare::None,
+            s => EnPassantSquare::Some(Square::from_str(s)?),
         })
     }
 }

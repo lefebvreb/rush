@@ -4,9 +4,9 @@ use std::str::FromStr;
 use crate::board::Board;
 use crate::castle_rights::CastleRights;
 use crate::color::Color;
-use crate::en_passant::EnPassantRights;
+use crate::en_passant::EnPassantSquare;
 use crate::errors::ParseFenError;
-use crate::history::MoveCounter;
+use crate::clock::Clock;
 use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
@@ -17,8 +17,8 @@ pub struct Game {
     board: Board,
     color: Color,
     castle_rights: CastleRights,
-    ep_rights: EnPassantRights,
-    clock: MoveCounter,
+    ep_rights: EnPassantSquare,
+    clock: Clock,
 }
 
 impl Game {
@@ -28,7 +28,7 @@ impl Game {
         let mut board = self.board.clone();
         board.do_move(self.color, mv);
         let color = self.color.invert();
-        let en_passant = EnPassantRights::get(mv);
+        let en_passant = EnPassantSquare::get(mv);
         let castle_rights = self.castle_rights.update(self.color, mv);
         let clock = self.clock.increment(self.color, mv, &self.board);
 
@@ -61,7 +61,7 @@ impl Game {
 
     // Return the last move played
     #[inline(always)]
-    pub(crate) fn get_ep_rights(&self) -> EnPassantRights {
+    pub(crate) fn get_ep_rights(&self) -> EnPassantSquare {
         self.ep_rights
     }
 
@@ -154,8 +154,8 @@ impl Default for Game {
             board: Board::default(),
             castle_rights: CastleRights::default(),
             color: Color::default(),
-            ep_rights: EnPassantRights::None,
-            clock: MoveCounter::default(),
+            ep_rights: EnPassantSquare::None,
+            clock: Clock::default(),
         }
     }
 }
@@ -190,8 +190,8 @@ impl FromStr for Game {
             board: Board::from_str(strings[0])?,
             color: Color::from_str(strings[1])?,
             castle_rights: CastleRights::from_str(strings[2])?,
-            ep_rights: EnPassantRights::from_str(strings[3])?,
-            clock: MoveCounter::from_strs(strings[4], strings[5])?,
+            ep_rights: EnPassantSquare::from_str(strings[3])?,
+            clock: Clock::from_strs(strings[4], strings[5])?,
         })
     }
 }

@@ -32,9 +32,6 @@ pub struct CastleRights(u8);
 //#################################################################################################
 
 impl CastleRights {
-    // Empty castle rights
-    pub(crate) const NONE: CastleRights = CastleRights(0);
-
     // Return the castling abilities of a certain player, based on the monochrome
     // occupancy bitboard and the attack bitboard of the opponent
     // GIVEN THE KING IS NOT IN CHECK

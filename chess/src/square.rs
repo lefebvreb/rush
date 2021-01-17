@@ -74,15 +74,6 @@ impl Square {
     pub(crate) fn get_mid(self, other: Square) -> Square {
         Square::from((self.x(), (self.y() + other.y()) / 2))
     }
-
-    // Return the destination square of a en passant capture, if possible
-    #[inline(always)]
-    pub(crate) fn ep_to(self, color: Color) -> Square {
-        Square::from((self.x(), match color {
-            Color::White => 1,
-            Color::Black => 7,
-        }))
-    }
 }
 
 impl fmt::Display for Square {

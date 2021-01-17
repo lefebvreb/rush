@@ -6,7 +6,7 @@ use crate::attacks::*;
 use crate::bitboard::BitBoard;
 use crate::castle_rights::CastleAvailability;
 use crate::color::Color;
-use crate::en_passant::{EnPassantAvailability, EnPassantRights};
+use crate::en_passant::{EnPassantAvailability, EnPassantSquare};
 use crate::game::Game;
 use crate::moves::Move;
 use crate::piece::Piece;
@@ -229,7 +229,7 @@ impl Game {
             }
 
             // En passant
-            if let EnPassantRights::May(mid) = game.get_ep_rights() {
+            if let EnPassantSquare::Some(mid) = game.get_ep_rights() {
                 let to = match color_inv {
                     Color::White => Square::from((mid.x(), 3)),
                     Color::Black => Square::from((mid.x(), 4)),
