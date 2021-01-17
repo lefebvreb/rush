@@ -11,7 +11,7 @@ use crate::piece::Piece;
 use crate::square::Square;
 
 /// A struct that holds every information defining a complete game of chess
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Game<H: MoveHistory> {
     board: Board,
     color: Color,

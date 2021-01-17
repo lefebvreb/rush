@@ -32,9 +32,9 @@ pub fn perft(game: &mut SearchGame<10>, depth: usize) -> u64 {
         let mv = move_gen.next();
         if mv.is_none() {break}
 
+        let mut game = game.clone();
         game.do_move(mv);
-        nodes += perft(game, depth - 1);
-        game.undo_move();
+        nodes += perft(&mut game, depth - 1);
     }
 
     nodes
@@ -64,15 +64,16 @@ fn main() {
     // Total number of positions found
     let mut total = 0;
     // A search-game
-    let mut game = game.search_game();
+    let game = game.search_game();
 
     // Do perft and count nodes
     for (s, mv) in game.legals().to_map() {
-        game.do_move(mv);
+        let mut game = game.clone();
+        game.do_move(mv);        
+
         let count = perft(&mut game, depth-1);
         println!("{} {}", s, count);
         total += count;
-        game.undo_move();
     }
 
     // Prints the total after an empty line

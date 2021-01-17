@@ -103,7 +103,7 @@ impl MoveHistory for LargeMoveHistory {
 // A type to hold a small move history, for example one
 // fit for exploring the game tree. MAX is the maximum
 // number of elements that fit inside the history
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SmallMoveHistory<const MAX: usize> {
     cursor: usize,
     moves: [(Move, CastleRights, MoveCounter); MAX],

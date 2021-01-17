@@ -8,6 +8,4 @@ edition = "2018"
 path = "../chess"
 
 [dependencies]
-actix-web = "3.3.2"
-awc = "2.0.3"
-futures-util = "0.3.8"
+actix = "0.10.0"
