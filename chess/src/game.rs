@@ -115,10 +115,10 @@ impl Game {
             }
             5 => {
                 let promote = match s.chars().nth(4).unwrap() {
-                    'r' | 'R' => Piece::Rook,
-                    'n' | 'N' => Piece::Knight,
-                    'b' | 'B' => Piece::Bishop,
-                    'q' | 'Q' => Piece::Queen,
+                    'r' => Piece::Rook,
+                    'n' => Piece::Knight,
+                    'b' => Piece::Bishop,
+                    'q' => Piece::Queen,
                     c => return Err(ParseFenError::new(format!("unrecognized promotion: {:?}, valid promotions are: \"rnbq\"", c))),
                 };
     

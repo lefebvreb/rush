@@ -1,0 +1,19 @@
+{
+    "name": "www",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.html",
+    "scripts": {
+        "dev": "parcel src/index.html",
+        "release": "parcel build src/index.html && rm dist/*.map",
+        "clean": "rm dist/*"
+    },
+    "author": "benjamin <benji.lef76@gmail.com>",
+    "license": "ISC",
+    "dependencies": {
+        "chessboard-element": "^1.1.0"
+    },
+    "devDependencies": {
+        "parcel-bundler": "^1.12.4"
+    }
+}
