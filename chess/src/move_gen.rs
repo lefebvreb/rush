@@ -68,15 +68,11 @@ impl Game {
     /// generation correctness, the value of `self` should not change
     /// between each call to `next()`
     #[inline(always)]
-    pub fn legals(&self) -> impl MoveGenerator {
-        // Second immutable reference to safe, needed to be able to do and undo moves
-        // between each call to resume(())
-        let game = unsafe {& *(self as *const Game)};
-        
+    pub fn legals<'a>(&'a self) -> impl MoveGenerator + 'a {        
         move || {
             // Board and colors
-            let board = game.get_board();
-            let color = game.get_color();
+            let board = self.get_board();
+            let color = self.get_color();
             let color_inv = color.invert();
 
             // Occupancy bitboards
@@ -128,7 +124,7 @@ impl Game {
             // Count how many checkers there are
             let check_mask = match king_attacks.count_bits() {
                 0 => { // No checkers: may castle
-                    match game.get_castle_rights().get_availability(color, occ, danger) {
+                    match self.get_castle_rights().get_availability(color, occ, danger) {
                         CastleAvailability::KingSide => yield Move::KingCastle {color},
                         CastleAvailability::QueenSide => yield Move::QueenCastle {color},
                         CastleAvailability::Both => {
@@ -229,7 +225,7 @@ impl Game {
             }
 
             // En passant
-            if let EnPassantSquare::Some(mid) = game.get_ep_rights() {
+            if let EnPassantSquare::Some(mid) = self.get_ep_rights() {
                 let to = match color_inv {
                     Color::White => Square::from((mid.x(), 3)),
                     Color::Black => Square::from((mid.x(), 4)),

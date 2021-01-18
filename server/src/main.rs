@@ -33,7 +33,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .data(state.clone())
             .service(web::resource("/ws/").route(web::get().to(ws_index)))
-            .service(fs::Files::new("/", "www/").index_file("index.html"))
+            .service(fs::Files::new("/", "www/dist/").index_file("index.html"))
     })
     .bind(IP)?
     .run()

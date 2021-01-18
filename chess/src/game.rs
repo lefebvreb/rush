@@ -73,7 +73,6 @@ impl Game {
         let to = Square::from_str(&s[2..4])?;
 
         match s.len() {
-            1 if s == "-" => return Ok(Move::None),
             4 => {
                 match self.board.get_piece_unchecked(from) {
                     Piece::Pawn => if from.x() != to.x() && self.board.is_empty(to) {

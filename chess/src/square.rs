@@ -1,5 +1,4 @@
 use std::fmt;
-use std::mem::transmute;
 use std::str::FromStr;
 
 use crate::bitboard::BitBoard;
@@ -97,7 +96,7 @@ impl From<u8> for Square {
     // Undefined behaviour if i > 63
     #[inline(always)]
     fn from(i: u8) -> Square {
-        unsafe {transmute(i as u8)}
+        Square::SQUARES[i as usize]
     }
 }
 
