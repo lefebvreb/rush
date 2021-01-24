@@ -4,6 +4,10 @@
 
 OPTIMISATIONS
 
+- new pin system, calculated in do_move
+
+FRINGE OPTIMISATIONS
+
 - replace all `unreachable!()` by `unsafe {unreacheable_unchecked()}`
 - replace all table lookup by unchecked accesses (`get_unchecked`)
 - replace unwrap() by unwrap_unchecked()

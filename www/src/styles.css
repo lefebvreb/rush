@@ -1,0 +1,31 @@
+body {
+    height: 100%;
+    background: linear-gradient(#1b1b1b, #474747);
+}
+
+.main {
+    width: 80vmax;
+    height: 40vmax;
+
+    margin: auto;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    background-color: #303030;
+    border-radius: 2vmin;
+    border-color: #ffffff;
+    border-style: solid;
+}
+
+.board {
+    width: 38vmax;
+    height: 38vmax;
+
+    position: relative;
+    top: 1vmax;
+    bottom: 1vmax;
+    left: 1vmax;
+}

@@ -1,7 +1,8 @@
-target
 Cargo.lock
-tmp
 perf.data
-www/node_modules
+target
+tmp
+www/.cache
 www/dist
+www/node_modules
 www/package-lock.json

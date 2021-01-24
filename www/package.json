@@ -4,7 +4,7 @@
     "description": "",
     "main": "index.html",
     "scripts": {
-        "dev": "parcel src/index.html",
+        "debug": "parcel src/index.html",
         "release": "parcel build src/index.html && rm dist/*.map",
         "clean": "rm dist/*"
     },
