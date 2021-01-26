@@ -1,9 +1,7 @@
 #![allow(dead_code, unused_variables, unused_macros)]
 
-use actix::{Actor, Context};
+mod commands;
+mod engine;
 
-struct Engine;
-
-impl Actor for Engine {
-    type Context = Context<Self>;
-}
+pub use commands::{EngineMove, EngineCommand};
+pub use engine::Engine;

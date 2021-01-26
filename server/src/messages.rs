@@ -19,10 +19,7 @@ pub struct Disconnect {
 // A message used to represent a client command
 #[derive(Message)]
 #[rtype(result = "()")]
-pub enum ClientCommand {
-    Legals {
-        addr: Addr<WsClient>,
-    },
+pub enum ClientDemand {
     Move {
         addr: Addr<WsClient>,
         s: String,
@@ -30,13 +27,13 @@ pub enum ClientCommand {
     Play {
         addr: Addr<WsClient>,
     },
+    Invite,
 }
 
 // A message used to represent a server command
 #[derive(Clone, Message)]
 #[rtype(result = "()")]
-pub enum ServerCommand {
-    Legals(String),
-    Role(String),
-    Fen(String),
+pub enum ClientCommand {
+    Info(String),
+    State(String),
 }

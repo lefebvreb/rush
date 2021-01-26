@@ -34,8 +34,8 @@ async fn main() -> std::io::Result<()> {
     // Starts the HTTP server and starts listening
     HttpServer::new(move || {
         App::new()
-            .wrap(Compress::new(ContentEncoding::Gzip))
             .data(state.clone())
+            .wrap(Compress::new(ContentEncoding::Gzip))
             .service(web::resource("/ws/").route(web::get().to(ws_index)))
             .service(Files::new("/", "www/dist/").index_file("index.html"))
     })

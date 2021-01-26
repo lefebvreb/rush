@@ -5,14 +5,17 @@
         <link rel=stylesheet href=styles.css>
     </head>
     <body>
-        <div class=main>
-            <chess-board class=board
+        <div id=main>
+            <chess-board id=board
                 draggable-pieces
-                drop-off-board="snapback"
-                position="start"
-                width=1024px 
-                height=1024px>
+                drop-off-board="snapback">
             </chess-board>
+            <div id=info>
+                <p class=text id=status>•It's black's turn</p>
+                <p class=text id=role>•You are playing as white</p>
+                <p class=text>•List of played moves:</p>
+                <p id=moves>1. a2a3</p>
+            </div>
         </div>
     </body>
 </html>

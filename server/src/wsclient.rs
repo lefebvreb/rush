@@ -1,7 +1,7 @@
 use actix::{Actor, Addr, AsyncContext, Handler, Running, StreamHandler};
 use actix_web_actors::ws;
 
-use crate::messages::{ClientCommand, Connect, Disconnect, ServerCommand};
+use crate::messages::{ClientDemand, Connect, Disconnect, ClientCommand};
 use crate::state::State;
 
 // A connection to a client
@@ -44,16 +44,14 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsClient {
                 let mut split = s.split(" ");
 
                 match split.next().unwrap_or("") {
-                    "legals" => self.state.do_send(ClientCommand::Legals {
-                        addr: ctx.address(),
-                    }),
-                    "move" => self.state.do_send(ClientCommand::Move {
+                    "move" => self.state.do_send(ClientDemand::Move {
                         addr: ctx.address(),
                         s: split.next().unwrap_or("").to_string(),
                     }),
-                    "play" => self.state.do_send(ClientCommand::Play {
+                    "play" => self.state.do_send(ClientDemand::Play {
                         addr: ctx.address(),
                     }),
+                    "invite" => self.state.do_send(ClientDemand::Invite),
                     err => eprintln!("Erroneous message \"{}\"", err),
                 }
             },
@@ -62,15 +60,14 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsClient {
     }
 }
 
-impl Handler<ServerCommand> for WsClient {
+impl Handler<ClientCommand> for WsClient {
     type Result = ();
 
     // Upon receiving a command from the server: format it and send it via the websockets
-    fn handle(&mut self, msg: ServerCommand, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: ClientCommand, ctx: &mut Self::Context) -> Self::Result {
         match msg {
-            ServerCommand::Role(s)   => ctx.text(format!("role {}", s)),
-            ServerCommand::Legals(s) => ctx.text(format!("legals {}", s)),
-            ServerCommand::Fen(s)    => ctx.text(format!("fen {}", s)),
+            ClientCommand::Info(s)  => ctx.text(format!("info {}", s)),
+            ClientCommand::State(s) => ctx.text(format!("state {}", s)),
         }
     }
 }

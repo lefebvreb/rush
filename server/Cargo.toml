@@ -7,6 +7,9 @@ edition = "2018"
 [dependencies.chess]
 path = "../chess"
 
+[dependencies.engine]
+path = "../engine"
+
 [dependencies]
 actix = "0.10.0"
 actix-files = "0.3"

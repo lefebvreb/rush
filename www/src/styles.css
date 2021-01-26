@@ -3,7 +3,7 @@ body {
     background: linear-gradient(#1b1b1b, #474747);
 }
 
-.main {
+#main {
     width: 80vmax;
     height: 40vmax;
 
@@ -14,18 +14,56 @@ body {
     left: 0;
     right: 0;
 
-    background-color: #303030;
+    background-color: #3d3d3d;
     border-radius: 2vmin;
     border-color: #ffffff;
     border-style: solid;
 }
 
-.board {
+#board {
     width: 38vmax;
     height: 38vmax;
 
-    position: relative;
+    position: absolute;
     top: 1vmax;
     bottom: 1vmax;
     left: 1vmax;
+
+    --light-color: #ffff99;
+    --dark-color: #229922;
+}
+
+#info {
+    width: 38vmax;
+    height: 38vmax;
+
+    position: absolute;
+    top: 1vmax;
+    bottom: 1vmax;
+    right: 1vmax;
+
+    border-radius: 1vmin;
+    border-color: #ffffff;
+    border-style: solid;
+}
+
+.text {
+    color: #ffffff;
+    font-size: 1.5vmax;
+    font-style: bold;
+
+    position: relative;
+    left: 2vmax;
+}
+
+#moves {
+    width: 34vmax;
+
+    color: #ffffff;
+    font-size: 1vmax;
+    font-style: bold;
+
+    position: relative;
+    left: 2vmax;
+    right: 2vmax;
 }
