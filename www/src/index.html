@@ -5,10 +5,13 @@
     </head>
     <body>
         <div id=main>
-            <chess-board id=board
-                draggable-pieces
-                drop-off-board="snapback">
-            </chess-board>
+            <div id=wrapper>
+                <chess-board id=board
+                    draggable-pieces
+                    drop-off-board=snapback
+                ></chess-board>
+                <div id=promote></div>
+            </div>
             <div id=info>
                 <p class=text id=status></p>
                 <p class=text id=role></p>

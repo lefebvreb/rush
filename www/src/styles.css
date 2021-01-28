@@ -1,8 +1,10 @@
+/* The body of the document */
 body {
     height: 100%;
     background: linear-gradient(#1b1b1b, #474747);
 }
 
+/* The main div, containing everything */
 #main {
     width: 80vmax;
     height: 40vmax;
@@ -20,19 +22,40 @@ body {
     border-style: solid;
 }
 
-#board {
-    width: 38vmax;
-    height: 38vmax;
-
+/* A wrapper div for the board and the promote floating windox */
+#wrapper {
     position: absolute;
     top: 1vmax;
     bottom: 1vmax;
     left: 1vmax;
+}
+
+/* The board */
+#board {
+    width: 38vmax;
+    height: 38vmax;
+    position: fixed;
 
     --light-color: #ffff99;
     --dark-color: #229922;
 }
 
+/* The promote floating window */
+#promote {
+    width: 10vmax;
+    height: 10vmax;
+
+    box-shadow: 0 1vmax 1vmax rgba(34, 25, 25, 0.4);
+
+    background: #ffffff;
+    border-radius: 1vmax;
+    padding: 1vmax;
+    position: relative;
+    top: 13vmax;
+    left:13vmax;
+}
+
+/* The info div, containg texts and buttons */
 #info {
     width: 38vmax;
     height: 38vmax;
@@ -47,6 +70,7 @@ body {
     border-style: solid;
 }
 
+/* The text style class */
 .text {
     color: #ffffff;
     font-size: 1.5vmax;
@@ -56,6 +80,7 @@ body {
     left: 2vmax;
 }
 
+/* The move history text style */
 #moves {
     width: 34vmax;
 

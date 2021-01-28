@@ -5,14 +5,14 @@ import {
 
 // ==================================== CONSTANTS
 
-// Convenient shortcut
+// Convenient shortcut for document.getElementById
 const $ = document.getElementById.bind(document);
 
 // The role of a client
 const ROLE = {
     Spectator: 0,
-    White: 1,
-    Black: 2,
+    White    : 1,
+    Black    : 2,
 }
 
 // ==================================== VARIABLES
@@ -46,8 +46,8 @@ function parseRole(s) {
 
 // Parse a history string and change the client's text accordingly
 function parseHistory(s) {
-    let i = 0
-    let res = ""
+    let i     = 0
+    let res   = ""
     let split = s.split(",")
 
     while (i < split.length) {
