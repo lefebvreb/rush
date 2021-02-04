@@ -71,8 +71,6 @@ impl EnPassantAvailability {
     pub fn get(color: Color, color_inv: Color, pawn_sq: Square, king_sq: Square, board: &Board) -> EnPassantAvailability {
         let x = pawn_sq.x();
 
-        eprintln!("{:?}", x);
-
         if x == 0 {
             // Left-most
             let right = pawn_sq.get_right_unchecked();

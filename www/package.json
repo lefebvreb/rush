@@ -4,8 +4,8 @@
     "description": "",
     "main": "index.html",
     "scripts": {
-        "debug": "parcel src/index.html",
-        "release": "parcel build src/index.html --no-source-maps",
+        "dev": "parcel src/index.html",
+        "build": "parcel build src/index.html --no-source-maps",
         "clean": "rm dist/*"
     },
     "author": "benjamin <benji.lef76@gmail.com>",

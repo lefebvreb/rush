@@ -66,8 +66,7 @@ impl Handler<ClientCommand> for WsClient {
     // Upon receiving a command from the server: format it and send it via the websockets
     fn handle(&mut self, msg: ClientCommand, ctx: &mut Self::Context) -> Self::Result {
         match msg {
-            ClientCommand::Info(s)  => ctx.text(format!("info {}", s)),
-            ClientCommand::State(s) => ctx.text(format!("state {}", s)),
+            ClientCommand::Info(s) | ClientCommand::State(s) => ctx.text(s),
         }
     }
 }

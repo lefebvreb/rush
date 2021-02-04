@@ -26,7 +26,7 @@ pub struct State {
 
 impl State {
     // Return the color of that client, if he is playing in the game
-    fn get_client_of(&self, addr: &Addr<WsClient>) -> Option<Color> {
+    fn get_color_of(&self, addr: &Addr<WsClient>) -> Option<Color> {
         match &self.white {
             Some(Player::Client(a)) if *a == *addr => Some(Color::White),
             _ => match &self.black {
@@ -50,9 +50,9 @@ impl State {
     fn info(&self, addr: &Addr<WsClient>) -> ClientCommand {
         ClientCommand::Info(format!(
             "info {} {}",
-            self.get_client_of(addr)
+            self.get_color_of(addr)
                 .map_or("s".to_string(), |c| c.to_string()),
-            match self.get_client_of(addr) {
+            match self.get_color_of(addr) {
                 Some(c) if c == self.game.get_color() => self.legals
                     .keys()
                     .map(|s| s.clone())
@@ -116,7 +116,7 @@ impl Handler<Disconnect> for State {
     fn handle(&mut self, msg: Disconnect, _: &mut Self::Context) -> Self::Result {
         self.clients.remove(&msg.addr);
 
-        match self.get_client_of(&msg.addr) {
+        match self.get_color_of(&msg.addr) {
             Some(Color::White) => self.white = None,
             Some(Color::Black) => self.black = None,
             _ => (),
@@ -132,8 +132,10 @@ impl Handler<ClientDemand> for State {
         match msg {
             // When a client tries a move
             ClientDemand::Move {addr, s} => {
-                // Do the move
-                self.do_move(s);
+                // Do the move if addr is playing
+                if self.get_color_of(&addr).map_or(false, |c| c == self.game.get_color()) {
+                    self.do_move(s);
+                }
 
                 // Send info to old player
                 addr.do_send(self.info(&addr))
@@ -141,7 +143,7 @@ impl Handler<ClientDemand> for State {
             // When a client requests to play
             ClientDemand::Play {addr} => {
                 // If client is already playing, do nothing
-                if self.get_client_of(&addr).is_some() {
+                if self.get_color_of(&addr).is_some() {
                     return;
                 }
 
@@ -187,9 +189,12 @@ impl Handler<EngineMove> for State {
 impl Default for State {
     // Create a new State, in it's default state
     fn default() -> State {
+        let game = Game::default();
+        let legals = game.legals().to_map();
+
         State {
-            game: Game::default(),
-            legals: HashMap::new(),
+            game,
+            legals,
             history: String::new(),
             engine: Engine::default().start(),
             clients: HashMap::new(),

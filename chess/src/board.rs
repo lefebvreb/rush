@@ -435,6 +435,7 @@ impl fmt::Display for Board {
                         Color::White => piece.to_string().to_uppercase(),
                         Color::Black => piece.to_string(),
                     })?;
+                    streak = 0;
                 } else {
                     streak += 1;
                 }

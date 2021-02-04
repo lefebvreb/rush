@@ -15,6 +15,8 @@ mod state;
 use wsclient::WsClient;
 use state::State;
 
+// TODO: CLI
+
 // The default IP address
 //const IP: &str = "192.168.0.24:80";
 const IP: &str = "127.0.0.1:8080";
@@ -31,7 +33,7 @@ async fn main() -> std::io::Result<()> {
     // The global state
     let state = State::default().start();
 
-    // Starts the HTTP server and starts listening
+    // Start the HTTP server and start listening
     HttpServer::new(move || {
         App::new()
             .data(state.clone())
