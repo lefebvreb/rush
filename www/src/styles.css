@@ -131,7 +131,7 @@ body {
 
 /* The button class */
 .button {
-    width: 12vmax;
+    width: 10vmax;
     height: 4vmax;
 
     background-color: #4CAF50;
@@ -141,12 +141,18 @@ body {
 
 #join {
     position: absolute;
-    left: 6vmax;
+    left: 3vmax;
     bottom: 2vmax;
 }
 
 #invite {
     position: absolute;
-    right: 6vmax;
+    right: 3vmax;
+    bottom: 2vmax;
+}
+
+#flip {
+    position: absolute;
+    left: 14vmax;
     bottom: 2vmax;
 }

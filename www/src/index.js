@@ -3,8 +3,6 @@ import {
     renderWikipediaSVGPiece as renderPiece,
 } from "../node_modules/chessboard-element/index.js"
 
-// TODO: make an update function instead on updating on parse
-
 // ==================================== CONSTANTS
 
 // Convenient shortcut for document.getElementById
@@ -84,16 +82,19 @@ function parseStatus(s) {
 // Parse an "info" command
 function parseInfo(args) {
     // Update our role
+    let oldRole = role
     role = parseRole(args[1])
     switch (role) {
-        case "s": 
+        case ROLE.Spectator: 
             $("role").innerHTML = "•You are spectating"
             break
-        case "w": 
+        case ROLE.White: 
             $("role").innerHTML = "•You are playing as white"
+            if (oldRole !== role) $("board").orientation = "white"
             break
-        case "b": 
+        case ROLE.Black: 
             $("role").innerHTML = "•You are playing as black"
+            if (oldRole !== role) $("board").orientation = "black"
             break
     }
 
@@ -214,5 +215,10 @@ window.onload = function() {
     // Invite an AI
     $("invite").onclick = function() {
         socket.send("invite")
+    }
+
+    // Flip the board
+    $("flip").onclick = function() {
+        $("board").flip()
     }
 }
