@@ -22,8 +22,8 @@ pub enum CastleAvailability {
 // bit 1: White queen side rights
 // bit 2: Black king side rights
 // bit 3: Black queen side rights
-#[derive(Copy, Clone, Debug)]
-pub struct CastleRights(u8);
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct CastleRights(pub(crate) u8);
 
 //#################################################################################################
 //

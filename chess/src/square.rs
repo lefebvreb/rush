@@ -2,7 +2,7 @@ use std::fmt;
 use std::str::FromStr;
 
 use crate::bitboard::BitBoard;
-use crate::bits::SHIFTS;
+use crate::bmi2::SHIFTS;
 use crate::color::Color;
 use crate::errors::ParseFenError;
 

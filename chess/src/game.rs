@@ -55,8 +55,8 @@ impl Game {
 
     // Return the castling rights
     #[inline(always)]
-    pub(crate) fn get_castle_rights(&self) -> &CastleRights {
-        &self.castle_rights
+    pub(crate) fn get_castle_rights(&self) -> CastleRights {
+        self.castle_rights
     }
 
     // Return the last move played

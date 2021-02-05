@@ -11,7 +11,7 @@ mod slider_attacks_tables;
 use slider_attacks_tables::*;
 
 use crate::bitboard::BitBoard;
-use crate::bits::{pext, pdep};
+use crate::bmi2::{pext, pdep};
 use crate::board::Board;
 use crate::color::Color;
 use crate::piece::Piece;

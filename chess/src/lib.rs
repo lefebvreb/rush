@@ -1,24 +1,21 @@
+#![allow(dead_code, unused_variables, unused_macros)]
+// For zobrist keys initialization
+#![feature(const_mut_refs)]
+// For lazy move generation
 #![feature(generator_trait, generators)]
 
-/* ======== TODO ===========
+/*
+TODO:
 
-OPTIMISATIONS
-
-- new pin system, calculated in do_move
-
-FRINGE OPTIMISATIONS
-
-- replace all `unreachable!()` by `unsafe {unreacheable_unchecked()}`
-- replace all table lookup by unchecked accesses (`get_unchecked`)
-- replace unwrap() by unwrap_unchecked()
-
-========================= */
+- Incremental Zobrist hashing
+- 50 move and 3-fold repetition clock
+*/
 
 // Modules
 mod attacks;
 #[macro_use]
 mod bitboard;
-mod bits;
+mod bmi2;
 mod board;
 mod castle_rights;
 mod clock;
@@ -30,6 +27,7 @@ mod move_gen;
 mod moves;
 mod piece;
 mod square;
+mod zobrist;
 
 // Exports
 pub use bitboard::BitBoard;

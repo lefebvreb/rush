@@ -121,6 +121,14 @@ impl Board {
         }
     }
 
+    /// Return true if the king of that color is in check
+    #[inline(always)]
+    pub fn is_king_in_check(&self, color: Color) -> bool {
+        let king_pos = self.get_bitboard(color, Piece::King).as_square_unchecked();
+
+        !(self.get_attacks(king_pos) & self.get_color_occupancy(color.invert())).is_empty()
+    }
+
     // ================================ crate accessers =====================================
 
     // Return the attacks from that square, assuming there is a piece there
@@ -139,6 +147,12 @@ impl Board {
             SquareInfo::Occupied {piece, ..} => piece,
             _ => unreachable!()
         }
+    }
+
+    // Return the piece present at the given square, should not be called when there are no pieces there
+    #[inline(always)]
+    pub(crate) fn get_bitboards(&self) -> [[BitBoard; 6]; 2] {
+        self.bitboards
     }
 
     // ================================ Helper methods =====================================

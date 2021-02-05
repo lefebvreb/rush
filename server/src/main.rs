@@ -1,6 +1,3 @@
-// $ sudo ./target/debug/server
-// Open http://82.65.218.243 in browser
-
 use actix::{Actor, Addr};
 use actix_files::Files;
 use actix_web::{App, Error, HttpRequest, HttpResponse, HttpServer, web};
@@ -15,7 +12,11 @@ mod state;
 use wsclient::WsClient;
 use state::State;
 
-// TODO: CLI
+/*
+TODO:
+
+- Command Line Interface
+*/
 
 // The default IP address
 //const IP: &str = "192.168.0.24:80";
