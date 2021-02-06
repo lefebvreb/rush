@@ -23,7 +23,7 @@ pub enum CastleAvailability {
 // bit 2: Black king side rights
 // bit 3: Black queen side rights
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub struct CastleRights(pub(crate) u8);
+pub struct CastleRights(u8);
 
 //#################################################################################################
 //
@@ -149,5 +149,11 @@ impl FromStr for CastleRights {
             "KQkq" => 0b1111,
             _ => return Err(ParseFenError::new("Invalid castle rights format".to_owned())),
         }))
+    }
+}
+
+impl Into<usize> for CastleRights {
+    fn into(self) -> usize {
+        self.0 as usize
     }
 }

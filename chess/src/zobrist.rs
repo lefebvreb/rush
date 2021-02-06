@@ -1,11 +1,10 @@
-use std::hash::{Hash, Hasher};
-
 use crate::bitboard::BitBoard;
 use crate::castle_rights::CastleRights;
 use crate::color::Color;
+use crate::en_passant::EnPassantSquare;
 use crate::game::Game;
+use crate::moves::Move;
 use crate::piece::Piece;
-use crate::square::Square;
 
 //#################################################################################################
 //
@@ -13,12 +12,42 @@ use crate::square::Square;
 //
 //#################################################################################################
 
-/// Decribes completely a given position
+/// Decribes completely a given position, useful for storing in a hash table
 #[derive(Debug)]
 pub struct Position {
     bitboards: [[BitBoard; 6]; 2],
     castle_rights: CastleRights,
     color: Color,
+    ep_rights: EnPassantSquare,
+}
+
+impl Position {
+    fn get_key(&self) -> u64 {
+        let mut key = 0;
+
+        // Xor the keys corresponding to bitboards
+        for color in &Color::COLORS {
+            for piece in &Piece::PIECES {
+                for sq in self.bitboards[*color as usize][*piece as usize].iter_squares() {
+                    key ^= ZOBRIST_KEYS.squares_colors_pieces_keys[sq as usize][*color as usize][*piece as usize]
+                }
+            }
+        }
+
+        // Xor the key corresponding to those castle rights
+        let idx: usize = self.castle_rights.into();
+        key ^= ZOBRIST_KEYS.castle_rights_keys[idx];
+
+        // Xor the key corresponding to the color
+        key ^= ZOBRIST_KEYS.color_keys[self.color as usize];
+
+        // Xor the key corresponding to those en passant rights
+        if let EnPassantSquare::Some(sq) = self.ep_rights {
+            key ^= ZOBRIST_KEYS.en_passant_file_key[sq.x() as usize];
+        }
+
+        key
+    }
 }
 
 impl PartialEq for Position {
@@ -33,21 +62,8 @@ impl From<&Game> for Position {
             bitboards: game.get_board().get_bitboards(),
             castle_rights: game.get_castle_rights(),
             color: game.get_color(),
+            ep_rights: game.get_ep_rights(),
         }
-    }
-}
-
-impl Hash for Position {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for color in &Color::COLORS {
-            for piece in &Piece::PIECES {
-                for sq in self.bitboards[*color as usize][*piece as usize].iter_squares() {
-                    state.write_u64(ZOBRIST_KEYS.get_piece(sq, *color, *piece));
-                }
-            }
-        }
-        state.write_u64(ZOBRIST_KEYS.get_castle(self.castle_rights));
-        state.write_u64(ZOBRIST_KEYS.get_color(self.color));
     }
 }
 
@@ -62,26 +78,24 @@ pub(crate) struct Keys {
     squares_colors_pieces_keys: [[[u64; 6]; 2]; 64],
     castle_rights_keys: [u64; 16],
     color_keys: [u64; 2],
+    en_passant_file_key: [u64; 8],
 }
 
-impl Keys {
-    // Get the key associated to that square, color and piece
-    #[inline(always)]
-    pub fn get_piece(&self, sq: Square, color: Color, piece: Piece) -> u64 {
-        self.squares_colors_pieces_keys[sq as usize][color as usize][piece as usize]
-    }
+//#################################################################################################
+//
+//                                      Update rights
+//
+//#################################################################################################
 
-    // Get the key associated to those castle rights
-    #[inline(always)]
-    pub fn get_castle(&self, castle_rights: CastleRights) -> u64 {
-        self.castle_rights_keys[castle_rights.0 as usize]
-    }
-
-    // Get the key associated to that color
-    #[inline(always)]
-    pub fn get_color(&self, color_keys: Color) -> u64 {
-        self.color_keys[color_keys as usize]
-    }
+// Update the zobrist key, castle rights and ep rights with the given move and color
+pub(crate) fn update_zobrist_and_rights(
+    color: Color, 
+    mv: Move, 
+    zobrist: u64, 
+    castle_rights: CastleRights, 
+    ep_rights: EnPassantSquare
+) -> (u64, CastleRights, EnPassantSquare) {
+    todo!()
 }
 
 //#################################################################################################
@@ -90,7 +104,7 @@ impl Keys {
 //
 //#################################################################################################
 
-// A type alias to hold 256 bits
+// A type holding 256 bits
 #[allow(non_camel_case_types)]
 type u256 = (u64, u64, u64, u64);
 
@@ -128,8 +142,10 @@ pub(crate) const ZOBRIST_KEYS: Keys = {
         squares_colors_pieces_keys: [[[0; 6]; 2]; 64],
         castle_rights_keys: [0; 16],
         color_keys: [0; 2],
+        en_passant_file_key: [0; 8],
     };
 
+    // Fill pieces keys
     i = 0;
     while i < 64 {
         j = 0;
@@ -144,15 +160,25 @@ pub(crate) const ZOBRIST_KEYS: Keys = {
         i += 1;
     }
 
+    // Fill castle rights keys
     i = 0;
     while i < 16 {
+        let n = keys.castle_rights_keys.len();
         keys.castle_rights_keys[i] = random(&mut s);
         i += 1;
     }
 
+    // Fill color keys
     i = 0;
     while i < 2 {
         keys.color_keys[i] = random(&mut s);
+        i += 1;
+    }
+
+    // Fill en passant file keys
+    i = 0;
+    while i < 8 {
+        keys.en_passant_file_key[i] = random(&mut s);
         i += 1;
     }
 

@@ -28,7 +28,7 @@ impl Game {
         let mut board = self.board.clone();
         board.do_move(self.color, mv);
         let color = self.color.invert();
-        let en_passant = EnPassantSquare::get(mv);
+        let ep_rights = EnPassantSquare::get(mv);
         let castle_rights = self.castle_rights.update(self.color, mv);
         let clock = self.clock.increment(self.color, mv, &self.board);
 
@@ -36,7 +36,7 @@ impl Game {
             board,
             color,
             castle_rights,
-            ep_rights: en_passant,
+            ep_rights,
             clock,
         }
     }
@@ -69,11 +69,11 @@ impl Game {
     /// in pure algebraic notation, of course.
     /// Does not verify the validity of the move.
     pub fn parse_move(&self, s: &str) -> Result<Move, ParseFenError> {
-        let from = Square::from_str(&s[0..2])?;
-        let to = Square::from_str(&s[2..4])?;
-
         match s.len() {
             4 => {
+                let from = Square::from_str(&s[0..2])?;
+                let to = Square::from_str(&s[2..4])?;
+
                 match self.board.get_piece_unchecked(from) {
                     Piece::Pawn => if from.x() != to.x() && self.board.is_empty(to) {
                         return Ok(Move::EnPassant {
@@ -113,6 +113,9 @@ impl Game {
                 }
             }
             5 => {
+                let from = Square::from_str(&s[0..2])?;
+                let to = Square::from_str(&s[2..4])?;
+
                 let promote = match s.chars().nth(4).unwrap() {
                     'r' => Piece::Rook,
                     'n' => Piece::Knight,
@@ -182,7 +185,7 @@ impl FromStr for Game {
         let strings = s.split(" ").into_iter().collect::<Vec<_>>();
         
         if strings.len() != 6 {
-            return Err(ParseFenError::new("missing informations on FEN notation"));
+            return Err(ParseFenError::new("missing informations in FEN notation"));
         }
 
         Ok(Game {

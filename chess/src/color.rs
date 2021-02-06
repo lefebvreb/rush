@@ -4,6 +4,7 @@ use std::str::FromStr;
 use crate::errors::ParseFenError;
 
 /// Represent the color of a player
+#[repr(u8)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Color {
     White = 0,

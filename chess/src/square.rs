@@ -93,7 +93,6 @@ impl Into<BitBoard> for Square {
 }
 
 impl From<u8> for Square {
-    // Undefined behaviour if i > 63
     #[inline(always)]
     fn from(i: u8) -> Square {
         Square::SQUARES[i as usize]
@@ -101,7 +100,6 @@ impl From<u8> for Square {
 }
 
 impl From<(u8, u8)> for Square {
-    // Undefined behaviour if xy.0 + 8*xy.1 > 63
     #[inline(always)]
     fn from(xy: (u8, u8)) -> Square {
         Square::from(xy.0 + 8*xy.1)
