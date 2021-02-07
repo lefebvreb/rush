@@ -20,7 +20,7 @@ use std::str::FromStr;
 use chess::*;
 
 // The perft algorithm, counting the number of leaf nodes
-pub fn perft(game: Game, depth: usize) -> u64 {
+fn perft(game: Game, depth: usize) -> u64 {
     if depth == 0 {
         return 1;
     }

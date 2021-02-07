@@ -41,3 +41,4 @@ pub use moves::Move;
 pub use move_gen::MoveGenerator;
 pub use piece::Piece;
 pub use square::Square;
+pub use zobrist::Position;

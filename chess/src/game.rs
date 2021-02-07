@@ -61,6 +61,12 @@ impl Game {
         self.color
     }
 
+    /// Return the zobrist key of that position
+    #[inline(always)]
+    pub fn get_key(&self) -> u64 {
+        self.zobrist
+    }
+
     // Return the castling rights
     #[inline(always)]
     pub(crate) fn get_castle_rights(&self) -> CastleRights {
