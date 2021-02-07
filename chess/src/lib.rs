@@ -7,10 +7,6 @@
 /*
 TODO:
 
-- Incremental Zobrist hashing:
-    - Add a zobrist key to the board and update it by doing move
-    - Update zobrist key along ep rights and castle rights
-    - Have only one zobrist key for color (black, xor it at every halfturn)
 - 50 move and 3-fold repetition clock
 */
 

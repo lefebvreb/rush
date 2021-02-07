@@ -82,18 +82,22 @@ pub(crate) struct Keys {
 }
 
 impl Keys {
+    // Return the zobrist key associated to that color, piece and square trio
     pub fn get_square(&self, color: Color, piece: Piece, sq: Square) -> u64 {
         self.squares_colors_pieces_keys[sq as usize][color as usize][piece as usize]
     }
 
+    // Return the zobrist key associated to those castling rights
     pub fn get_castle(&self, raw_rights: u8) -> u64 {
         self.castle_rights_keys[raw_rights as usize]
     }
 
+    // Return the zobrist key associated to that color
     pub fn get_color(&self, color: Color) -> u64 {
         self.color_keys[color as usize]
     }
 
+    // Return the zobrist key associated to that en passant square
     pub fn get_ep(&self, sq: Square) -> u64 {
         self.en_passant_file_key[sq.x() as usize]
     }

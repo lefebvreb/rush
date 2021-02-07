@@ -64,9 +64,7 @@ impl<G: Generator<(), Yield=Move, Return=()> + Unpin> MoveGenerator for G {
 
 impl Game {
     /// Return a generator able to produce the legal moves associated
-    /// to a specific position. Keeps a reference to `self`, for
-    /// generation correctness, the value of `self` should not change
-    /// between each call to `next()`
+    /// to a specific position
     #[inline(always)]
     pub fn legals<'a>(&'a self) -> impl MoveGenerator + 'a {        
         move || {

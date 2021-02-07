@@ -157,6 +157,7 @@ impl Board {
         self.bitboards
     }
 
+    // Return the zobrist key of that board
     #[inline(always)]
     pub(crate) fn get_zobrist(&self) -> u64 {
         self.zobrist

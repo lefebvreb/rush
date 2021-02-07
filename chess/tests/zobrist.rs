@@ -1,7 +1,10 @@
 use chess::*;
 
+// The depth at which the test is carried
 const DEPTH: usize = 3;
 
+// Explore the game tree and test if the zobrist key incremental change is
+// correctly following
 fn zobrist(game: Game, depth: usize) {
     if depth == 0 {
         assert_eq!(game.get_key(), Position::from(&game).get_key());

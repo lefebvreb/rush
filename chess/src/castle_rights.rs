@@ -64,7 +64,7 @@ impl CastleRights {
         }
     }
 
-    // Update castling rights
+    // Update castling rights and zobrist key
     #[inline(always)]
     pub(crate) fn update(self, color: Color, mv: Move, zobrist: &mut u64) -> CastleRights {
         macro_rules! modify {

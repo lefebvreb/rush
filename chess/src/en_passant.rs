@@ -19,7 +19,7 @@ pub enum EnPassantSquare {
 }
 
 impl EnPassantSquare {
-    // Update and return the new en passant rights
+    // Update and return the new en passant rights, and modify the zobrist key accordingly
     pub fn update(&self, last_move: Move, zobrist: &mut u64) -> EnPassantSquare {
         match last_move {
             Move::DoublePush {from, to} => {
