@@ -3,8 +3,8 @@ use crate::castle_rights::CastleRights;
 use crate::color::Color;
 use crate::en_passant::EnPassantSquare;
 use crate::game::Game;
-use crate::moves::Move;
 use crate::piece::Piece;
+use crate::square::Square;
 
 //#################################################################################################
 //
@@ -22,7 +22,7 @@ pub struct Position {
 }
 
 impl Position {
-    fn get_key(&self) -> u64 {
+    pub fn get_key(&self) -> u64 {
         let mut key = 0;
 
         // Xor the keys corresponding to bitboards
@@ -81,21 +81,22 @@ pub(crate) struct Keys {
     en_passant_file_key: [u64; 8],
 }
 
-//#################################################################################################
-//
-//                                      Update rights
-//
-//#################################################################################################
+impl Keys {
+    pub fn get_square(&self, color: Color, piece: Piece, sq: Square) -> u64 {
+        self.squares_colors_pieces_keys[sq as usize][color as usize][piece as usize]
+    }
 
-// Update the zobrist key, castle rights and ep rights with the given move and color
-pub(crate) fn update_zobrist_and_rights(
-    color: Color, 
-    mv: Move, 
-    zobrist: u64, 
-    castle_rights: CastleRights, 
-    ep_rights: EnPassantSquare
-) -> (u64, CastleRights, EnPassantSquare) {
-    todo!()
+    pub fn get_castle(&self, raw_rights: u8) -> u64 {
+        self.castle_rights_keys[raw_rights as usize]
+    }
+
+    pub fn get_color(&self, color: Color) -> u64 {
+        self.color_keys[color as usize]
+    }
+
+    pub fn get_ep(&self, sq: Square) -> u64 {
+        self.en_passant_file_key[sq.x() as usize]
+    }
 }
 
 //#################################################################################################

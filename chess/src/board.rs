@@ -8,6 +8,7 @@ use crate::errors::ParseFenError;
 use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
+use crate::zobrist::ZOBRIST_KEYS;
 
 /// Represent a complete chess board
 #[derive(Clone, Debug)]
@@ -15,6 +16,7 @@ pub struct Board {
     bitboards: [[BitBoard; 6]; 2],
     mailbox: [SquareInfo; 64],
     occ: Occupancy,
+    zobrist: u64,
 }
 
 // A struct holding all necessary occupancy informations
@@ -155,6 +157,11 @@ impl Board {
         self.bitboards
     }
 
+    #[inline(always)]
+    pub(crate) fn get_zobrist(&self) -> u64 {
+        self.zobrist
+    }
+
     // ================================ Helper methods =====================================
 
     // Update the attack map of the square sq with the given bitboard
@@ -216,37 +223,44 @@ impl Board {
             attack,
             defend: BitBoard::EMPTY,
         };
+
+        self.zobrist ^= ZOBRIST_KEYS.get_square(color, piece, sq);
     }
 
     // Replace the previous occupant of that mailbox slot with a new one
     #[inline(always)]
-    fn reoccupy_mailbox(&mut self, color: Color, piece: Piece, sq: Square) {
+    fn reoccupy_mailbox(&mut self, color: Color, new_piece: Piece, sq: Square) {
         let mailbox = &mut self.mailbox[sq as usize];
 
-        let (attack, defend) = match *mailbox {
-            SquareInfo::Occupied {attack, defend, ..} => (attack, defend),
-            _ => unreachable!(),
-        };
+        match *mailbox {
+            SquareInfo::Occupied {piece, attack, defend, ..} => {
+                *mailbox = SquareInfo::Occupied {
+                    color,
+                    piece: new_piece,
+                    attack,
+                    defend,
+                };
 
-        *mailbox = SquareInfo::Occupied {
-            color,
-            piece,
-            attack,
-            defend,
+                self.zobrist ^= ZOBRIST_KEYS.get_square(color.invert(), piece, sq);
+                self.zobrist ^= ZOBRIST_KEYS.get_square(color, new_piece, sq);
+            },
+            _ => unreachable!(),
         };
     }
 
     // Empty a slot of the mailbox, discarding it's defend map and updating the attackers'
     #[inline(always)]
-    fn unoccupy_mailbox(&mut self, sq: Square) {
+    fn unoccupy_mailbox(&mut self, color: Color, sq: Square) {
         match self.mailbox[sq as usize] {
-            SquareInfo::Occupied {attack, defend, ..} => {
+            SquareInfo::Occupied {piece, attack, defend, ..} => {
                 let mask = sq.into();
                 for sq in defend.iter_squares() {
                     self.update_attacks(sq, mask);
                 }
                 
                 self.mailbox[sq as usize] = SquareInfo::Unoccupied {attack};
+
+                self.zobrist ^= ZOBRIST_KEYS.get_square(color, piece, sq);
             }
             _ => unreachable!()
         }
@@ -286,8 +300,8 @@ impl Board {
         self.update_bitboards(color, Piece::Rook, squares!(rook_from, rook_to));
         self.update_bitboards(color, Piece::King, squares!(king_from, king_to));
 
-        self.unoccupy_mailbox(rook_from);
-        self.unoccupy_mailbox(king_from);
+        self.unoccupy_mailbox(color, rook_from);
+        self.unoccupy_mailbox(color, king_from);
         self.occupy_mailbox(color, Piece::Rook, rook_to);
         self.occupy_mailbox(color, Piece::King, king_to);
 
@@ -305,11 +319,11 @@ impl Board {
     pub(crate) fn do_move(&mut self, color: Color, mv: Move) {
         match mv {
             Move::Quiet {from, to} => {
-                let piece = self.get_piece_unchecked(from);
+                let piece = self.get_piece_unchecked(from);                
 
                 self.update_bitboards(color, piece, squares!(from, to));
 
-                self.unoccupy_mailbox(from);
+                self.unoccupy_mailbox(color, from);
                 self.occupy_mailbox(color, piece, to);
 
                 let mut updated = BitBoard::EMPTY;
@@ -322,7 +336,7 @@ impl Board {
                 self.update_bitboards(color, piece, squares!(from, to));
                 self.update_bitboards(color.invert(), capture, to.into());
 
-                self.unoccupy_mailbox(from);
+                self.unoccupy_mailbox(color, from);
                 self.reoccupy_mailbox(color, piece, to);
 
                 let mut updated = BitBoard::EMPTY;
@@ -335,7 +349,7 @@ impl Board {
                 self.update_bitboards(color, piece, from.into());
                 self.update_bitboards(color, promote, to.into());
 
-                self.unoccupy_mailbox(from);
+                self.unoccupy_mailbox(color, from);
                 self.occupy_mailbox(color, promote, to);
 
                 let mut updated = BitBoard::EMPTY;
@@ -349,7 +363,7 @@ impl Board {
                 self.update_bitboards(color, promote, to.into());
                 self.update_bitboards(color.invert(), capture, to.into());
 
-                self.unoccupy_mailbox(from);
+                self.unoccupy_mailbox(color, from);
                 self.reoccupy_mailbox(color, promote, to);
 
                 let mut updated = BitBoard::EMPTY;
@@ -362,8 +376,8 @@ impl Board {
                 self.update_bitboards(color, Piece::Pawn, squares!(from, to));
                 self.update_bitboards(color.invert(), Piece::Pawn, mid.into());
 
-                self.unoccupy_mailbox(from);
-                self.unoccupy_mailbox(mid);
+                self.unoccupy_mailbox(color, from);
+                self.unoccupy_mailbox(color.invert(), mid);
                 self.occupy_mailbox(color, Piece::Pawn, to);
 
                 let mut updated = BitBoard::EMPTY;
@@ -374,7 +388,7 @@ impl Board {
             Move::DoublePush {from, to} => {
                 self.update_bitboards(color, Piece::Pawn, squares!(from, to));
 
-                self.unoccupy_mailbox(from);
+                self.unoccupy_mailbox(color, from);
                 self.occupy_mailbox(color, Piece::Pawn, to);
 
                 let mut updated = BitBoard::EMPTY;
@@ -484,7 +498,8 @@ impl FromStr for Board {
                 black: BitBoard::EMPTY,
                 all: BitBoard::EMPTY,
                 free: BitBoard::FULL,
-            }
+            },
+            zobrist: 0,
         };
 
         for (i, rank) in ranks.iter().enumerate() {

@@ -8,6 +8,7 @@ use crate::errors::ParseFenError;
 use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
+use crate::zobrist::ZOBRIST_KEYS;
 
 // Keep track off the en passant target square
 #[repr(u8)]
@@ -18,10 +19,14 @@ pub enum EnPassantSquare {
 }
 
 impl EnPassantSquare {
-    // Get the en passant square from the last_move played
-    pub fn get(last_move: Move) -> EnPassantSquare {
+    // Update and return the new en passant rights
+    pub fn update(&self, last_move: Move, zobrist: &mut u64) -> EnPassantSquare {
         match last_move {
-            Move::DoublePush {from, to} => EnPassantSquare::Some(from.get_mid(to)),
+            Move::DoublePush {from, to} => {
+                let mid = from.get_mid(to);
+                *zobrist ^= ZOBRIST_KEYS.get_ep(mid);
+                EnPassantSquare::Some(mid)
+            },
             _ => EnPassantSquare::None,
         }
     }

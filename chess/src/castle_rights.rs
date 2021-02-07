@@ -6,6 +6,7 @@ use crate::color::Color;
 use crate::errors::ParseFenError;
 use crate::moves::Move;
 use crate::square::Square;
+use crate::zobrist::ZOBRIST_KEYS;
 
 // Convenient struct to carry the availability of castling moves
 #[repr(u8)]
@@ -65,14 +66,14 @@ impl CastleRights {
 
     // Update castling rights
     #[inline(always)]
-    pub(crate) fn update(self, color: Color, mv: Move) -> CastleRights {
+    pub(crate) fn update(self, color: Color, mv: Move, zobrist: &mut u64) -> CastleRights {
         macro_rules! modify {
             ($mask: literal) => {
                 CastleRights(self.0 & !$mask)
             };
         }
 
-        match color {
+        let new = match color {
             Color::White => match mv.from() {
                 Square::H1 => modify!(0b0001),
                 Square::E1 => modify!(0b0011),
@@ -93,7 +94,10 @@ impl CastleRights {
                     _ => self,
                 }
             },
-        }
+        };
+        *zobrist ^= ZOBRIST_KEYS.get_castle(new.0);
+
+        new
     }
 }
 

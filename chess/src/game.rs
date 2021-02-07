@@ -10,6 +10,7 @@ use crate::clock::Clock;
 use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
+use crate::zobrist::{Position, ZOBRIST_KEYS};
 
 /// A struct that holds every information defining a complete game of chess
 #[derive(Debug)]
@@ -19,6 +20,7 @@ pub struct Game {
     castle_rights: CastleRights,
     ep_rights: EnPassantSquare,
     clock: Clock,
+    zobrist: u64,
 }
 
 impl Game {
@@ -27,9 +29,14 @@ impl Game {
     pub fn do_move(&self, mv: Move) -> Game {
         let mut board = self.board.clone();
         board.do_move(self.color, mv);
+        let mut zobrist = board.get_zobrist();
+
         let color = self.color.invert();
-        let ep_rights = EnPassantSquare::get(mv);
-        let castle_rights = self.castle_rights.update(self.color, mv);
+        zobrist ^= ZOBRIST_KEYS.get_color(color);
+        
+        let ep_rights = self.ep_rights.update(mv, &mut zobrist);
+        let castle_rights = self.castle_rights.update(self.color, mv, &mut zobrist);
+
         let clock = self.clock.increment(self.color, mv, &self.board);
 
         Game {
@@ -38,6 +45,7 @@ impl Game {
             castle_rights,
             ep_rights,
             clock,
+            zobrist,
         }
     }
 
@@ -150,15 +158,8 @@ impl Game {
 }
 
 impl Default for Game {
-    // Return a new full game, with the starting position of chess
     fn default() -> Game {
-        Game {
-            board: Board::default(),
-            castle_rights: CastleRights::default(),
-            color: Color::default(),
-            ep_rights: EnPassantSquare::None,
-            clock: Clock::default(),
-        }
+        Game::from_str("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
     }
 }
 
@@ -188,12 +189,16 @@ impl FromStr for Game {
             return Err(ParseFenError::new("missing informations in FEN notation"));
         }
 
-        Ok(Game {
+        let mut game = Game {
             board: Board::from_str(strings[0])?,
             color: Color::from_str(strings[1])?,
             castle_rights: CastleRights::from_str(strings[2])?,
             ep_rights: EnPassantSquare::from_str(strings[3])?,
             clock: Clock::from_strs(strings[4], strings[5])?,
-        })
+            zobrist: 0,
+        };
+        game.zobrist = Position::from(&game).get_key();
+
+        Ok(game)
     }
 }
