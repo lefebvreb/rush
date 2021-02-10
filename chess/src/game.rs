@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
 
@@ -6,11 +7,24 @@ use crate::castle_rights::CastleRights;
 use crate::color::Color;
 use crate::en_passant::EnPassantSquare;
 use crate::errors::ParseFenError;
-use crate::clock::Clock;
+use crate::clock::{Clock, ThreefoldCounter};
+use crate::move_gen::MoveGenerator;
 use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
 use crate::zobrist::{Position, ZOBRIST_KEYS};
+
+// An enum representing the status of a game
+pub enum GameStatus {
+    Playing {
+        playing: Color,
+        legals: HashMap<String, Move>,
+    },
+    Drawn,
+    Won {
+        winner: Color,
+    },
+}
 
 /// A struct that holds every information defining a complete game of chess
 #[derive(Debug)]
@@ -47,6 +61,36 @@ impl Game {
             clock,
             zobrist,
         }
+    }
+
+    /// Perform a new move ad modify the game accordingly, checking for mate or draw.
+    /// A bit slow, so not suitable for tree search
+    pub fn do_move_status(&self, counter: &mut ThreefoldCounter, mv: Move) -> (GameStatus, Game) {
+        let new_game = self.do_move(mv);
+        let legals = new_game.legals().to_map();
+
+        if 
+            // 50 moves rule
+            new_game.clock.get_halfmoves() == 50 ||
+            // Threefold repetition rule
+            counter.is_draw(mv, &self.board, &new_game)
+        {
+            return (GameStatus::Drawn, new_game);
+        }
+
+        // No legal moves
+        if legals.is_empty() {
+            return (if new_game.board.is_king_in_check(new_game.color) {
+                GameStatus::Won {winner: self.color}
+            } else {
+                GameStatus::Drawn
+            }, new_game);
+        }
+
+        (GameStatus::Playing {
+            playing: new_game.color,
+            legals,
+        }, new_game)
     }
 
     /// Return the game's board

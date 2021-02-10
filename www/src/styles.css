@@ -38,6 +38,8 @@ body {
 
     --light-color: #ffff99;
     --dark-color: #4CAF50;
+
+    z-index: 1;
 }
 
 /* The promote floating window */
@@ -55,6 +57,8 @@ body {
     left: 13vmax;
 
     visibility: hidden;
+
+    z-index: 2;
 }
 
 /* The button class */

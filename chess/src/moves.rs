@@ -91,19 +91,13 @@ impl Move {
     /// Return true if the move is none
     #[inline(always)]
     pub fn is_none(self) -> bool {
-        match self {
-            Move::None => true,
-            _ => false,
-        }
+        matches!(self, Move::None)
     }
 
     /// Return true if the move is not none
     #[inline(always)]
     pub fn is_some(self) -> bool {
-        match self {
-            Move::None => false,
-            _ => true,
-        }
+        !self.is_none()
     }
 
     // Return true if the move is reversible (according to FIDE rules)
@@ -114,6 +108,12 @@ impl Move {
             Move::Quiet {from, ..} => board.get_piece_unchecked(from) != Piece::Pawn,
             _ => false,
         }
+    }
+
+    // Return true if the move is truly reversible
+    #[inline(always)]
+    pub(crate) fn is_truly_reversible(self, board: &Board) -> bool {
+        matches!(self, Move::Quiet {from, ..} if board.get_piece_unchecked(from) != Piece::Pawn)
     }
 }
 

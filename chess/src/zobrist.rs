@@ -1,3 +1,5 @@
+use std::hash::{Hash, Hasher};
+
 use crate::bitboard::BitBoard;
 use crate::castle_rights::CastleRights;
 use crate::color::Color;
@@ -19,6 +21,7 @@ pub struct Position {
     castle_rights: CastleRights,
     color: Color,
     ep_rights: EnPassantSquare,
+    zobrist: u64,
 }
 
 impl Position {
@@ -56,6 +59,8 @@ impl PartialEq for Position {
     }
 }
 
+impl Eq for Position {}
+
 impl From<&Game> for Position {
     fn from(game: &Game) -> Position {
         Position {
@@ -63,7 +68,14 @@ impl From<&Game> for Position {
             castle_rights: game.get_castle_rights(),
             color: game.get_color(),
             ep_rights: game.get_ep_rights(),
+            zobrist: game.get_key(),
         }
+    }
+}
+
+impl Hash for Position {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write_u64(self.zobrist);
     }
 }
 
