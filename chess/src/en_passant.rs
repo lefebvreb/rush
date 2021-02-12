@@ -8,7 +8,6 @@ use crate::errors::ParseFenError;
 use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
-use crate::zobrist::ZOBRIST_KEYS;
 
 //#################################################################################################
 //
@@ -28,11 +27,10 @@ pub(crate) enum EnPassantSquare {
 
 impl EnPassantSquare {
     // Update and return the new en passant rights, and modify the zobrist key accordingly
-    pub(crate) fn update(&self, last_move: Move, zobrist: &mut u64) -> EnPassantSquare {
+    pub(crate) fn update(&self, last_move: Move) -> EnPassantSquare {
         match last_move {
             Move::DoublePush {from, to} => {
                 let mid = from.get_mid(to);
-                *zobrist ^= ZOBRIST_KEYS.get_ep(mid);
                 EnPassantSquare::Some(mid)
             },
             _ => EnPassantSquare::None,

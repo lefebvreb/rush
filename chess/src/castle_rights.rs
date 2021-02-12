@@ -6,7 +6,6 @@ use crate::color::Color;
 use crate::errors::ParseFenError;
 use crate::moves::Move;
 use crate::square::Square;
-use crate::zobrist::ZOBRIST_KEYS;
 
 //#################################################################################################
 //
@@ -36,7 +35,7 @@ pub(crate) enum CastleAvailability {
 // bit 2: Black king side rights
 // bit 3: Black queen side rights
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub(crate) struct CastleRights(u8);
+pub(crate) struct CastleRights(pub(crate) u8);
 
 // ================================ pub(crate) impl
 
@@ -74,7 +73,7 @@ impl CastleRights {
 
     // Update castling rights and zobrist key
     #[inline(always)]
-    pub(crate) fn update(self, color: Color, mv: Move, zobrist: &mut u64) -> CastleRights {
+    pub(crate) fn update(self, color: Color, mv: Move) -> CastleRights {
         macro_rules! modify {
             ($mask: literal) => {
                 CastleRights(self.0 & !$mask)
@@ -103,7 +102,6 @@ impl CastleRights {
                 }
             },
         };
-        *zobrist ^= ZOBRIST_KEYS.get_castle(new.0);
 
         new
     }
@@ -128,6 +126,7 @@ impl fmt::Display for CastleRights {
             0b0011 => "KQ",
             0b0100 => "k",
             0b0101 => "Kk",
+            0b0110 => "Qk",
             0b0111 => "KQk",
             0b1000 => "q",
             0b1001 => "Kq",
@@ -135,8 +134,12 @@ impl fmt::Display for CastleRights {
             0b1011 => "KQq",
             0b1100 => "kq",
             0b1101 => "Kkq",
+            0b1110 => "Qkq",
             0b1111 => "KQkq",
-            _ => unreachable!(),
+            _ => {
+                eprintln!("{:b}", self.0);
+                unreachable!()
+            }
         })
     }
 }
@@ -153,6 +156,7 @@ impl FromStr for CastleRights {
             "KQ"   => 0b0011,
             "k"    => 0b0100,
             "Kk"   => 0b0101,
+            "Qk"   => 0b0110,
             "KQk"  => 0b0111,
             "q"    => 0b1000,
             "Kq"   => 0b1001,
@@ -160,14 +164,9 @@ impl FromStr for CastleRights {
             "KQq"  => 0b1011,
             "kq"   => 0b1100,
             "Kkq"  => 0b1101,
+            "Qkq"  => 0b1110,
             "KQkq" => 0b1111,
             _ => return Err(ParseFenError::new("Invalid castle rights format".to_owned())),
         }))
-    }
-}
-
-impl Into<usize> for CastleRights {
-    fn into(self) -> usize {
-        self.0 as usize
     }
 }

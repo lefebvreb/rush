@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use chess::*;
 
 // The depth at which the test is carried
@@ -7,7 +9,8 @@ const DEPTH: usize = 3;
 // correctly following
 fn zobrist(game: Game, depth: usize) {
     if depth == 0 {
-        assert_eq!(game.get_key(), Position::from(&game).get_key());
+        let recalc = Game::from_str(&game.to_string()).unwrap();
+        assert_eq!(game.get_zobrist(), recalc.get_zobrist());
         return;
     }
 

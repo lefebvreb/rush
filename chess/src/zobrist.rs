@@ -1,4 +1,5 @@
 use std::hash::{Hash, Hasher};
+use std::ops::BitXorAssign;
 
 use crate::bitboard::BitBoard;
 use crate::castle_rights::CastleRights;
@@ -21,39 +22,7 @@ pub struct Position {
     castle_rights: CastleRights,
     color: Color,
     ep_rights: EnPassantSquare,
-    zobrist: u64,
-}
-
-// ================================ pub impl
-
-impl Position {
-    /// Compute the key of that position
-    pub fn get_key(&self) -> u64 {
-        let mut key = 0;
-
-        // Xor the keys corresponding to bitboards
-        for color in &Color::COLORS {
-            for piece in &Piece::PIECES {
-                for sq in self.bitboards[*color as usize][*piece as usize].iter_squares() {
-                    key ^= ZOBRIST_KEYS.squares_colors_pieces_keys[sq as usize][*color as usize][*piece as usize]
-                }
-            }
-        }
-
-        // Xor the key corresponding to those castle rights
-        let idx: usize = self.castle_rights.into();
-        key ^= ZOBRIST_KEYS.castle_rights_keys[idx];
-
-        // Xor the key corresponding to the color
-        key ^= ZOBRIST_KEYS.color_keys[self.color as usize];
-
-        // Xor the key corresponding to those en passant rights
-        if let EnPassantSquare::Some(sq) = self.ep_rights {
-            key ^= ZOBRIST_KEYS.en_passant_file_key[sq.x() as usize];
-        }
-
-        key
-    }
+    zobrist: Zobrist,
 }
 
 // ================================ traits impl
@@ -73,14 +42,15 @@ impl From<&Game> for Position {
             castle_rights: game.get_castle_rights(),
             color: game.get_color(),
             ep_rights: game.get_ep_rights(),
-            zobrist: game.get_key(),
+            zobrist: game.get_zobrist(),
         }
     }
 }
 
 impl Hash for Position {
+    #[inline(always)]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        state.write_u64(self.zobrist);
+        self.zobrist.hash(state);
     }
 }
 
@@ -91,34 +61,62 @@ impl Hash for Position {
 //#################################################################################################
 
 // A struct holding the zobrist keys necessary to zobrist hashing
-pub(crate) struct Keys {
-    squares_colors_pieces_keys: [[[u64; 6]; 2]; 64],
+pub struct Keys {
     castle_rights_keys: [u64; 16],
     color_keys: [u64; 2],
     en_passant_file_key: [u64; 8],
+    squares_colors_pieces_keys: [[[u64; 6]; 2]; 64],
 }
 
-// ================================ pub(crate) impl
+//#################################################################################################
+//
+//                                     struct Zobrist
+//
+//#################################################################################################
 
-impl Keys {
-    // Return the zobrist key associated to that color, piece and square trio
-    pub(crate) fn get_square(&self, color: Color, piece: Piece, sq: Square) -> u64 {
-        self.squares_colors_pieces_keys[sq as usize][color as usize][piece as usize]
+/// A structure describing a 64 bit zobrist hash key
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct Zobrist(u64);
+
+// ================================ traits impl
+
+impl BitXorAssign<(Color, Piece, Square)> for Zobrist {
+    #[inline(always)]
+    fn bitxor_assign(&mut self, rhs: (Color, Piece, Square)) {
+        self.0 ^= ZOBRIST_KEYS.squares_colors_pieces_keys[rhs.2 as usize][rhs.0 as usize][rhs.1 as usize];
     }
+}
 
-    // Return the zobrist key associated to those castling rights
-    pub(crate) fn get_castle(&self, raw_rights: u8) -> u64 {
-        self.castle_rights_keys[raw_rights as usize]
+impl BitXorAssign<Color> for Zobrist {
+    #[inline(always)]
+    fn bitxor_assign(&mut self, rhs: Color) {
+        self.0 ^= ZOBRIST_KEYS.color_keys[rhs as usize];
     }
+}
 
-    // Return the zobrist key associated to that color
-    pub(crate) fn get_color(&self, color: Color) -> u64 {
-        self.color_keys[color as usize]
+impl BitXorAssign<CastleRights> for Zobrist {
+    #[inline(always)]
+    fn bitxor_assign(&mut self, rhs: CastleRights) {
+        self.0 ^= ZOBRIST_KEYS.castle_rights_keys[rhs.0 as usize];
     }
+}
 
-    // Return the zobrist key associated to that en passant square
-    pub(crate) fn get_ep(&self, sq: Square) -> u64 {
-        self.en_passant_file_key[sq.x() as usize]
+impl BitXorAssign<EnPassantSquare> for Zobrist {
+    #[inline(always)]
+    fn bitxor_assign(&mut self, rhs: EnPassantSquare) {
+        match rhs {
+            EnPassantSquare::Some(sq) => {
+                self.0 ^= ZOBRIST_KEYS.en_passant_file_key[sq.x() as usize];
+            }
+            EnPassantSquare::None => (),
+        }
+    }
+}
+
+impl Hash for Zobrist {
+    #[inline(always)]
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write_u64(self.0);
     }
 }
 
@@ -151,7 +149,7 @@ const fn random(s: &mut u256) -> u64 {
 }
 
 // Initialize the zobrist keys
-pub(crate) const ZOBRIST_KEYS: Keys = {
+pub const ZOBRIST_KEYS: Keys = {
     let (mut i, mut j, mut k);
     let mut s = SEED;
 

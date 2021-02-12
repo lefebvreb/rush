@@ -12,7 +12,7 @@ use crate::move_gen::MoveGenerator;
 use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
-use crate::zobrist::{Position, ZOBRIST_KEYS};
+use crate::zobrist::Zobrist;
 
 //#################################################################################################
 //
@@ -53,7 +53,7 @@ pub struct Game {
     castle_rights: CastleRights,
     ep_rights: EnPassantSquare,
     clock: Clock,
-    zobrist: u64,
+    zobrist: Zobrist,
 }
 
 // ================================ pub impl
@@ -67,10 +67,13 @@ impl Game {
         let mut zobrist = board.get_zobrist();
 
         let color = self.color.invert();
-        zobrist ^= ZOBRIST_KEYS.get_color(color);
+        zobrist ^= color;
         
-        let ep_rights = self.ep_rights.update(mv, &mut zobrist);
-        let castle_rights = self.castle_rights.update(self.color, mv, &mut zobrist);
+        let ep_rights = self.ep_rights.update(mv);
+        zobrist ^= ep_rights;
+
+        let castle_rights = self.castle_rights.update(self.color, mv);
+        zobrist ^= castle_rights;
 
         let clock = self.clock.increment(self.color, mv, &self.board);
 
@@ -125,7 +128,7 @@ impl Game {
 
     /// Return the zobrist key of that position
     #[inline(always)]
-    pub fn get_key(&self) -> u64 {
+    pub fn get_zobrist(&self) -> Zobrist {
         self.zobrist
     }
 
@@ -263,16 +266,27 @@ impl FromStr for Game {
             return Err(ParseFenError::new("missing informations in FEN notation"));
         }
 
-        let mut game = Game {
-            board: Board::from_str(strings[0])?,
-            color: Color::from_str(strings[1])?,
-            castle_rights: CastleRights::from_str(strings[2])?,
-            ep_rights: EnPassantSquare::from_str(strings[3])?,
-            clock: Clock::from_strs(strings[4], strings[5])?,
-            zobrist: 0,
-        };
-        game.zobrist = Position::from(&game).get_key();
+        let board = Board::from_str(strings[0])?;
+        let mut zobrist = board.get_zobrist();
 
-        Ok(game)
+        let color = Color::from_str(strings[1])?;
+        zobrist ^= color;
+
+        let castle_rights = CastleRights::from_str(strings[2])?;
+        zobrist ^= castle_rights;
+
+        let ep_rights = EnPassantSquare::from_str(strings[3])?;
+        zobrist ^= ep_rights;
+
+        let clock = Clock::from_strs(strings[4], strings[5])?;
+
+        Ok(Game {
+            board,
+            color,
+            castle_rights,
+            ep_rights,
+            clock,
+            zobrist,
+        })
     }
 }

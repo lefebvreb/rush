@@ -8,7 +8,7 @@ use crate::errors::ParseFenError;
 use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
-use crate::zobrist::ZOBRIST_KEYS;
+use crate::zobrist::Zobrist;
 
 //#################################################################################################
 //
@@ -75,7 +75,7 @@ pub struct Board {
     bitboards: [[BitBoard; 6]; 2],
     mailbox: [SquareInfo; 64],
     occ: Occupancy,
-    zobrist: u64,
+    zobrist: Zobrist,
 }
 
 // ================================ pub impl
@@ -208,7 +208,7 @@ impl Board {
 
     // Return the zobrist key of that board
     #[inline(always)]
-    pub(crate) fn get_zobrist(&self) -> u64 {
+    pub(crate) fn get_zobrist(&self) -> Zobrist {
         self.zobrist
     }
 
@@ -369,7 +369,7 @@ impl Board {
             defend: BitBoard::EMPTY,
         };
 
-        self.zobrist ^= ZOBRIST_KEYS.get_square(color, piece, sq);
+        self.zobrist ^= (color, piece, sq);
     }
 
     // Replace the previous occupant of that mailbox slot with a new one
@@ -386,8 +386,8 @@ impl Board {
                     defend,
                 };
 
-                self.zobrist ^= ZOBRIST_KEYS.get_square(color.invert(), piece, sq);
-                self.zobrist ^= ZOBRIST_KEYS.get_square(color, new_piece, sq);
+                self.zobrist ^= (color.invert(), piece, sq);
+                self.zobrist ^= (color, new_piece, sq);
             },
             _ => unreachable!(),
         };
@@ -405,7 +405,7 @@ impl Board {
                 
                 self.mailbox[sq as usize] = SquareInfo::Unoccupied {attack};
 
-                self.zobrist ^= ZOBRIST_KEYS.get_square(color, piece, sq);
+                self.zobrist ^= (color, piece, sq);
             }
             _ => unreachable!()
         }
@@ -524,7 +524,7 @@ impl FromStr for Board {
                 all: BitBoard::EMPTY,
                 free: BitBoard::FULL,
             },
-            zobrist: 0,
+            zobrist: Zobrist::default(),
         };
 
         for (i, rank) in ranks.iter().enumerate() {
