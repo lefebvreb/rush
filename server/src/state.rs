@@ -2,12 +2,13 @@ use std::collections::HashMap;
 
 use actix::{Actor, Addr, Context, Handler};
 
-use chess::{Color, Game, Move, MoveGenerator};
+use chess::{Color, Game, GameStatus, Move, MoveGenerator, ThreefoldCounter};
 use engine::{Engine, EngineCommand, EngineMove};
 
 use crate::wsclient::WsClient;
 use crate::messages::{ClientDemand, Connect, Disconnect, ClientCommand};
 
+// A player in the game: a client or the engine
 enum Player {
     Client(Addr<WsClient>),
     Engine,
@@ -16,6 +17,8 @@ enum Player {
 // The global state of the website
 pub struct State {
     game: Game,
+    counter: ThreefoldCounter,
+    status: GameStatus,
     legals: HashMap<String, Move>,
     history: String,
     engine: Addr<Engine>,
@@ -42,7 +45,17 @@ impl State {
             "state {} {} {}",
             self.game.get_board(),
             self.history,
-            self.game.get_color(), // TODO: Implement Game::status in chess crate
+            match self.status {
+                GameStatus::Playing {playing} => match playing {
+                    Color::White => "w",
+                    Color::Black => "b",
+                }
+                GameStatus::Drawn => "d",
+                GameStatus::Won {winner} => match winner {
+                    Color::White => "wm",
+                    Color::Black => "bm",
+                }
+            },
         ))
     }
 
@@ -67,8 +80,11 @@ impl State {
     fn do_move(&mut self, s: String) {
         if let Some(&mv) = self.legals.get(&s) {
             // Update game
-            self.game = self.game.do_move(mv);
-            self.legals = self.game.legals().to_map();
+
+            let (status, game, legals) = self.game.do_move_status(&mut self.counter, mv);
+            self.game = game;
+            self.status = status;
+            self.legals = legals;
             self.history += &format!(",{}", s);
 
             // Send move to engine
@@ -194,6 +210,8 @@ impl Default for State {
 
         State {
             game,
+            counter: ThreefoldCounter::default(),
+            status: GameStatus::default(),
             legals,
             history: String::new(),
             engine: Engine::default().start(),

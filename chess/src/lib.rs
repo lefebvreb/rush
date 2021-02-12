@@ -33,7 +33,7 @@ pub use bitboard::BitBoard;
 pub use board::Board;
 pub use clock::ThreefoldCounter;
 pub use color::Color;
-pub use game::Game;
+pub use game::{Game, GameStatus};
 pub use moves::Move;
 pub use move_gen::MoveGenerator;
 pub use piece::Piece;

@@ -59,8 +59,9 @@ function parseHistory(s) {
 // Parse a status string and change the client's status accordingly
 function parseStatus(s) {
     switch (s) {
-        case "w": case "W": playing = ROLE.White; break
-        case "b": case "B": playing = ROLE.Black; break
+        case "w": playing = ROLE.White; break
+        case "b": playing = ROLE.Black; break
+        default: playing = null; break
     }
 
     if (role === playing) {
@@ -69,13 +70,11 @@ function parseStatus(s) {
     }
 
     switch (s) {
-        case "w": $("status").innerHTML = "•White is currently playing, it is a human player"; break
-        case "b": $("status").innerHTML = "•Black is currently playing, it is a human player"; break
-        case "W": $("status").innerHTML = "•White is currently playing, it is a computer"; break
-        case "B": $("status").innerHTML = "•Black is currently playing, it is a computer"; break
-        case "d": $("status").innerHTML = "•The game is drawn"; break
-        case "m": $("status").innerHTML = "•White won by checkmate"; break
-        case "M": $("status").innerHTML = "•Black won by checkmate"; break
+        case "w":  $("status").innerHTML = "•It's white's turn"; break
+        case "b":  $("status").innerHTML = "•It's black's turn"; break
+        case "d":  $("status").innerHTML = "•The game is drawn"; break
+        case "wm": $("status").innerHTML = "•White won by checkmate"; break
+        case "bm": $("status").innerHTML = "•Black won by checkmate"; break
     }
 }
 

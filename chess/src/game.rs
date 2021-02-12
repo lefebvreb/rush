@@ -14,16 +14,21 @@ use crate::piece::Piece;
 use crate::square::Square;
 use crate::zobrist::{Position, ZOBRIST_KEYS};
 
-// An enum representing the status of a game
+/// An enum representing the status of a game
 pub enum GameStatus {
     Playing {
         playing: Color,
-        legals: HashMap<String, Move>,
     },
     Drawn,
     Won {
         winner: Color,
     },
+}
+
+impl Default for GameStatus {
+    fn default() -> GameStatus {
+        GameStatus::Playing {playing: Color::White}
+    }
 }
 
 /// A struct that holds every information defining a complete game of chess
@@ -65,7 +70,7 @@ impl Game {
 
     /// Perform a new move ad modify the game accordingly, checking for mate or draw.
     /// A bit slow, so not suitable for tree search
-    pub fn do_move_status(&self, counter: &mut ThreefoldCounter, mv: Move) -> (GameStatus, Game) {
+    pub fn do_move_status(&self, counter: &mut ThreefoldCounter, mv: Move) -> (GameStatus, Game, HashMap<String, Move>) {
         let new_game = self.do_move(mv);
         let legals = new_game.legals().to_map();
 
@@ -75,7 +80,7 @@ impl Game {
             // Threefold repetition rule
             counter.is_draw(mv, &self.board, &new_game)
         {
-            return (GameStatus::Drawn, new_game);
+            return (GameStatus::Drawn, new_game, HashMap::new());
         }
 
         // No legal moves
@@ -84,13 +89,10 @@ impl Game {
                 GameStatus::Won {winner: self.color}
             } else {
                 GameStatus::Drawn
-            }, new_game);
+            }, new_game, HashMap::new());
         }
 
-        (GameStatus::Playing {
-            playing: new_game.color,
-            legals,
-        }, new_game)
+        (GameStatus::Playing {playing: new_game.color}, new_game, legals)
     }
 
     /// Return the game's board
