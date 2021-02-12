@@ -3,10 +3,18 @@ use std::fmt;
 use crate::color::Color;
 use crate::square::Square;
 
+//#################################################################################################
+//
+//                                       struct BitBoard
+//
+//#################################################################################################
+
 /// Represent a 64 bits BitBoard
 #[repr(transparent)]
 #[derive(Copy, Clone, PartialEq)]
 pub struct BitBoard(pub u64);
+
+// ================================ pub impl
 
 impl BitBoard {
     /// An empty BitBoard
@@ -43,12 +51,6 @@ impl BitBoard {
         self.0.count_ones() as u8
     }
 
-    // Return the first square of the bitboard
-    #[inline(always)]
-    pub(crate) fn as_square_unchecked(self) -> Square {
-        Square::from(self.0.trailing_zeros() as u8)
-    }
-
     /// Return true if that bitboard is on the last rank
     #[inline(always)]
     pub fn is_last_rank(self, color: Color) -> bool {
@@ -71,6 +73,18 @@ macro_rules! squares {
         BitBoard::EMPTY $(| $sq.into())*
     };
 }
+
+// ================================ pub(crate) impl
+
+impl BitBoard {
+    // Return the first square of the bitboard
+    #[inline(always)]
+    pub(crate) fn as_square_unchecked(self) -> Square {
+        Square::from(self.0.trailing_zeros() as u8)
+    }
+}
+
+// ================================ traits impl
 
 impl fmt::Debug for BitBoard {
     // Print the bitboard in hex form for quick debugging

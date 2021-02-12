@@ -21,6 +21,12 @@ const PROMOTIONS: &[Piece] = &[
     Piece::Knight,
 ];
 
+//#################################################################################################
+//
+//                                   trait MoveGenerator
+//
+//#################################################################################################
+
 /// A trait used to provide an iterator-like interface for
 /// dealing with move generators
 pub trait MoveGenerator {

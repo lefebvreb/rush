@@ -8,15 +8,27 @@ use crate::moves::Move;
 use crate::square::Square;
 use crate::zobrist::ZOBRIST_KEYS;
 
+//#################################################################################################
+//
+//                                      enum CastleAvailability
+//
+//#################################################################################################
+
 // Convenient struct to carry the availability of castling moves
 #[repr(u8)]
 #[derive(PartialEq, Debug)]
-pub enum CastleAvailability {
+pub(crate) enum CastleAvailability {
     None,
     KingSide,
     QueenSide,
     Both,
 }
+
+//#################################################################################################
+//
+//                                      struct CastleRights
+//
+//#################################################################################################
 
 // Used to represent castle availability:
 // bit 0: White king side rights
@@ -24,20 +36,16 @@ pub enum CastleAvailability {
 // bit 2: Black king side rights
 // bit 3: Black queen side rights
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub struct CastleRights(u8);
+pub(crate) struct CastleRights(u8);
 
-//#################################################################################################
-//
-//                                       Implementation
-//
-//#################################################################################################
+// ================================ pub(crate) impl
 
 impl CastleRights {
     // Return the castling abilities of a certain player, based on the monochrome
     // occupancy bitboard and the attack bitboard of the opponent
     // GIVEN THE KING IS NOT IN CHECK
     #[inline(always)]
-    pub fn get_availability(self, color: Color, occ: BitBoard, danger: BitBoard) -> CastleAvailability {
+    pub(crate) fn get_availability(self, color: Color, occ: BitBoard, danger: BitBoard) -> CastleAvailability {
         let (king_side, queen_side) = match color {
             Color::White => (
                 self.0 & 0b0001 != 0 && ((occ | danger) & BitBoard(0x60)).is_empty(),
@@ -100,6 +108,8 @@ impl CastleRights {
         new
     }
 }
+
+// ================================ traits impl
 
 impl Default for CastleRights {
     // The default castle rights: all of them

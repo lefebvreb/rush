@@ -3,6 +3,12 @@ use std::fmt;
 use crate::color::Color;
 use crate::errors::ParseFenError;
 
+//#################################################################################################
+//
+//                                        enum Piece
+//
+//#################################################################################################
+
 /// Represent a piece
 #[repr(u8)]
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -15,14 +21,20 @@ pub enum Piece {
     King   = 5,
 }
 
+// ================================ pub impl
+
 impl Piece {
     // List of all pieces
     pub const PIECES: [Piece; 6] = [
         Piece::Pawn, Piece::Rook, Piece::Knight, 
         Piece::Bishop, Piece::Queen, Piece::King,
     ];
+}
 
-    // Return true if piece is a slider
+// ================================ pub(crate) impl
+
+impl Piece {
+    // Return true if self is a slider
     pub(crate) fn is_slider(self) -> bool {
         match self {
             Piece::Rook | Piece::Bishop | Piece::Queen => true,
@@ -49,6 +61,8 @@ impl Piece {
         }
     }
 }
+
+// ================================ traits impl
 
 impl fmt::Display for Piece {
     // Display the piece

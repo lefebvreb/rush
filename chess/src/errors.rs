@@ -1,20 +1,30 @@
 use std::fmt;
 use std::num::ParseIntError;
 
-// An error type to handle problems during fen parsing
+//#################################################################################################
+//
+//                                  struct ParseFenError
+//
+//#################################################################################################
+
+/// An error type to handle problems during fen parsing
 #[derive(Debug)]
 pub struct ParseFenError {
     msg: String,
 }
 
+// ================================ pub(crate) impl
+
 impl ParseFenError {
     // Create a new parse fen error 
-    pub fn new<S: ToString>(msg: S) -> ParseFenError {
+    pub(crate) fn new<S: ToString>(msg: S) -> ParseFenError {
         ParseFenError {
             msg: msg.to_string()
         }
     }
 }
+
+// ================================ traits impl
 
 impl fmt::Display for ParseFenError {
     // Display the error

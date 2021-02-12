@@ -10,17 +10,25 @@ use crate::piece::Piece;
 use crate::square::Square;
 use crate::zobrist::ZOBRIST_KEYS;
 
+//#################################################################################################
+//
+//                                  enum EnPassantSquare
+//
+//#################################################################################################
+
 // Keep track off the en passant target square
 #[repr(u8)]
 #[derive(Copy, Clone, Debug)]
-pub enum EnPassantSquare {
+pub(crate) enum EnPassantSquare {
     Some(Square),
     None,
 }
 
+// ================================ pub(crate) impl
+
 impl EnPassantSquare {
     // Update and return the new en passant rights, and modify the zobrist key accordingly
-    pub fn update(&self, last_move: Move, zobrist: &mut u64) -> EnPassantSquare {
+    pub(crate) fn update(&self, last_move: Move, zobrist: &mut u64) -> EnPassantSquare {
         match last_move {
             Move::DoublePush {from, to} => {
                 let mid = from.get_mid(to);
@@ -31,6 +39,8 @@ impl EnPassantSquare {
         }
     }
 }
+
+// ================================ traits impl
 
 impl Default for EnPassantSquare {
     fn default() -> EnPassantSquare {
@@ -58,10 +68,16 @@ impl FromStr for EnPassantSquare {
     }
 }
 
+//#################################################################################################
+//
+//                                enum EnPassantAvailability
+//
+//#################################################################################################
+
 // A type to represent en passant availability
 #[repr(u8)]
 #[derive(Debug)]
-pub enum EnPassantAvailability {
+pub(crate) enum EnPassantAvailability {
     None,
     Left(Square),
     Right(Square),
@@ -71,9 +87,11 @@ pub enum EnPassantAvailability {
     }
 }
 
+// ================================ pub(crate) impl
+
 impl EnPassantAvailability {
     // Get the en passant availability of a position
-    pub fn get(color: Color, color_inv: Color, pawn_sq: Square, king_sq: Square, board: &Board) -> EnPassantAvailability {
+    pub(crate) fn get(color: Color, color_inv: Color, pawn_sq: Square, king_sq: Square, board: &Board) -> EnPassantAvailability {
         let x = pawn_sq.x();
 
         if x == 0 {

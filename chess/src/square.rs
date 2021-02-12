@@ -6,6 +6,12 @@ use crate::bmi2::SHIFTS;
 use crate::color::Color;
 use crate::errors::ParseFenError;
 
+//#################################################################################################
+//
+//                                        enum Square
+//
+//#################################################################################################
+
 /// Represent a Square of the board.
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -19,6 +25,8 @@ pub enum Square {
     A7 = 48, B7 = 49, C7 = 50, D7 = 51, E7 = 52, F7 = 53, G7 = 54, H7 = 55, 
     A8 = 56, B8 = 57, C8 = 58, D8 = 59, E8 = 60, F8 = 61, G8 = 62, H8 = 63,
 }
+
+// ================================ pub impl
 
 impl Square {
     /// An array containing all squares in order: ranks first then files, starting from A1.
@@ -53,7 +61,11 @@ impl Square {
             Color::Black => 0,
         }
     }
+}
 
+// ================================ pub(crate) impl
+
+impl Square {
     // Return the square immediately left of that square 
     // (from white's point of view)
     #[inline(always)]
@@ -74,6 +86,8 @@ impl Square {
         Square::from((self.x(), (self.y() + other.y()) / 2))
     }
 }
+
+// ================================ traits impl
 
 impl fmt::Display for Square {
     // Give the square's pure algebraic coordinates notation

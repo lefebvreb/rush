@@ -5,6 +5,12 @@ use crate::color::Color;
 use crate::piece::Piece;
 use crate::square::Square;
 
+//#################################################################################################
+//
+//                                        enum Move
+//
+//#################################################################################################
+
 /// A convenient enum to manipulate moves
 #[repr(u8)]
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -45,6 +51,8 @@ pub enum Move {
         color: Color,
     },
 }
+
+// ================================ pub impl
 
 impl Move {
     /// Return the square from which the move is performed
@@ -99,7 +107,11 @@ impl Move {
     pub fn is_some(self) -> bool {
         !self.is_none()
     }
+}
 
+// ================================ pub(crate) impl
+
+impl Move {
     // Return true if the move is reversible (according to FIDE rules)
     #[inline(always)]
     pub(crate) fn is_reversible(self, board: &Board) -> bool {
@@ -117,6 +129,8 @@ impl Move {
     }
 }
 
+// ================================ traits impl
+
 impl fmt::Display for Move {
     // Display a move using pure algebraic coordinate notation
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -129,3 +143,64 @@ impl fmt::Display for Move {
         write!(fmt, "{}{}{}", self.from(), self.to(), promote)
     }
 }
+
+/*pub struct EncodedMove(u32);
+
+impl From<Move> for EncodedMove {
+    fn from(mv: Move) -> EncodedMove {
+        macro_rules! shl {
+            ($val: expr, $n: expr) => {
+                (($val as u32) << $n)
+            }
+        }
+
+        EncodedMove(match mv {
+            Move::None => 
+                0,
+            Move::Quiet {from, to} => 
+                1 | shl!(from, 4) | shl!(to, 10),
+            Move::Capture {from, to, capture} => 
+                2 | shl!(from, 4) | shl!(to, 10) | shl!(capture, 16),
+            Move::Promote {from, to, promote} => 
+                3 | shl!(from, 4) | shl!(to, 10) | shl!(promote, 20),
+            Move::PromoteCapture {from, to, capture, promote} => 
+                4 | shl!(from, 4) | shl!(to, 10) | shl!(capture, 16) | shl!(promote, 20),
+            Move::EnPassant {from, to} => 
+                5 | shl!(from, 4) | shl!(to, 10),
+            Move::DoublePush {from, to} => 
+                6 | shl!(from, 4) | shl!(to, 10),
+            Move::KingCastle {color} => 
+                7 | shl!(color, 4),
+            Move::QueenCastle {color} =>
+                8 | shl!(color, 4),
+        })
+    }
+}
+
+impl From<EncodedMove> for Move {
+    fn from(mv: EncodedMove) -> Move {
+        macro_rules! shr {
+            ($n: expr, $m: expr) => {
+                (mv.0 >> $n) & ((1 << $m) - 1)
+            }
+        }
+
+        macro_rules! from    {() => {Square::from(shr!(4, 6) as u8)}}
+        macro_rules! to      {() => {Square::from(shr!(10, 6) as u8)}}
+        macro_rules! capture {() => {Piece::PIECES(shr!(16, 4) as usize)}}
+        macro_rules! promote {() => {Piece::PIECES(shr!(20, 4) as usize)}}
+        macro_rules! color   {() => {
+            match shr!(4, 1) {
+                0 => Color::White, 
+                1 => Color::Black, 
+                _ => unreachable!()
+            }}
+        }
+
+        match shr!(0, 4) {
+            0 => Move::None,
+            1 => Move::Quiet {}
+            _ => unreachable!(),
+        }
+    }
+}*/

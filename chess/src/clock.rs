@@ -11,21 +11,23 @@ use crate::zobrist::Position;
 
 //#################################################################################################
 //
-//                                            Clock
+//                                      struct Clock
 //
 //#################################################################################################
 
 // Represent a ply (half-turn) counter
 #[derive(Copy, Clone, PartialEq, Default, Debug)]
-pub struct Clock {
+pub(crate) struct Clock {
     halfmoves: u8,
     fullmoves: u32,
 }
 
+// ================================ pub(crate) impl
+
 impl Clock {
     // Increment the counter
     #[inline(always)]
-    pub fn increment(self, color: Color, mv: Move, board: &Board) -> Clock {
+    pub(crate) fn increment(self, color: Color, mv: Move, board: &Board) -> Clock {
         Clock {
             halfmoves: if mv.is_reversible(board) {
                 self.halfmoves + 1
@@ -40,18 +42,20 @@ impl Clock {
     }
 
     #[inline(always)]
-    pub fn get_halfmoves(self) -> u8 {
+    pub(crate) fn get_halfmoves(self) -> u8 {
         self.halfmoves
     }
 
     // Parse a Clock from two strings
-    pub fn from_strs(s1: &str, s2: &str) -> Result<Clock, ParseFenError> {
+    pub(crate) fn from_strs(s1: &str, s2: &str) -> Result<Clock, ParseFenError> {
         Ok(Clock {
             halfmoves: u8::from_str(s1)?,
             fullmoves: u32::from_str(s2)?,
         })
     }
 }
+
+// ================================ traits impl
 
 impl fmt::Display for Clock {
     // Display the counter in FEN notation
@@ -62,7 +66,7 @@ impl fmt::Display for Clock {
 
 //#################################################################################################
 //
-//                                      ThreefoldCounter
+//                                  struct ThreefoldCounter
 //
 //#################################################################################################
 
@@ -72,6 +76,8 @@ impl fmt::Display for Clock {
 pub struct ThreefoldCounter {
     map: HashMap<Position, u8>,
 }
+
+// ================================ pub(crate) impl
 
 impl ThreefoldCounter {
     // Register a new move, given the old board and the new game
@@ -92,6 +98,8 @@ impl ThreefoldCounter {
         return false;
     }
 }
+
+// ================================ traits impl
 
 impl Default for ThreefoldCounter {
     fn default() -> ThreefoldCounter {

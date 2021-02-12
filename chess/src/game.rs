@@ -14,6 +14,12 @@ use crate::piece::Piece;
 use crate::square::Square;
 use crate::zobrist::{Position, ZOBRIST_KEYS};
 
+//#################################################################################################
+//
+//                                   enum GameStatus
+//
+//#################################################################################################
+
 /// An enum representing the status of a game
 pub enum GameStatus {
     Playing {
@@ -25,11 +31,19 @@ pub enum GameStatus {
     },
 }
 
+// ================================ traits impl
+
 impl Default for GameStatus {
     fn default() -> GameStatus {
         GameStatus::Playing {playing: Color::White}
     }
 }
+
+//#################################################################################################
+//
+//                                        struct Game
+//
+//#################################################################################################
 
 /// A struct that holds every information defining a complete game of chess
 #[derive(Debug)]
@@ -41,6 +55,8 @@ pub struct Game {
     clock: Clock,
     zobrist: u64,
 }
+
+// ================================ pub impl
 
 impl Game {
     /// Perform a new move and modifiy the game accordingly
@@ -111,18 +127,6 @@ impl Game {
     #[inline(always)]
     pub fn get_key(&self) -> u64 {
         self.zobrist
-    }
-
-    // Return the castling rights
-    #[inline(always)]
-    pub(crate) fn get_castle_rights(&self) -> CastleRights {
-        self.castle_rights
-    }
-
-    // Return the last move played
-    #[inline(always)]
-    pub(crate) fn get_ep_rights(&self) -> EnPassantSquare {
-        self.ep_rights
     }
 
     /// Try to parse a move from current position with given coordinates,
@@ -208,6 +212,24 @@ impl Game {
         Game::from_str(fen)
     }
 }
+
+// ================================ pub(crate) impl
+
+impl Game {
+    // Return the castling rights
+    #[inline(always)]
+    pub(crate) fn get_castle_rights(&self) -> CastleRights {
+        self.castle_rights
+    }
+
+    // Return the last move played
+    #[inline(always)]
+    pub(crate) fn get_ep_rights(&self) -> EnPassantSquare {
+        self.ep_rights
+    }
+}
+
+// ================================ traits impl
 
 impl Default for Game {
     fn default() -> Game {

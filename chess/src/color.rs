@@ -3,6 +3,12 @@ use std::str::FromStr;
 
 use crate::errors::ParseFenError;
 
+//#################################################################################################
+//
+//                                       struct Color
+//
+//#################################################################################################
+
 /// Represent the color of a player
 #[repr(u8)]
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -10,6 +16,8 @@ pub enum Color {
     White = 0,
     Black = 1,
 }
+
+// ================================ pub impl
 
 impl Color {
     /// List of colors, ordered by their values
@@ -26,6 +34,8 @@ impl Color {
         }
     }
 }
+
+// ================================ traits impl
 
 impl Default for Color {
     /// Return Color::White
