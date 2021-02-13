@@ -120,22 +120,17 @@ impl Board {
     /// Return true if the square sq is occupied
     #[inline(always)]
     pub fn is_occupied(&self, sq: Square) -> bool {
-        match self.mailbox[sq as usize] {
-            SquareInfo::Occupied {..} => true,
-            _ => false,
-        }
+        matches!(self.mailbox[sq as usize], SquareInfo::Occupied {..})
     }
 
     /// Return true if the square sq is empty
     #[inline(always)]
     pub fn is_empty(&self, sq: Square) -> bool {
-        match self.mailbox[sq as usize] {
-            SquareInfo::Unoccupied {..} => true,
-            _ => false,
-        }
+        matches!(self.mailbox[sq as usize], SquareInfo::Unoccupied {..})
     }
 
     /// Return, if it exists, the piece and it's color present on that square
+    #[inline(always)]
     pub fn get_piece(&self, sq: Square) -> Option<(Color, Piece)> {
         match self.mailbox[sq as usize] {
             SquareInfo::Occupied {color, piece, ..} => Some((color, piece)),
@@ -147,7 +142,6 @@ impl Board {
     #[inline(always)]
     pub fn is_king_in_check(&self, color: Color) -> bool {
         let king_pos = self.get_bitboard(color, Piece::King).as_square_unchecked();
-
         !(self.get_attacks(king_pos) & self.get_color_occupancy(color.invert())).is_empty()
     }
 
@@ -543,7 +537,6 @@ impl FromStr for Board {
                 }
 
                 j += 1;
-
                 if j > 8 {
                     return Err(ParseFenError::new(format!("rank #{} is too large in FEN board {:?}", i, s)))
                 }

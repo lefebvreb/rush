@@ -16,7 +16,7 @@ use crate::zobrist::Position;
 //#################################################################################################
 
 // Represent a ply (half-turn) counter
-#[derive(Copy, Clone, PartialEq, Default, Debug)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub(crate) struct Clock {
     halfmoves: u8,
     fullmoves: u32,
@@ -41,7 +41,7 @@ impl Clock {
         }
     }
 
-    #[inline(always)]
+    // Return the number of reversibles halfmoves so far
     pub(crate) fn get_halfmoves(self) -> u8 {
         self.halfmoves
     }

@@ -61,6 +61,7 @@ impl Hash for Position {
 //#################################################################################################
 
 // A struct holding the zobrist keys necessary to zobrist hashing
+#[derive(Debug)]
 pub struct Keys {
     castle_rights_keys: [u64; 16],
     color_keys: [u64; 2],
@@ -97,7 +98,7 @@ impl BitXorAssign<Color> for Zobrist {
 impl BitXorAssign<CastleRights> for Zobrist {
     #[inline(always)]
     fn bitxor_assign(&mut self, rhs: CastleRights) {
-        self.0 ^= ZOBRIST_KEYS.castle_rights_keys[rhs.0 as usize];
+        self.0 ^= ZOBRIST_KEYS.castle_rights_keys[rhs.get_raw() as usize];
     }
 }
 
@@ -206,3 +207,8 @@ pub const ZOBRIST_KEYS: Keys = {
 
     keys
 };
+
+#[test]
+fn quick() {
+    eprintln!("{:#X?}", ZOBRIST_KEYS);
+}

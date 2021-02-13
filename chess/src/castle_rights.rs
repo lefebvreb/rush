@@ -35,7 +35,7 @@ pub(crate) enum CastleAvailability {
 // bit 2: Black king side rights
 // bit 3: Black queen side rights
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub(crate) struct CastleRights(pub(crate) u8);
+pub(crate) struct CastleRights(u8);
 
 // ================================ pub(crate) impl
 
@@ -47,64 +47,81 @@ impl CastleRights {
     pub(crate) fn get_availability(self, color: Color, occ: BitBoard, danger: BitBoard) -> CastleAvailability {
         let (king_side, queen_side) = match color {
             Color::White => (
-                self.0 & 0b0001 != 0 && ((occ | danger) & BitBoard(0x60)).is_empty(),
-                self.0 & 0b0010 != 0 && (occ & BitBoard(0xE) | danger & BitBoard(0xC)).is_empty()
+                self.0 & Self::WHITE_OO  != 0 && (
+                    (occ | danger) & squares!(Square::F1, Square::G1)
+                ).is_empty(),
+                self.0 & Self::WHITE_OOO != 0 && (
+                    occ & squares!(Square::B1, Square::C1, Square::D1) | 
+                    danger & squares!(Square::C1, Square::D1)
+                ).is_empty(),
             ),
             Color::Black => (
-                self.0 & 0b0100 != 0 && ((occ | danger) & BitBoard(0x6000000000000000)).is_empty(),
-                self.0 & 0b1000 != 0 && (occ & BitBoard(0xE00000000000000) | danger & BitBoard(0xC00000000000000)).is_empty(),
+                self.0 & Self::BLACK_OO  != 0 && (
+                    (occ | danger) & squares!(Square::F8, Square::G8)
+                ).is_empty(),
+                self.0 & Self::BLACK_OOO != 0 && (
+                    occ & squares!(Square::B8, Square::C8, Square::D8) | 
+                    danger & squares!(Square::C8, Square::D8)
+                ).is_empty(),
             ),
         };
 
-        if king_side {
-            if queen_side {
-                CastleAvailability::Both
-            } else {
-                CastleAvailability::KingSide
-            }
-        } else {
-            if queen_side {
-                CastleAvailability::QueenSide
-            } else {
-                CastleAvailability::None
-            }
+        match (king_side, queen_side) {
+            (false, false) => CastleAvailability::None,
+            (true, false)  => CastleAvailability::KingSide,
+            (false, true)  => CastleAvailability::QueenSide,
+            (true, true)   => CastleAvailability::Both,
         }
     }
 
     // Update castling rights and zobrist key
     #[inline(always)]
     pub(crate) fn update(self, color: Color, mv: Move) -> CastleRights {
-        macro_rules! modify {
-            ($mask: literal) => {
+        macro_rules! remove {
+            ($mask: expr) => {
                 CastleRights(self.0 & !$mask)
             };
         }
 
-        let new = match color {
+        match color {
             Color::White => match mv.from() {
-                Square::H1 => modify!(0b0001),
-                Square::E1 => modify!(0b0011),
-                Square::A1 => modify!(0b0010),
+                Square::H1 => remove!(Self::WHITE_OO),
+                Square::E1 => remove!(Self::WHITE_OO | Self::WHITE_OOO),
+                Square::A1 => remove!(Self::WHITE_OOO),
                 _ => match mv.to() {
-                    Square::H8 => modify!(0b0100),
-                    Square::A8 => modify!(0b1000),
+                    Square::H8 => remove!(Self::BLACK_OO),
+                    Square::A8 => remove!(Self::BLACK_OOO),
                     _ => self,
                 }
             }
             Color::Black => match mv.from() {
-                Square::H8 => modify!(0b0100),
-                Square::E8 => modify!(0b1100),
-                Square::A8 => modify!(0b1000),
+                Square::H8 => remove!(Self::BLACK_OO),
+                Square::E8 => remove!(Self::BLACK_OO | Self::BLACK_OOO),
+                Square::A8 => remove!(Self::BLACK_OOO),
                 _ => match mv.to() {
-                    Square::H1 => modify!(0b0001),
-                    Square::A1 => modify!(0b0010),
+                    Square::H1 => remove!(Self::WHITE_OO),
+                    Square::A1 => remove!(Self::WHITE_OOO),
                     _ => self,
                 }
             },
-        };
-
-        new
+        }
     }
+
+    // Get the raw integer corresponding to those rights
+    #[inline(always)]
+    pub(crate) fn get_raw(self) -> u8 {
+        self.0
+    }
+}
+
+// ================================ impl
+
+impl CastleRights {
+    // The masks corresponding to the different castling rights
+    const WHITE_OO:  u8 = 0b0001;
+    const WHITE_OOO: u8 = 0b0010;
+    const BLACK_OO:  u8 = 0b0100;
+    const BLACK_OOO: u8 = 0b1000;
 }
 
 // ================================ traits impl
@@ -136,10 +153,7 @@ impl fmt::Display for CastleRights {
             0b1101 => "Kkq",
             0b1110 => "Qkq",
             0b1111 => "KQkq",
-            _ => {
-                eprintln!("{:b}", self.0);
-                unreachable!()
-            }
+            _ => unreachable!(),
         })
     }
 }
