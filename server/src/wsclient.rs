@@ -1,7 +1,7 @@
 use actix::{Actor, Addr, AsyncContext, Handler, Running, StreamHandler};
 use actix_web_actors::ws;
 
-use crate::messages::{ClientDemand, Connect, Disconnect, ClientCommand};
+use crate::messages::{ClientMove, ClientRequestEngine, ClientRequestPlay, Connect, Disconnect, ClientInfo};
 use crate::state::State;
 
 // A connection to a client
@@ -36,22 +36,22 @@ impl Actor for WsClient {
     }
 }
 
-// Upon receiving a message from a client through the websocket
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsClient {
+    // Upon receiving a message from a client through the websocket
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {        
         match msg {
             Ok(ws::Message::Text(s)) => {
                 let mut split = s.split(" ");
 
                 match split.next().unwrap_or("") {
-                    "move" => self.state.do_send(ClientDemand::Move {
+                    "move" => self.state.do_send(ClientMove {
                         addr: ctx.address(),
-                        s: split.next().unwrap_or("").to_string(),
+                        text: split.next().unwrap_or("").to_string(),
                     }),
-                    "play" => self.state.do_send(ClientDemand::Play {
+                    "play" => self.state.do_send(ClientRequestPlay {
                         addr: ctx.address(),
                     }),
-                    "invite" => self.state.do_send(ClientDemand::Invite),
+                    "invite" => self.state.do_send(ClientRequestEngine),
                     err => eprintln!("Erroneous message \"{}\"", err),
                 }
             },
@@ -60,13 +60,11 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsClient {
     }
 }
 
-impl Handler<ClientCommand> for WsClient {
+impl Handler<ClientInfo> for WsClient {
     type Result = ();
 
     // Upon receiving a command from the server: format it and send it via the websockets
-    fn handle(&mut self, msg: ClientCommand, ctx: &mut Self::Context) -> Self::Result {
-        match msg {
-            ClientCommand::Info(s) | ClientCommand::State(s) => ctx.text(s),
-        }
+    fn handle(&mut self, msg: ClientInfo, ctx: &mut Self::Context) -> Self::Result {
+        ctx.text(msg.text)
     }
 }

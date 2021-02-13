@@ -102,7 +102,7 @@ impl BitXorAssign<EnPassantSquare> for Zobrist {
             EnPassantSquare::Some(sq) => {
                 self.0 ^= ZOBRIST_KEYS.en_passant_file_key[sq.x() as usize];
             }
-            EnPassantSquare::None => (),
+            _ => (),
         }
     }
 }

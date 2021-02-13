@@ -42,7 +42,8 @@ function parseRole(s) {
 
 // Parse a history string and change the client's text accordingly
 function parseHistory(s) {
-    let i = 1
+    console.log(s)
+    let i = 0
     let j = 0
     let res   = ""
     let split = s.split(",")
@@ -99,6 +100,11 @@ function parseInfo(args) {
 
     // Update the list of legal moves
     legals = new Set(args[2].split(","))
+
+    if (role === playing) {
+        $("status").innerHTML = "•It's your turn!"
+        return
+    }
 }
 
 // Parse a "state" command
