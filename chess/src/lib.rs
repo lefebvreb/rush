@@ -1,14 +1,5 @@
-#![allow(dead_code, unused_variables, unused_macros)]
-// For zobrist keys initialization
-#![feature(const_mut_refs)]
 // For lazy move generation
 #![feature(generator_trait, generators)]
-
-/*
-TODO:
-
-- 50 move and 3-fold repetition clock
-*/
 
 // Modules
 mod attacks;

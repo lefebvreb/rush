@@ -11,7 +11,7 @@ use crate::square::Square;
 
 /// Represent a 64 bits BitBoard
 #[repr(transparent)]
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct BitBoard(pub u64);
 
 // ================================ pub impl

@@ -17,18 +17,11 @@ use crate::color::Color;
 use crate::piece::Piece;
 use crate::square::Square;
 
-// Return the attacks BitBoard of a Pawn of Color color located on square sq with Board occupancy occ
-#[inline(always)]
-fn pawn_attacks(color: Color, sq: Square) -> BitBoard {
-    BitBoard(match color {
-        Color::White => WHITE_PAWN_ATTACKS[sq as usize],
-        Color::Black => BLACK_PAWN_ATTACKS[sq as usize],
-    })
-}
+// ================================ pub(crate) fn
 
 // Return the pawn push destination from that square
 #[inline(always)]
-pub fn get_pawn_push(color: Color, sq: Square) -> Option<Square> {
+pub(crate) fn get_pawn_push(color: Color, sq: Square) -> Option<Square> {
     match match color {
         Color::White => WHITE_PAWN_PUSHES[sq as usize],
         Color::Black => BLACK_PAWN_PUSHES[sq as usize],
@@ -40,7 +33,7 @@ pub fn get_pawn_push(color: Color, sq: Square) -> Option<Square> {
 
 // Return the pawn double push destination from that square
 #[inline(always)]
-pub fn get_pawn_double_push(color: Color, sq: Square) -> Option<Square> {
+pub(crate) fn get_pawn_double_push(color: Color, sq: Square) -> Option<Square> {
     match match color {
         Color::White => WHITE_PAWN_DOUBLE_PUSHES[sq as usize],
         Color::Black => BLACK_PAWN_DOUBLE_PUSHES[sq as usize],
@@ -48,6 +41,74 @@ pub fn get_pawn_double_push(color: Color, sq: Square) -> Option<Square> {
         255 => None,
         n => Some(Square::from(n)),
     }
+}
+
+// Generate the attacks of a given piece, with the corresponding color and on square sq
+#[inline(always)]
+pub(crate) fn attacks(color: Color, piece: Piece, sq: Square, occ: BitBoard) -> BitBoard {
+    match piece {
+        Piece::Pawn => pawn_attacks(color, sq),
+        Piece::Rook => rook_attacks(sq, occ),
+        Piece::Knight => knight_attacks(sq),
+        Piece::Bishop => bishop_attacks(sq, occ),
+        Piece::Queen => queen_attacks(sq, occ),
+        Piece::King => king_attacks(sq),
+    }
+}
+
+// Return a bitboard containing all pinned pieces
+#[inline(always)]
+pub(crate) fn get_pinned(color: Color, board: &Board) -> BitBoard {
+    let king_offset = board.get_bitboard(color, Piece::King).as_square_unchecked() as usize * 64;
+    let color_inv = color.invert();
+    let queens = board.get_bitboard(color_inv, Piece::Queen);
+    let occ = board.get_occupancy();
+    let us = board.get_color_occupancy(color);
+
+    let mut pinned = BitBoard::EMPTY;
+
+    for sq in (board.get_bitboard(color_inv, Piece::Rook) | queens).iter_squares() {
+        let between = BitBoard(SQUARES_BETWEEN_STRAIGHT[king_offset + sq as usize]);
+
+        if (occ & between).count_bits() == 1 {
+            pinned |= us & between;
+        }
+    }
+
+    for sq in (board.get_bitboard(color_inv, Piece::Bishop) | queens).iter_squares() {
+        let between = BitBoard(SQUARES_BETWEEN_DIAGONAL[king_offset + sq as usize]);
+
+        if (occ & between).count_bits() == 1 {
+            pinned |= occ & between;
+        }
+    }
+
+    pinned
+}
+
+// Return a mask in which the pinned piece can move freely
+#[inline(always)]
+pub(crate) fn get_projected_mask(from: Square, to: Square) -> BitBoard {
+    let i = from as usize * 64 + to as usize;
+    BitBoard(PROJECTION_MASKS[i])
+}
+
+// Return the squares strictly contained between the two arguments
+#[inline(always)]
+pub(crate) fn squares_between(sq1: Square, sq2: Square) -> BitBoard {
+    let i = sq1 as usize + 64 * sq2 as usize;
+    BitBoard(SQUARES_BETWEEN[i])
+}
+
+// ================================ fn
+
+// Return the attacks BitBoard of a Pawn of Color color located on square sq with Board occupancy occ
+#[inline(always)]
+fn pawn_attacks(color: Color, sq: Square) -> BitBoard {
+    BitBoard(match color {
+        Color::White => WHITE_PAWN_ATTACKS[sq as usize],
+        Color::Black => BLACK_PAWN_ATTACKS[sq as usize],
+    })
 }
 
 // Return the attacks BitBoard of a Rook located on square sq, with Board occupancy occ
@@ -80,61 +141,4 @@ fn queen_attacks(sq: Square, occ: BitBoard) -> BitBoard {
 #[inline(always)]
 fn king_attacks(sq: Square) -> BitBoard {
     BitBoard(KING_ATTACKS[sq as usize])
-}
-
-// Generate the attacks of a given piece, with the corresponding color and on square sq
-#[inline(always)]
-pub fn attacks(color: Color, piece: Piece, sq: Square, occ: BitBoard) -> BitBoard {
-    match piece {
-        Piece::Pawn => pawn_attacks(color, sq),
-        Piece::Rook => rook_attacks(sq, occ),
-        Piece::Knight => knight_attacks(sq),
-        Piece::Bishop => bishop_attacks(sq, occ),
-        Piece::Queen => queen_attacks(sq, occ),
-        Piece::King => king_attacks(sq),
-    }
-}
-
-// Return a bitboard containing all pinned pieces
-#[inline(always)]
-pub fn get_pinned(color: Color, board: &Board) -> BitBoard {
-    let king_offset = board.get_bitboard(color, Piece::King).as_square_unchecked() as usize * 64;
-    let color_inv = color.invert();
-    let queens = board.get_bitboard(color_inv, Piece::Queen);
-    let occ = board.get_occupancy();
-    let us = board.get_color_occupancy(color);
-
-    let mut pinned = BitBoard::EMPTY;
-
-    for sq in (board.get_bitboard(color_inv, Piece::Rook) | queens).iter_squares() {
-        let between = BitBoard(SQUARES_BETWEEN_STRAIGHT[king_offset + sq as usize]);
-
-        if (occ & between).count_bits() == 1 {
-            pinned |= us & between;
-        }
-    }
-
-    for sq in (board.get_bitboard(color_inv, Piece::Bishop) | queens).iter_squares() {
-        let between = BitBoard(SQUARES_BETWEEN_DIAGONAL[king_offset + sq as usize]);
-
-        if (occ & between).count_bits() == 1 {
-            pinned |= occ & between;
-        }
-    }
-
-    pinned
-}
-
-// Return a mask in which the pinned piece can move freely
-#[inline(always)]
-pub fn get_projected_mask(from: Square, to: Square) -> BitBoard {
-    let i = from as usize * 64 + to as usize;
-    BitBoard(PROJECTION_MASKS[i])
-}
-
-// Return the squares strictly contained between the two arguments
-#[inline(always)]
-pub fn squares_between(sq1: Square, sq2: Square) -> BitBoard {
-    let i = sq1 as usize + 64 * sq2 as usize;
-    BitBoard(SQUARES_BETWEEN[i])
 }
