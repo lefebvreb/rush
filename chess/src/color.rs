@@ -11,7 +11,7 @@ use crate::errors::ParseFenError;
 
 /// Represent the color of a player
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Color {
     White = 0,
     Black = 1,

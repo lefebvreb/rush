@@ -16,7 +16,7 @@ use crate::square::Square;
 //#################################################################################################
 
 /// Decribes completely a given position, useful for storing in a hash table
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct Position {
     bitboards: [[BitBoard; 6]; 2],
     castle_rights: CastleRights,
@@ -26,15 +26,6 @@ pub struct Position {
 }
 
 // ================================ traits impl
-
-impl PartialEq for Position {
-    #[inline(always)]
-    fn eq(&self, other: &Position) -> bool {
-        self.bitboards == other.bitboards && self.castle_rights == other.castle_rights && self.color == other.color
-    }
-}
-
-impl Eq for Position {}
 
 impl From<&Game> for Position {
     #[inline(always)]
@@ -129,7 +120,7 @@ impl Hash for Zobrist {
 //
 //#################################################################################################
 
-// Initialize the zobrist keys
+// The zobrist keys
 pub const ZOBRIST_KEYS: Keys = Keys {
     castle_rights_keys: [
         0x82F5E64B9DB33EA5,

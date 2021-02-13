@@ -17,7 +17,7 @@ use crate::square::Square;
 
 // Keep track off the en passant target square
 #[repr(u8)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum EnPassantSquare {
     Some(Square),
     None,
@@ -27,6 +27,7 @@ pub(crate) enum EnPassantSquare {
 
 impl EnPassantSquare {
     // Update and return the new en passant rights, and modify the zobrist key accordingly
+    #[inline(always)]
     pub(crate) fn update(&self, last_move: Move) -> EnPassantSquare {
         match last_move {
             Move::DoublePush {from, to} => {

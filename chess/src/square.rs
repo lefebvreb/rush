@@ -12,7 +12,7 @@ use crate::errors::ParseFenError;
 //
 //#################################################################################################
 
-/// Represent a Square of the board.
+/// Represent a Square of the board
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Square {
@@ -29,7 +29,7 @@ pub enum Square {
 // ================================ pub impl
 
 impl Square {
-    /// An array containing all squares in order: ranks first then files, starting from A1.
+    /// An array containing all squares in order: ranks first then files, starting from A1
     pub const SQUARES: [Square; 64] = [
         Square::A1, Square::B1, Square::C1, Square::D1, Square::E1, Square::F1, Square::G1, Square::H1,
         Square::A2, Square::B2, Square::C2, Square::D2, Square::E2, Square::F2, Square::G2, Square::H2,

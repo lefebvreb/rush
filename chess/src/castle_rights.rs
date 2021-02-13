@@ -15,7 +15,7 @@ use crate::square::Square;
 
 // Convenient struct to carry the availability of castling moves
 #[repr(u8)]
-#[derive(PartialEq, Debug)]
+#[derive(Debug)]
 pub(crate) enum CastleAvailability {
     None,
     KingSide,
@@ -34,7 +34,7 @@ pub(crate) enum CastleAvailability {
 // bit 1: White queen side rights
 // bit 2: Black king side rights
 // bit 3: Black queen side rights
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub(crate) struct CastleRights(u8);
 
 // ================================ pub(crate) impl

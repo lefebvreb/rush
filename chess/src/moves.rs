@@ -13,7 +13,7 @@ use crate::square::Square;
 
 /// A convenient enum to manipulate moves
 #[repr(u8)]
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Move {
     None,
     Quiet {

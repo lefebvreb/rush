@@ -16,7 +16,7 @@ use crate::zobrist::Position;
 //#################################################################################################
 
 // Represent a ply (half-turn) counter
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) struct Clock {
     halfmoves: u8,
     fullmoves: u32,

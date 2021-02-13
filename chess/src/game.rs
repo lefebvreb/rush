@@ -21,6 +21,7 @@ use crate::zobrist::Zobrist;
 //#################################################################################################
 
 /// An enum representing the status of a game
+#[derive(Debug)]
 pub enum GameStatus {
     Playing {
         playing: Color,

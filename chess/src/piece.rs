@@ -11,7 +11,7 @@ use crate::errors::ParseFenError;
 
 /// Represent a piece
 #[repr(u8)]
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Piece {
     Pawn   = 0,
     Rook   = 1,
@@ -35,6 +35,7 @@ impl Piece {
 
 impl Piece {
     // Return true if self is a slider
+    #[inline(always)]
     pub(crate) fn is_slider(self) -> bool {
         match self {
             Piece::Rook | Piece::Bishop | Piece::Queen => true,

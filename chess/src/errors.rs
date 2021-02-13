@@ -27,7 +27,6 @@ impl ParseFenError {
 // ================================ traits impl
 
 impl fmt::Display for ParseFenError {
-    // Display the error
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Error while parsing fen, {}.", self.msg)
     }

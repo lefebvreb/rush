@@ -50,7 +50,7 @@ impl Occupancy {
 // attack is the bitboard of the pieces attacking that square
 // defend is the bitboard of the squares attacked by the piece
 #[repr(u8)]
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum SquareInfo {
     Occupied {
         piece: Piece,
