@@ -77,3 +77,10 @@ impl fmt::Display for Piece {
         })
     }
 }
+
+impl From<u8> for Piece {
+    #[inline(always)]
+    fn from(i: u8) -> Piece {
+        Piece::PIECES[i as usize]
+    }
+}

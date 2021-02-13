@@ -35,7 +35,7 @@ pub use clock::ThreefoldCounter;
 pub use color::Color;
 pub use errors::ParseFenError;
 pub use game::{Game, GameStatus};
-pub use moves::Move;
+pub use moves::{EncodedMove, Move};
 pub use move_gen::MoveGenerator;
 pub use piece::Piece;
 pub use square::Square;

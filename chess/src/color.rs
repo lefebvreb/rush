@@ -53,6 +53,13 @@ impl fmt::Display for Color {
     }
 }
 
+impl From<u8> for Color {
+    #[inline(always)]
+    fn from(i: u8) -> Color {
+        Color::COLORS[i as usize]
+    }
+}
+
 impl FromStr for Color {
     type Err = ParseFenError;
 

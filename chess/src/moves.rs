@@ -144,9 +144,30 @@ impl fmt::Display for Move {
     }
 }
 
-/*pub struct EncodedMove(u32);
+//#################################################################################################
+//
+//                                   struct EncodedMove
+//
+//#################################################################################################
+
+/// A compact way to represent a move
+#[derive(Clone, Copy, Debug)]
+pub struct EncodedMove(u32);
+
+// ================================ pub impl
+
+impl EncodedMove {
+    /// Return the EncodedMove as a raw integer
+    #[inline(always)]
+    pub fn get_raw(self) -> u32 {
+        self.0
+    }
+}
+
+// ================================ traits impl
 
 impl From<Move> for EncodedMove {
+    #[inline(always)]
     fn from(mv: Move) -> EncodedMove {
         macro_rules! shl {
             ($val: expr, $n: expr) => {
@@ -177,30 +198,58 @@ impl From<Move> for EncodedMove {
     }
 }
 
-impl From<EncodedMove> for Move {
-    fn from(mv: EncodedMove) -> Move {
+impl Into<Move> for EncodedMove {
+    #[inline(always)]
+    fn into(self) -> Move {
         macro_rules! shr {
             ($n: expr, $m: expr) => {
-                (mv.0 >> $n) & ((1 << $m) - 1)
+                ((self.0 >> $n) & ((1 << $m) - 1)) as u8
             }
         }
 
-        macro_rules! from    {() => {Square::from(shr!(4, 6) as u8)}}
-        macro_rules! to      {() => {Square::from(shr!(10, 6) as u8)}}
-        macro_rules! capture {() => {Piece::PIECES(shr!(16, 4) as usize)}}
-        macro_rules! promote {() => {Piece::PIECES(shr!(20, 4) as usize)}}
-        macro_rules! color   {() => {
-            match shr!(4, 1) {
-                0 => Color::White, 
-                1 => Color::Black, 
-                _ => unreachable!()
-            }}
-        }
+        macro_rules! from    {() => {Square::from(shr!(4, 6))}}
+        macro_rules! to      {() => {Square::from(shr!(10, 6))}}
+        macro_rules! capture {() => {Piece::from(shr!(16, 4))}}
+        macro_rules! promote {() => {Piece::from(shr!(20, 4))}}
+        macro_rules! color   {() => {Color::from(shr!(4, 1))}}
 
         match shr!(0, 4) {
             0 => Move::None,
-            1 => Move::Quiet {}
+            1 => Move::Quiet {
+                from: from!(),
+                to: to!(),
+            },
+            2 => Move::Capture {
+                from: from!(),
+                to: to!(),
+                capture: capture!(),
+            },
+            3 => Move::Promote {
+                from: from!(),
+                to: to!(),
+                promote: promote!(),
+            },
+            4 => Move::PromoteCapture {
+                from: from!(),
+                to: to!(),
+                capture: capture!(),
+                promote: promote!(),
+            },
+            5 => Move::EnPassant {
+                from: from!(),
+                to: to!(),
+            },
+            6 => Move::DoublePush {
+                from: from!(),
+                to: to!(),
+            },
+            7 => Move::KingCastle {
+                color: color!(),
+            },
+            8 => Move::QueenCastle {
+                color: color!(),
+            },
             _ => unreachable!(),
         }
     }
-}*/
+}
