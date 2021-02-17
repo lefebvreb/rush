@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_variables)]
+
 use std::env::args;
 
 use actix::{Actor, Addr};
@@ -7,10 +9,11 @@ use actix_web::http::ContentEncoding;
 use actix_web::middleware::Compress;
 use actix_web_actors::ws;
 
-mod wsclient;
 mod messages;
 mod state;
+mod wsclient;
 
+use engine::Engine;
 use wsclient::WsClient;
 use state::State;
 
@@ -34,8 +37,11 @@ async fn main() -> std::io::Result<()> {
     // IP address
     let address = args.next().unwrap_or(DEFAULT_ADDR.to_string());
 
+    // The chess engine
+    let engine = Engine::default().start();
+
     // The global state
-    let state = State::default().start();
+    let state = State::new(&engine).start();
 
     // Start the HTTP server and start listening
     HttpServer::new(move || {
@@ -48,6 +54,4 @@ async fn main() -> std::io::Result<()> {
     .bind(address)?
     .run()
     .await
-
-    // CLI
 }

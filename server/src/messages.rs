@@ -20,7 +20,7 @@ pub struct Disconnect {
 #[rtype(result = "()")]
 pub struct ClientMove {
     pub addr: Addr<WsClient>,
-    pub text: String,
+    pub s: String,
 }
 
 #[derive(Message)]
@@ -34,8 +34,6 @@ pub struct ClientRequestPlay {
 }
 
 // A message used to represent a server command
-#[derive(Clone, Message)]
+#[derive(Clone, Default, Message)]
 #[rtype(result = "()")]
-pub struct ClientInfo {
-    pub text: String,
-}
+pub struct ClientInfo(pub String);

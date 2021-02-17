@@ -1,8 +1,15 @@
 use actix::{Actor, Addr, AsyncContext, Handler, Running, StreamHandler};
 use actix_web_actors::ws;
 
-use crate::messages::{ClientMove, ClientRequestEngine, ClientRequestPlay, Connect, Disconnect, ClientInfo};
+use crate::messages::{ClientInfo, ClientMove, ClientRequestEngine, ClientRequestPlay, Connect, Disconnect};
 use crate::state::State;
+
+//#################################################################################################
+//
+//                                      struct WsClient
+//
+//#################################################################################################
+
 
 // A connection to a client
 pub struct WsClient {
@@ -46,7 +53,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsClient {
                 match split.next().unwrap_or("") {
                     "move" => self.state.do_send(ClientMove {
                         addr: ctx.address(),
-                        text: split.next().unwrap_or("").to_string(),
+                        s: split.next().unwrap_or("").to_string(),
                     }),
                     "play" => self.state.do_send(ClientRequestPlay {
                         addr: ctx.address(),
@@ -65,6 +72,6 @@ impl Handler<ClientInfo> for WsClient {
 
     // Upon receiving a command from the server: format it and send it via the websockets
     fn handle(&mut self, msg: ClientInfo, ctx: &mut Self::Context) -> Self::Result {
-        ctx.text(msg.text)
+        ctx.text(msg.0)
     }
 }

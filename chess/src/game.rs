@@ -94,8 +94,7 @@ impl Game {
         let new_game = self.do_move(mv);
         let legals = new_game.legals().to_map();
 
-        if 
-            // 50 moves rule
+        if  // 50 moves rule
             new_game.clock.get_halfmoves() == 50 ||
             // Threefold repetition rule
             counter.is_draw(mv, &self.board, &new_game)

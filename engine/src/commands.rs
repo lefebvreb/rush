@@ -8,19 +8,28 @@ pub struct EngineMove(pub String);
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub enum EngineCommand {
-    AskMove,
-    Move(String),
-}
+pub struct EngineAskMove;
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct EngineMakeMove(pub String);
 
 impl Actor for Engine {
     type Context = Context<Self>;
 }
 
-impl Handler<EngineCommand> for Engine {
+impl Handler<EngineAskMove> for Engine {
     type Result = ();
 
-    fn handle(&mut self, _: EngineCommand, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, _: EngineAskMove, _: &mut Self::Context) -> Self::Result {
+        //TODO
+    }
+}
+
+impl Handler<EngineMakeMove> for Engine {
+    type Result = ();
+
+    fn handle(&mut self, _: EngineMakeMove, _: &mut Self::Context) -> Self::Result {
         //TODO
     }
 }

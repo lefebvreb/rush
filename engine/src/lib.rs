@@ -9,5 +9,5 @@ TODO:
 mod commands;
 mod engine;
 
-pub use commands::{EngineMove, EngineCommand};
+pub use commands::{EngineMove, EngineAskMove, EngineMakeMove};
 pub use self::engine::Engine;

@@ -42,7 +42,6 @@ function parseRole(s) {
 
 // Parse a history string and change the client's text accordingly
 function parseHistory(s) {
-    console.log(s)
     let i = 0
     let j = 0
     let res   = ""
