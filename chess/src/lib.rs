@@ -30,4 +30,4 @@ pub use moves::{EncodedMove, Move};
 pub use move_gen::MoveGenerator;
 pub use piece::Piece;
 pub use square::Square;
-pub use zobrist::Position;
+pub use zobrist::{Position, Zobrist};

@@ -72,6 +72,22 @@ pub struct Keys {
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Zobrist(u64);
 
+// ================================ pub impl
+
+impl Zobrist {
+    pub const ZERO: Zobrist = Zobrist(0);
+
+    #[inline(always)]
+    pub fn index(&self, max: usize) -> usize {
+        self.0 as usize % max
+    }
+
+    #[inline(always)]
+    pub fn get_lower(&self) -> u32 {
+        (self.0 & 0xFFFFFFFF) as u32
+    }
+}
+
 // ================================ traits impl
 
 impl BitXorAssign<(Color, Piece, Square)> for Zobrist {
