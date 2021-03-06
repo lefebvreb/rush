@@ -1,11 +1,5 @@
 #![allow(dead_code, unused_variables, unused_macros)]
 
-/*
-TODO:
-
-- Everything
-*/
-
 mod commands;
 mod engine;
 mod eval;

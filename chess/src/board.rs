@@ -140,7 +140,7 @@ impl Board {
 
     /// Return true if the king of that color is in check
     #[inline(always)]
-    pub fn is_king_in_check(&self, color: Color) -> bool {
+    pub fn in_check(&self, color: Color) -> bool {
         let king_pos = self.get_bitboard(color, Piece::King).as_square_unchecked();
         !(self.get_attacks(king_pos) & self.get_color_occupancy(color.invert())).is_empty()
     }

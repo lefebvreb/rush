@@ -164,12 +164,6 @@ impl EncodedMove {
     }
 }
 
-// ================================ pub impl
-
-impl EncodedMove {
-    pub const ZERO: EncodedMove = EncodedMove(0);
-}
-
 // ================================ traits impl
 
 impl From<Move> for EncodedMove {

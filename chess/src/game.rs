@@ -104,7 +104,7 @@ impl Game {
 
         // No legal moves
         if legals.is_empty() {
-            return (if new_game.board.is_king_in_check(new_game.color) {
+            return (if new_game.board.in_check(new_game.color) {
                 GameStatus::Won {winner: self.color}
             } else {
                 GameStatus::Drawn
