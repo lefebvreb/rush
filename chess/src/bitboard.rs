@@ -77,7 +77,7 @@ macro_rules! squares {
 // ================================ pub(crate) impl
 
 impl BitBoard {
-    // Return the first square of the bitboard
+    // Return the first square of the bitboard, with no checks
     #[inline(always)]
     pub(crate) fn as_square_unchecked(self) -> Square {
         Square::from(self.0.trailing_zeros() as u8)

@@ -12,6 +12,26 @@ use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
 
+// A table containing the pieces ordered by they value,
+// useful for generating captures in the right order.
+// King is excluded because it can never be captured
+const CAPTURES: &[Piece] = &[
+    Piece::Queen,
+    Piece::Rook,
+    Piece::Bishop,
+    Piece::Knight,
+    Piece::Pawn,
+];
+
+// A table containing the pieces ordered by lesser
+// values, to allow move ordering
+const CAPTURERS: &[Piece] = &[
+    Piece::Knight,
+    Piece::Bishop,
+    Piece::Rook,
+    Piece::Queen,
+];
+
 // A table containing the promotions of a pawn, in the ordered
 // in which there are generated
 const PROMOTIONS: &[Piece] = &[
@@ -90,13 +110,14 @@ impl Game {
 
             // All squares attacked by them
             let danger = Piece::PIECES.iter()
-                .fold(BitBoard::EMPTY, |danger, &piece| {
+                .fold(BitBoard::EMPTY, |danger, &piece|
                     danger | board.get_bitboard(color_inv, piece)
                         .iter_squares()
-                        .fold(BitBoard::EMPTY, |danger, sq| {
+                        .fold(BitBoard::EMPTY, |danger, sq|
                             danger | board.get_defend_unchecked(sq)
-                        })
-                });
+                        )
+                );
+
             // The king's unreachable squares
             macro_rules! king_danger {
                 () => {
@@ -140,7 +161,7 @@ impl Game {
 
                     BitBoard::FULL
                 }
-                1 => { // One checker: extra mask to apply to during move generation
+                1 => { // One checker: extra mask to apply during move generation
                     let checker_sq = king_attacks.as_square_unchecked();
                     squares_between(king_sq, checker_sq) | checker_sq.into()
                 }
@@ -148,12 +169,14 @@ impl Game {
                     let king_defend = board.get_defend_unchecked(king_sq) & !king_danger!();
 
                     // King captures
-                    for to in (king_defend & them).iter_squares() {
-                        yield Move::Capture {
-                            from: king_sq,
-                            to,
-                            capture: board.get_piece_unchecked(to),
-                        };
+                    for &piece in CAPTURES {
+                        for to in (king_defend & board.get_bitboard(color_inv, piece)).iter_squares() {
+                            yield Move::Capture {
+                                from: king_sq,
+                                to,
+                                capture: board.get_piece_unchecked(to),
+                            };
+                        }
                     }
 
                     // King quiets
@@ -188,44 +211,16 @@ impl Game {
                         }
                     }
                 } else {
-                    for to in defend.iter_squares() {
-                        yield Move::Capture {
-                            from, 
-                            to, 
-                            capture: board.get_piece_unchecked(to),
-                        };
-                    }                    
+                    for &piece in CAPTURES {
+                        for to in (defend & board.get_bitboard(color_inv, piece)).iter_squares() {
+                            yield Move::Capture {
+                                from, 
+                                to, 
+                                capture: board.get_piece_unchecked(to),
+                            };
+                        }
+                    }               
                 }
-            }
-
-            // Rook, Bishop, Knight and Queen captures
-            for from in (
-                board.get_bitboard(color, Piece::Knight)
-                | board.get_bitboard(color, Piece::Bishop)
-                | board.get_bitboard(color, Piece::Rook)
-                | board.get_bitboard(color, Piece::Queen)
-            ).iter_squares() {
-                let defend = board.get_defend_unchecked(from) & mask & pin!(from);
-
-                for to in defend.iter_squares() {
-                    yield Move::Capture {
-                        from, 
-                        to, 
-                        capture: board.get_piece_unchecked(to),
-                    };
-                }
-            }
-
-            // The defend bitboard of the king
-            let king_defend = board.get_defend_unchecked(king_sq) & !king_danger!();
-
-            // King captures
-            for to in (king_defend & them).iter_squares() {
-                yield Move::Capture {
-                    from: king_sq,
-                    to,
-                    capture: board.get_piece_unchecked(to),
-                };
             }
 
             // En passant
@@ -264,6 +259,37 @@ impl Game {
                         }
                         _ => (),
                     }                    
+                }
+            }
+
+            // Rook, Bishop, Knight and Queen captures
+            for &piece in CAPTURERS {
+                for from in board.get_bitboard(color, piece).iter_squares() {
+                    let defend = board.get_defend_unchecked(from) & mask & pin!(from);
+
+                    for &piece in CAPTURES {
+                        for to in (defend & board.get_bitboard(color_inv, piece)).iter_squares() {
+                            yield Move::Capture {
+                                from, 
+                                to, 
+                                capture: board.get_piece_unchecked(to),
+                            };
+                        }
+                    } 
+                }
+            }
+
+            // The defend bitboard of the king
+            let king_defend = board.get_defend_unchecked(king_sq) & !king_danger!();
+
+            // King captures
+            for &piece in CAPTURES {
+                for to in (king_defend & board.get_bitboard(color_inv, piece)).iter_squares() {
+                    yield Move::Capture {
+                        from: king_sq,
+                        to,
+                        capture: board.get_piece_unchecked(to),
+                    };
                 }
             }
 
