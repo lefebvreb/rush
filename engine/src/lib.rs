@@ -2,7 +2,6 @@
 
 mod commands;
 mod engine;
-mod eval;
 mod table;
 
 pub use commands::{EngineMove, EngineAskMove, EngineMakeMove};
