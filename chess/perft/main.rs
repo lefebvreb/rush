@@ -28,10 +28,7 @@ fn perft(game: Game, depth: usize) -> u64 {
     let mut nodes = 0;
     let mut move_gen = game.legals();
 
-    loop {
-        let mv = move_gen.next();
-        if mv.is_none() {break}
-
+    while let Some(mv) = move_gen.next() {
         nodes += perft(game.do_move(mv), depth - 1);
     }
 

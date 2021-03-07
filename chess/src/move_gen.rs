@@ -52,27 +52,28 @@ const PROMOTIONS: &[Piece] = &[
 pub trait MoveGenerator {
     /// Generate and return the next move of the generator. Panics
     /// if the last move returned was `Move::None`
-    fn next(&mut self) -> Move;
+    fn next(&mut self) -> Option<Move>;
 
     /// Collect the generator into a `Vec` of `Move`
     fn to_vec(&mut self) -> Vec<Move> {
-        (0..)
-            .map(|_| self.next())
-            .take_while(|mv| mv.is_some())
-            .collect()
+        let mut res = Vec::new();
+
+        while let Some(mv) = self.next() {
+            res.push(mv);
+        }
+
+        res
     }
 
     /// Collect the generator into a `HashMap` with `String` as keys and `Move` as values
     fn to_map(&mut self) -> HashMap<String, Move> {
-        let mut map = HashMap::new();
+        let mut res = HashMap::new();
 
-        loop {
-            let mv = self.next();
-            if mv.is_none() {break}
-            map.insert(mv.to_string(), mv);
+        while let Some(mv) = self.next() {
+            res.insert(mv.to_string(), mv);
         }
 
-        map
+        res
     }
 }
 
@@ -80,10 +81,10 @@ pub trait MoveGenerator {
 #[doc(hidden)]
 impl<G: Generator<(), Yield=Move, Return=()> + Unpin> MoveGenerator for G {
     #[inline(always)]
-    fn next(&mut self) -> Move {
+    fn next(&mut self) -> Option<Move> {
         match Pin::new(self).resume(()) {
-            GeneratorState::Yielded(mv) => mv,
-            GeneratorState::Complete(_) => Move::None,
+            GeneratorState::Yielded(mv) => Some(mv),
+            GeneratorState::Complete(_) => None,
         }
     }
 }

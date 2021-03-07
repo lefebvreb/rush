@@ -295,7 +295,6 @@ impl Board {
                 Color::White => self.castle(Color::White, Square::A1, Square::D1, Square::E1, Square::C1),
                 Color::Black => self.castle(Color::Black, Square::A8, Square::D8, Square::E8, Square::C8),
             }
-            _ => (),
         }
     }
 }

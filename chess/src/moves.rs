@@ -15,7 +15,6 @@ use crate::square::Square;
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Move {
-    None,
     Quiet {
         from: Square,
         to: Square,
@@ -70,7 +69,6 @@ impl Move {
                 Color::White => Square::E1,
                 Color::Black => Square::E8,
             },
-            _ => unreachable!(),
         }
     }
 
@@ -92,20 +90,7 @@ impl Move {
                 Color::White => Square::C1,
                 Color::Black => Square::C8,
             },
-            _ => unreachable!(),
         }
-    }
-
-    /// Return true if the move is none
-    #[inline(always)]
-    pub fn is_none(self) -> bool {
-        matches!(self, Move::None)
-    }
-
-    /// Return true if the move is not none
-    #[inline(always)]
-    pub fn is_some(self) -> bool {
-        !self.is_none()
     }
 }
 
@@ -176,24 +161,22 @@ impl From<Move> for EncodedMove {
         }
 
         EncodedMove(match mv {
-            Move::None => 
-                0,
             Move::Quiet {from, to} => 
-                1 | shl!(from, 4) | shl!(to, 10),
+                0 | shl!(from, 3) | shl!(to, 9),
             Move::Capture {from, to, capture} => 
-                2 | shl!(from, 4) | shl!(to, 10) | shl!(capture, 16),
+                1 | shl!(from, 3) | shl!(to, 9) | shl!(capture, 15),
             Move::Promote {from, to, promote} => 
-                3 | shl!(from, 4) | shl!(to, 10) | shl!(promote, 20),
+                2 | shl!(from, 3) | shl!(to, 9) | shl!(promote, 19),
             Move::PromoteCapture {from, to, capture, promote} => 
-                4 | shl!(from, 4) | shl!(to, 10) | shl!(capture, 16) | shl!(promote, 20),
+                3 | shl!(from, 3) | shl!(to, 9) | shl!(capture, 15) | shl!(promote, 19),
             Move::EnPassant {from, to} => 
-                5 | shl!(from, 4) | shl!(to, 10),
+                4 | shl!(from, 3) | shl!(to, 9),
             Move::DoublePush {from, to} => 
-                6 | shl!(from, 4) | shl!(to, 10),
+                5 | shl!(from, 3) | shl!(to, 9),
             Move::KingCastle {color} => 
-                7 | shl!(color, 4),
+                6 | shl!(color, 3),
             Move::QueenCastle {color} =>
-                8 | shl!(color, 4),
+                7 | shl!(color, 3),
         })
     }
 }
@@ -207,46 +190,45 @@ impl Into<Move> for EncodedMove {
             }
         }
 
-        macro_rules! from    {() => {Square::from(shr!(4, 6))}}
-        macro_rules! to      {() => {Square::from(shr!(10, 6))}}
-        macro_rules! capture {() => {Piece::from(shr!(16, 4))}}
-        macro_rules! promote {() => {Piece::from(shr!(20, 4))}}
-        macro_rules! color   {() => {Color::from(shr!(4, 1))}}
+        macro_rules! from    {() => {Square::from(shr!(3, 6))}}
+        macro_rules! to      {() => {Square::from(shr!(9, 6))}}
+        macro_rules! capture {() => {Piece::from(shr!(15, 4))}}
+        macro_rules! promote {() => {Piece::from(shr!(19, 4))}}
+        macro_rules! color   {() => {Color::from(shr!(3, 1))}}
 
-        match shr!(0, 4) {
-            0 => Move::None,
-            1 => Move::Quiet {
+        match shr!(0, 3) {
+            0 => Move::Quiet {
                 from: from!(),
                 to: to!(),
             },
-            2 => Move::Capture {
+            1 => Move::Capture {
                 from: from!(),
                 to: to!(),
                 capture: capture!(),
             },
-            3 => Move::Promote {
+            2 => Move::Promote {
                 from: from!(),
                 to: to!(),
                 promote: promote!(),
             },
-            4 => Move::PromoteCapture {
+            3 => Move::PromoteCapture {
                 from: from!(),
                 to: to!(),
                 capture: capture!(),
                 promote: promote!(),
             },
-            5 => Move::EnPassant {
+            4 => Move::EnPassant {
                 from: from!(),
                 to: to!(),
             },
-            6 => Move::DoublePush {
+            5 => Move::DoublePush {
                 from: from!(),
                 to: to!(),
             },
-            7 => Move::KingCastle {
+            6 => Move::KingCastle {
                 color: color!(),
             },
-            8 => Move::QueenCastle {
+            7 => Move::QueenCastle {
                 color: color!(),
             },
             _ => unreachable!(),

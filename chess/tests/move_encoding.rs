@@ -11,12 +11,8 @@ fn encode_decode(game: Game, depth: usize) {
 
     let mut move_gen = game.legals();
 
-    loop {
-        let mv = move_gen.next();
-        if mv.is_none() {break}
-
-        assert_eq!(mv, EncodedMove::from(mv).into());     
-
+    while let Some(mv) = move_gen.next() {
+        assert_eq!(mv, EncodedMove::from(mv).into());
         encode_decode(game.do_move(mv), depth - 1);
     }
 }

@@ -16,10 +16,7 @@ fn zobrist(game: Game, depth: usize) {
 
     let mut move_gen = game.legals();
 
-    loop {
-        let mv = move_gen.next();
-        if mv.is_none() {break}
-
+    while let Some(mv) = move_gen.next() {
         zobrist(game.do_move(mv), depth - 1);
     }
 }
