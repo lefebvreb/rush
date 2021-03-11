@@ -9,21 +9,21 @@ use crate::parameters::*;
 //
 //#################################################################################################
 
+// A struct to facilitate synchronization between threads
 pub(crate) struct Sync {
-    start: Barrier,
-    end: Barrier,
+    barrier: Barrier,
 }
 
 // ================================ pub(crate) impl
 
 impl Sync {
+    // Start the threads and give them an access to the Sync object
     pub(crate) fn start_threads(f: fn(Arc<Sync>)) -> Arc<Sync> {
         let sync = Arc::new(Sync {
-            start: Barrier::new(1 + NUM_THREADS as usize),
-            end:   Barrier::new(1 + NUM_THREADS as usize),
+            barrier: Barrier::new(1 + NUM_SEARCH_THREADS as usize),
         });
 
-        for i in 0..NUM_THREADS {
+        for i in 0..NUM_SEARCH_THREADS {
             let sync = sync.clone();
             thread::spawn(move || f(sync));
         }
@@ -31,13 +31,9 @@ impl Sync {
         sync
     }
 
+    // Wait for all the threads to reach the barrier
     #[inline(always)]
-    pub(crate) fn wait_start(self: Arc<Self>) {
-        self.start.wait();
-    }
-
-    #[inline(always)]
-    pub(crate) fn wait_end(self: Arc<Self>) {
-        self.end.wait();
+    pub(crate) fn wait(self: Arc<Self>) {
+        self.barrier.wait();
     }
 }

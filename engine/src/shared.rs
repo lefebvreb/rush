@@ -4,7 +4,7 @@ use std::sync::atomic::AtomicU8;
 use chess::{Game, Move};
 use chess::Zobrist;
 
-use crate::parameters::{MEM_SIZE, NUM_THREADS};
+use crate::parameters::{HASHTABLE_MEM_SIZE, NUM_SEARCH_THREADS};
 
 //#################################################################################################
 //
@@ -45,7 +45,7 @@ pub(crate) struct Entry {
 //#################################################################################################
 
 // The size in buckets of the table
-const SIZE: usize = MEM_SIZE / mem::size_of::<Option<Entry>>();
+const SIZE: usize = HASHTABLE_MEM_SIZE / mem::size_of::<Option<Entry>>();
 
 // A struct designed to be used in a singleton manner, and to
 // hold entries for the threads to share what they do during the
@@ -116,16 +116,18 @@ pub(crate) fn table_probe(zobrist: Zobrist, alpha: f32, beta: f32, depth: u8) ->
 //
 //#################################################################################################
 
+// The game to be searched
 static mut GAME: Option<Game> = None;
-
+// The current search depth
 static mut SEARCH_DEPTH: AtomicU8 = AtomicU8::new(0);
-
+// A counter telling threads what depth they need to search to
 static mut SEARCH_ID: AtomicU8 = AtomicU8::new(0);
-
+// The current best move
 static mut BEST_MOVE: Option<Move> = None;
-
+// A bool signaling whether or not the search should end
 static mut STOP_SEARCH: bool = false;
 
+// Reset the search infos to the defaults, preparing a new search
 #[inline(always)]
 pub(crate) fn reset_infos(game: Game) {
     unsafe {
@@ -137,17 +139,20 @@ pub(crate) fn reset_infos(game: Game) {
     }
 }
 
+// The depth a thread should search to
 #[inline(always)]
 pub(crate) fn search_depth() -> u8 {
     unsafe {
         SEARCH_DEPTH.load(Ordering::Relaxed) + 1 + SEARCH_ID.fetch_update(
             Ordering::Release, 
             Ordering::Acquire, 
-            |id| Some((id + 1) % NUM_THREADS)
+            |id| Some((id + 1) % NUM_SEARCH_THREADS)
         ).unwrap().trailing_zeros() as u8
     }
 }
 
+// Report the move found and increment the global depth counter,
+// if the depth provided is the best yet
 #[inline(always)]
 pub (crate) fn report_move(mv: Move, depth: u8) {
     unsafe {
@@ -164,6 +169,7 @@ pub (crate) fn report_move(mv: Move, depth: u8) {
     }    
 }
 
+// Stop the search
 #[inline(always)]
 pub (crate) fn stop_search() {
     unsafe {
@@ -171,6 +177,7 @@ pub (crate) fn stop_search() {
     }
 }
 
+// Check whether or not the search should end
 #[inline(always)]
 pub (crate) fn should_stop() -> bool {
     unsafe {
@@ -178,6 +185,7 @@ pub (crate) fn should_stop() -> bool {
     }
 }
 
+// Get a clone of the game to search
 #[inline(always)]
 pub (crate) fn game() -> Game {
     unsafe {

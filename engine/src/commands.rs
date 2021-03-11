@@ -1,15 +1,19 @@
 use actix::{Actor, Context, Handler, Message};
 
-use crate::engine::Engine;
+#[derive(Default)]
+pub struct Engine;
 
+/// A message the engine may send to ask to play a move
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct EngineMove(pub String);
 
+/// Ask the engine to compute a move and give back the result
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct EngineAskMove;
 
+/// Tell the engine a move has been played
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct EngineMakeMove(pub String);
