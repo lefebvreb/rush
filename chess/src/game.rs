@@ -47,7 +47,7 @@ impl Default for GameStatus {
 //#################################################################################################
 
 /// A struct that holds every information defining a complete game of chess
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Game {
     board: Board,
     color: Color,
@@ -124,6 +124,12 @@ impl Game {
     #[inline(always)]
     pub fn get_color(&self) -> Color {
         self.color
+    }
+
+    /// Return the color of the current player
+    #[inline(always)]
+    pub fn get_clock(&self) -> Clock {
+        self.clock
     }
 
     /// Return the zobrist key of that position

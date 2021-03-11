@@ -22,7 +22,7 @@ mod zobrist;
 // Exports
 pub use bitboard::BitBoard;
 pub use board::Board;
-pub use clock::ThreefoldCounter;
+pub use clock::{Clock, ThreefoldCounter};
 pub use color::Color;
 pub use errors::ParseFenError;
 pub use game::{Game, GameStatus};
