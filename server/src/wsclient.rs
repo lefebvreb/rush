@@ -53,7 +53,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsClient {
                 match split.next().unwrap_or("") {
                     "move" => self.state.do_send(ClientMove {
                         addr: ctx.address(),
-                        s: split.next().unwrap_or("").to_string(),
+                        mv: split.next().unwrap_or("").to_string(),
                     }),
                     "play" => self.state.do_send(ClientRequestPlay {
                         addr: ctx.address(),
@@ -71,7 +71,7 @@ impl Handler<ClientInfo> for WsClient {
     type Result = ();
 
     // Upon receiving a command from the server: format it and send it via the websockets
-    fn handle(&mut self, msg: ClientInfo, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: ClientInfo, ctx: &mut Self::Context) {
         ctx.text(msg.0)
     }
 }

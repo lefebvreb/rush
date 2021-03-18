@@ -32,7 +32,7 @@ async fn main() -> std::io::Result<()> {
     let mut args = args();
 
     // Executable path
-    args.next().unwrap();
+    args.next();
 
     // IP address
     let address = args.next().unwrap_or(DEFAULT_ADDR.to_string());

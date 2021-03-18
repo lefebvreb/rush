@@ -89,26 +89,56 @@ impl Game {
     }
 
     /// Perform a new move ad modify the game accordingly, checking for mate or draw.
-    /// A bit slow, so not suitable for tree search
+    /// Quite slow, so not suitable for tree search
     pub fn do_move_status(&self, counter: &mut ThreefoldCounter, mv: Move) -> (GameStatus, Game, HashMap<String, Move>) {
         let new_game = self.do_move(mv);
         let legals = new_game.legals().to_map();
 
-        if  // 50 moves rule
-            new_game.clock.get_halfmoves() == 50 ||
-            // Threefold repetition rule
-            counter.is_draw(mv, &self.board, &new_game)
-        {
-            return (GameStatus::Drawn, new_game, HashMap::new());
+        macro_rules! draw {
+            () => {
+                return (GameStatus::Drawn, new_game, HashMap::new())
+            }
+        }
+
+        if new_game.clock.get_halfmoves() == 100 || counter.is_draw(mv, &self.board, &new_game) {
+            draw!()
+        }
+
+        // Insufficient material
+        let occ = new_game.board.get_occupancy();
+        match occ.count_bits() {
+            2 => draw!(),
+            3 => for sq in occ.iter_squares() {
+                match new_game.board.get_piece(sq).unwrap().1 {
+                    Piece::Bishop | Piece::Knight => draw!(),
+                    _ => (),
+                }
+            },
+            4 => {
+                // Get the bishops bitboards
+                let white = new_game.board.get_bitboard(Color::White, Piece::Bishop);
+                let black = new_game.board.get_bitboard(Color::White, Piece::Bishop);
+                
+                if white.count_bits() == 1 && black.count_bits() == 1 {
+                    // Check parity of the bishops
+                    let white = white.as_square_unchecked() as u8 % 2;
+                    let black = black.as_square_unchecked() as u8 % 2;
+
+                    if white != black {
+                        draw!()
+                    }
+                }
+            },
+            _ => (),
         }
 
         // No legal moves
         if legals.is_empty() {
-            return (if new_game.board.in_check(new_game.color) {
-                GameStatus::Won {winner: self.color}
+            if new_game.board.in_check(new_game.color) {
+                return (GameStatus::Won {winner: self.color}, new_game, HashMap::new());
             } else {
-                GameStatus::Drawn
-            }, new_game, HashMap::new());
+                draw!()
+            }
         }
 
         (GameStatus::Playing {playing: new_game.color}, new_game, legals)

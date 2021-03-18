@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
-use actix::{Actor, Addr, Context, Handler};
+use actix::{Actor, Addr, AsyncContext, Context, Handler};
+use actix_web::rt::spawn;
 
 use chess::{Color, Game, GameStatus, Move, MoveGenerator, ThreefoldCounter};
-use engine::{Engine, EngineAskMove, EngineMakeMove, EngineMove};
+use engine::{Engine, EngineAskMove, EngineMakeMove};
 
 use crate::wsclient::WsClient;
-use crate::messages::{ClientInfo, ClientMove, ClientRequestEngine, ClientRequestPlay, Connect, Disconnect};
+use crate::messages::{ClientInfo, ClientMove, ClientRequestEngine, ClientRequestPlay, Connect, Disconnect, EngineMove};
 
 //#################################################################################################
 //
@@ -305,20 +306,28 @@ impl State {
     }
 
     // Ask whoever's turn it is to play
-    fn ask_for_move(&self) {
+    fn ask_for_move(&self, addr: &Addr<State>) {
         match self.addresses.get_player(self.game_state.playing_color()) {
             Some(Player::Client(a)) => self.send_info(&a),
-            Some(Player::Engine) => self.addresses.engine().do_send(EngineAskMove),
+            Some(Player::Engine) => {
+                let future = self.addresses.engine().send(EngineAskMove);
+                let addr = addr.clone();
+
+                spawn(async move {
+                    let mv = future.await.unwrap_or(String::new());
+                    addr.do_send(EngineMove {mv});
+                });
+            },
             _ => (),
         }
     }
 
     // Try to play the move given by it's string representation
-    fn try_move(&mut self, s: String) {
+    fn try_move(&mut self, addr: &Addr<State>, mv: String) {
         // If the move is valid
-        if self.game_state.try_move(s.clone()) {
+        if self.game_state.try_move(mv.clone()) {
             // Send the move to the engine
-            self.addresses.engine().do_send(EngineMakeMove(s));
+            self.addresses.engine().do_send(EngineMakeMove {mv});
 
             // Update the view
             self.view = View::new(&self.game_state);
@@ -329,7 +338,7 @@ impl State {
             }
 
             // Send new infos to playing
-            self.ask_for_move();
+            self.ask_for_move(addr);
         }
     }
 
@@ -374,13 +383,13 @@ impl Handler<ClientMove> for State {
     type Result = ();
 
     // When a clients plays a move
-    fn handle(&mut self, msg: ClientMove, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: ClientMove, ctx: &mut Self::Context) -> Self::Result {
         let addr = &msg.addr;
 
         // If it's that client's turn
         if self.game_state.is_playing(self.addresses.get_color_of(addr)) {
             // Try to do the move
-            self.try_move(msg.s);
+            self.try_move(&ctx.address(), msg.mv);
         }
 
         // Send new infos to old player
@@ -392,7 +401,7 @@ impl Handler<ClientRequestEngine> for State {
     type Result = ();
 
     // When a clients invites the engine to play
-    fn handle(&mut self, _: ClientRequestEngine, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, _: ClientRequestEngine, ctx: &mut Self::Context) {
         // If the engine is playing
         if self.is_engine_playing() {
             // Try to give it another role
@@ -400,16 +409,16 @@ impl Handler<ClientRequestEngine> for State {
         } else {
             // Try to give it another role and then ask it to play
             self.addresses.try_place_engine();
-            self.ask_for_move();
+            self.ask_for_move(&ctx.address());
         }
-    }    
+    }
 }
 
 impl Handler<ClientRequestPlay> for State {
     type Result = ();
 
     // When a client requests to play
-    fn handle(&mut self, msg: ClientRequestPlay, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: ClientRequestPlay, _: &mut Self::Context) {
         let addr = &msg.addr;
 
         // If he got a new role, send him the new infos
@@ -422,8 +431,8 @@ impl Handler<ClientRequestPlay> for State {
 impl Handler<EngineMove> for State {
     type Result = ();
 
-    // When the engine requests a move
-    fn handle(&mut self, msg: EngineMove, _: &mut Self::Context) -> Self::Result {
-        self.try_move(msg.0);
-    }
+    // When a client requests to play
+    fn handle(&mut self, msg: EngineMove, ctx: &mut Self::Context) {
+        self.try_move(&ctx.address(), msg.mv);
+    }  
 }

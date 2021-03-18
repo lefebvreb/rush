@@ -1,8 +1,8 @@
 #![allow(dead_code, unused_variables, unused_macros)]
 
 mod commands;
-mod parameters;
+mod params;
 mod shared;
-mod sync;
+mod threads;
 
-pub use commands::{Engine, EngineMove, EngineAskMove, EngineMakeMove};
+pub use commands::{Engine, EngineAskMove, EngineMakeMove};

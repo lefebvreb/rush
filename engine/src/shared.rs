@@ -4,13 +4,7 @@ use std::sync::atomic::AtomicU8;
 use chess::{Game, Move};
 use chess::Zobrist;
 
-use crate::parameters::{HASHTABLE_MEM_SIZE, NUM_SEARCH_THREADS};
-
-//#################################################################################################
-//
-//                                     enum NodeType
-//
-//#################################################################################################
+use crate::params::{HASHTABLE_MEM_SIZE, NUM_SEARCH_THREADS};
 
 // Represent the result of the last search of that node: an alpha cut-off,
 // a beta cut-off or an exact value
@@ -22,12 +16,6 @@ pub(crate) enum NodeFlag {
     Exact = 2,
 }
 
-//#################################################################################################
-//
-//                                      struct Entry
-//
-//#################################################################################################
-
 // A struct representing an Entry in the hashmap: 16 bytes on my machine.
 #[derive(Clone, Copy)]
 pub(crate) struct Entry {
@@ -37,12 +25,6 @@ pub(crate) struct Entry {
     pub(crate) depth: u8,
     pub(crate) flag: NodeFlag,
 }
-
-//#################################################################################################
-//
-//                                        struct Table
-//
-//#################################################################################################
 
 // The size in buckets of the table
 const SIZE: usize = HASHTABLE_MEM_SIZE / mem::size_of::<Option<Entry>>();
@@ -190,5 +172,13 @@ pub (crate) fn should_stop() -> bool {
 pub (crate) fn game() -> Game {
     unsafe {
         GAME.clone().unwrap()
+    }
+}
+
+// Get the best move found
+#[inline(always)]
+pub (crate) fn get_best_move() -> Option<Move> {
+    unsafe {
+        BEST_MOVE
     }
 }
