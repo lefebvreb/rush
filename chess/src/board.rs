@@ -142,7 +142,7 @@ impl Board {
     #[inline(always)]
     pub fn in_check(&self, color: Color) -> bool {
         let king_pos = self.get_bitboard(color, Piece::King).as_square_unchecked();
-        !(self.get_attacks(king_pos) & self.get_color_occupancy(color.invert())).is_empty()
+        !(self.get_attacks(king_pos) & self.get_color_occupancy(color.invert())).empty()
     }
 
     /// Pretty-prints the board to stdout, using utf-8 characters
@@ -319,7 +319,7 @@ impl Board {
     fn update_attacker(&mut self, sq: Square, updated: &mut BitBoard) {
         let mask = sq.into();
 
-        if (*updated & mask).is_empty() {
+        if (*updated & mask).empty() {
             *updated |= mask;
 
             match self.mailbox[sq as usize] {

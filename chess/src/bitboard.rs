@@ -25,13 +25,13 @@ impl BitBoard {
 
     /// Return true if and only if the BitBoard `self` is empty
     #[inline(always)]
-    pub const fn is_empty(self) -> bool {
+    pub const fn empty(self) -> bool {
         self.0 == 0
     }
 
     /// Return true if and only if the BitBoard `self` is not empty
     #[inline(always)]
-    pub const fn is_not_empty(self) -> bool {
+    pub const fn not_empty(self) -> bool {
         self.0 != 0
     }
 
@@ -47,13 +47,13 @@ impl BitBoard {
     
     /// Count the bits of `self` that are 1
     #[inline(always)]
-    pub fn count_bits(self) -> u8 {
+    pub fn count(self) -> u8 {
         self.0.count_ones() as u8
     }
 
     /// Return true if that bitboard is on the last rank
     #[inline(always)]
-    pub fn is_last_rank(self, color: Color) -> bool {
+    pub fn last_rank(self, color: Color) -> bool {
         self.0 & match color {
             Color::White => 0xFF00000000000000,
             Color::Black => 0xFF,

@@ -49,20 +49,20 @@ impl CastleRights {
             Color::White => (
                 self.0 & Self::WHITE_OO  != 0 && (
                     (occ | danger) & squares!(Square::F1, Square::G1)
-                ).is_empty(),
+                ).empty(),
                 self.0 & Self::WHITE_OOO != 0 && (
                     occ & squares!(Square::B1, Square::C1, Square::D1) | 
                     danger & squares!(Square::C1, Square::D1)
-                ).is_empty(),
+                ).empty(),
             ),
             Color::Black => (
                 self.0 & Self::BLACK_OO  != 0 && (
                     (occ | danger) & squares!(Square::F8, Square::G8)
-                ).is_empty(),
+                ).empty(),
                 self.0 & Self::BLACK_OOO != 0 && (
                     occ & squares!(Square::B8, Square::C8, Square::D8) | 
                     danger & squares!(Square::C8, Square::D8)
-                ).is_empty(),
+                ).empty(),
             ),
         };
 

@@ -61,6 +61,16 @@ impl Square {
             Color::Black => 0,
         }
     }
+
+    /// Return true if that square is last rank
+    #[inline(always)]
+    pub fn parity(self) -> Color {
+        if (self.x() + self.y()) % 2 == 0 {
+            Color::Black
+        } else {
+            Color::White
+        }
+    }
 }
 
 // ================================ pub(crate) impl

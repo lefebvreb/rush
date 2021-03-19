@@ -106,10 +106,10 @@ impl Game {
 
         // Insufficient material
         let occ = new_game.board.get_occupancy();
-        match occ.count_bits() {
+        match occ.count() {
             2 => draw!(),
             3 => for sq in occ.iter_squares() {
-                match new_game.board.get_piece(sq).unwrap().1 {
+                match new_game.board.get_piece_unchecked(sq) {
                     Piece::Bishop | Piece::Knight => draw!(),
                     _ => (),
                 }
@@ -119,12 +119,9 @@ impl Game {
                 let white = new_game.board.get_bitboard(Color::White, Piece::Bishop);
                 let black = new_game.board.get_bitboard(Color::White, Piece::Bishop);
                 
-                if white.count_bits() == 1 && black.count_bits() == 1 {
+                if white.count() == 1 && black.count() == 1 {
                     // Check parity of the bishops
-                    let white = white.as_square_unchecked() as u8 % 2;
-                    let black = black.as_square_unchecked() as u8 % 2;
-
-                    if white != black {
+                    if white.as_square_unchecked().parity() != black.as_square_unchecked().parity() {
                         draw!()
                     }
                 }

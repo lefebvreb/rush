@@ -148,7 +148,7 @@ impl Game {
             }
 
             // Count how many checkers there are
-            let check_mask = match king_attacks.count_bits() {
+            let check_mask = match king_attacks.count() {
                 0 => { // No checkers: may castle
                     match self.get_castle_rights().get_availability(color, occ, danger) {
                         CastleAvailability::KingSide => yield Move::KingCastle {color},
@@ -200,7 +200,7 @@ impl Game {
             for from in board.get_bitboard(color, Piece::Pawn).iter_squares() {
                 let defend = board.get_defend_unchecked(from) & mask & pin!(from);
 
-                if defend.is_last_rank(color) {
+                if defend.last_rank(color) {
                     for to in defend.iter_squares() {
                         for &promote in PROMOTIONS {
                             yield Move::PromoteCapture {

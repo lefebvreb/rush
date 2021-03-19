@@ -137,7 +137,7 @@ impl EnPassantAvailability {
                     if sq.y() == king_sq.y() {
                         let between = squares_between(king_sq, sq);
 
-                        if between.contains(pawn_sq) && (between & occ).count_bits() == 2 {
+                        if between.contains(pawn_sq) && (between & occ).count() == 2 {
                             return EnPassantAvailability::None;
                         }
                     }
