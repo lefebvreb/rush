@@ -7,3 +7,7 @@ pub const NUM_SEARCH_THREADS: u8 = 8;
 pub const HASHTABLE_MEM_SIZE: usize = 16777216;
 
 pub const SEARCH_DURATION: Duration = Duration::from_millis(5000);
+
+pub const MAX_DEPTH: u8 = 32;
+
+pub const MATE_SCORE: f32 = 1e10;

@@ -4,7 +4,7 @@ use std::sync::atomic::AtomicU8;
 use chess::{Game, Move};
 use chess::Zobrist;
 
-use crate::params::{HASHTABLE_MEM_SIZE, NUM_SEARCH_THREADS};
+use crate::params;
 
 // Represent the result of the last search of that node: an alpha cut-off,
 // a beta cut-off or an exact value
@@ -27,7 +27,7 @@ pub(crate) struct Entry {
 }
 
 // The size in buckets of the table
-const SIZE: usize = HASHTABLE_MEM_SIZE / mem::size_of::<Option<Entry>>();
+const SIZE: usize = params::HASHTABLE_MEM_SIZE / mem::size_of::<Option<Entry>>();
 
 // A struct designed to be used in a singleton manner, and to
 // hold entries for the threads to share what they do during the
@@ -128,7 +128,7 @@ pub(crate) fn search_depth() -> u8 {
         SEARCH_DEPTH.load(Ordering::Relaxed) + 1 + SEARCH_ID.fetch_update(
             Ordering::Release, 
             Ordering::Acquire, 
-            |id| Some((id + 1) % NUM_SEARCH_THREADS)
+            |id| Some((id + 1) % params::NUM_SEARCH_THREADS)
         ).unwrap().trailing_zeros() as u8
     }
 }
@@ -177,7 +177,7 @@ pub (crate) fn game() -> Game {
 
 // Get the best move found
 #[inline(always)]
-pub (crate) fn get_best_move() -> Option<Move> {
+pub (crate) fn best_move() -> Option<Move> {
     unsafe {
         BEST_MOVE
     }

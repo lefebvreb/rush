@@ -92,6 +92,12 @@ impl Move {
             },
         }
     }
+
+    /// Return true if the move is a capture
+    #[inline(always)]
+    pub fn is_capture(self) -> bool {
+        matches!(self, Move::Capture {..} | Move::PromoteCapture {..} | Move::EnPassant {..})
+    }
 }
 
 // ================================ pub(crate) impl

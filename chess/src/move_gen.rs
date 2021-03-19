@@ -89,6 +89,12 @@ impl<G: Generator<(), Yield=Move, Return=()> + Unpin> MoveGenerator for G {
     }
 }
 
+//#################################################################################################
+//
+//                                   Legals Generator
+//
+//#################################################################################################
+
 impl Game {
     /// Return a generator able to produce the legal moves associated
     /// to a specific position

@@ -4,15 +4,16 @@ use std::thread;
 use chess::{Game, Move};
 
 use crate::params;
+use crate::search::Search;
 use crate::shared;
 
 // The loop a worker thread is running
 fn worker_loop(sync: Arc<Barrier>) {
+    let mut search = Search::default();
+
     loop {
         sync.wait();
-
-        // search here...
-
+        search.search_position();
         sync.wait();
     }
 }
@@ -30,16 +31,13 @@ pub(crate) fn start_threads() -> Arc<Barrier> {
 }
 
 // Launch the threads and get the result
-pub(crate) fn launch_search(game: Game, sync: &Arc<Barrier>) -> Option<Move> {
-    shared::reset_infos(game);
+pub(crate) fn launch_search(game: &Game, sync: &Arc<Barrier>) -> Option<Move> {
+    shared::reset_infos(game.clone());
 
     sync.wait();
-
     thread::sleep(params::SEARCH_DURATION);
-
     shared::stop_search();
-
     sync.wait();
-
-    shared::get_best_move()
+    
+    shared::best_move()
 }

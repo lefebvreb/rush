@@ -100,7 +100,7 @@ impl Game {
             }
         }
 
-        if new_game.clock.get_halfmoves() == 100 || counter.is_draw(mv, &self.board, &new_game) {
+        if new_game.clock.halfmoves() == 100 || counter.is_draw(mv, &self.board, &new_game) {
             draw!()
         }
 
@@ -131,7 +131,7 @@ impl Game {
 
         // No legal moves
         if legals.is_empty() {
-            if new_game.board.in_check(new_game.color) {
+            if new_game.in_check() {
                 return (GameStatus::Won {winner: self.color}, new_game, HashMap::new());
             } else {
                 draw!()
@@ -163,6 +163,13 @@ impl Game {
     #[inline(always)]
     pub fn get_zobrist(&self) -> Zobrist {
         self.zobrist
+    }
+
+    /// Return true if the position is in check
+    #[inline(always)]
+    pub fn in_check(&self) -> bool {
+        let king_pos = self.board.get_bitboard(self.color, Piece::King).as_square_unchecked();
+        !(self.board.get_attacks(king_pos) & self.board.get_color_occupancy(self.color.invert())).empty()
     }
 
     /// Try to parse a move from current position with given coordinates,

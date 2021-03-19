@@ -62,7 +62,7 @@ impl Square {
         }
     }
 
-    /// Return true if that square is last rank
+    /// Return the color of that square on the board
     #[inline(always)]
     pub fn parity(self) -> Color {
         if (self.x() + self.y()) % 2 == 0 {

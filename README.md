@@ -3,7 +3,7 @@
 This project is:
 + A fast chess game featuring bitboards, pext lookup and lazy move generation.
 + A parallel tree search AI using the lazy-SMP algorithm and a shared hashtable.
-+ A web server backend in rust using the [actix-web](https://actix.rs/) crate.
++ A web server backend using the [actix-web](https://actix.rs/) crate.
 + A lightweight, pure javascript front-end.
 
 This chess engine was made with the goal of beating a friend of mine in a game of chess. Said friend has an elo of around 2000.

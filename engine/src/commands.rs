@@ -47,13 +47,9 @@ impl Handler<EngineAskMove> for Engine {
     type Result = String;
 
     fn handle(&mut self, msg: EngineAskMove, _: &mut Self::Context) -> String {
-        /*if let Some(mv) = threads::launch_search(self.game.clone(), &self.sync) {
-            //msg.addr.send(EngineMove {mv: mv.to_string()});
-        } 
-
-        "".to_owned()*/
-
-        self.game.legals().next().unwrap().to_string()
+        threads::launch_search(&self.game, &self.sync)
+            .unwrap_or_else(|| self.game.legals().next().unwrap())
+            .to_string()
     }
 }
 
@@ -61,8 +57,9 @@ impl Handler<EngineMakeMove> for Engine {
     type Result = ();
 
     fn handle(&mut self, msg: EngineMakeMove, _: &mut Self::Context) {
-        if let Ok(mv) = self.game.parse_move(&msg.mv) {
-            self.game = self.game.do_move(mv);
-        }
+        self.game = self.game.do_move(
+            self.game.parse_move(&msg.mv)
+                .expect("The engine couldn't parse the provided move.")
+        );
     }
 }

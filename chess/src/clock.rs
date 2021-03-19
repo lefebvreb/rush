@@ -19,7 +19,7 @@ use crate::zobrist::Position;
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Clock {
     halfmoves: u8,
-    fullmoves: u16,
+    plys: u16,
 }
 
 // ================================ pub impl
@@ -27,14 +27,14 @@ pub struct Clock {
 impl Clock {
     // Return the number of reversibles halfmoves so far
     #[inline(always)]
-    pub fn get_halfmoves(self) -> u8 {
+    pub fn halfmoves(self) -> u8 {
         self.halfmoves
     }
 
     // Return the number of reversibles halfmoves so far
     #[inline(always)]
-    pub fn get_fullmoves(self) -> u16 {
-        self.fullmoves
+    pub fn ply(self) -> u16 {
+        self.plys
     }
 }
 
@@ -50,9 +50,9 @@ impl Clock {
             } else {
                 0
             },
-            fullmoves: match color {
-                Color::White => self.fullmoves,
-                Color::Black => self.fullmoves + 1,
+            plys: match color {
+                Color::White => self.plys,
+                Color::Black => self.plys + 1,
             },
         }
     }
@@ -61,7 +61,7 @@ impl Clock {
     pub(crate) fn from_strs(s1: &str, s2: &str) -> Result<Clock, ParseFenError> {
         Ok(Clock {
             halfmoves: u8::from_str(s1)?,
-            fullmoves: u16::from_str(s2)?,
+            plys: u16::from_str(s2)?,
         })
     }
 }
@@ -71,7 +71,7 @@ impl Clock {
 impl fmt::Display for Clock {
     // Display the counter in FEN notation
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.halfmoves, self.fullmoves)
+        write!(f, "{} {}", self.halfmoves, self.plys)
     }
 }
 
