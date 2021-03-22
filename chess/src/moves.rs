@@ -98,6 +98,12 @@ impl Move {
     pub fn is_capture(self) -> bool {
         matches!(self, Move::Capture {..} | Move::PromoteCapture {..} | Move::EnPassant {..})
     }
+
+    // Return true if the move is truly reversible
+    #[inline(always)]
+    pub fn is_truly_reversible(self, board: &Board) -> bool {
+        matches!(self, Move::Quiet {from, ..} if board.get_piece_unchecked(from) != Piece::Pawn)
+    }
 }
 
 // ================================ pub(crate) impl
@@ -111,12 +117,6 @@ impl Move {
             Move::Quiet {from, ..} => board.get_piece_unchecked(from) != Piece::Pawn,
             _ => false,
         }
-    }
-
-    // Return true if the move is truly reversible
-    #[inline(always)]
-    pub(crate) fn is_truly_reversible(self, board: &Board) -> bool {
-        matches!(self, Move::Quiet {from, ..} if board.get_piece_unchecked(from) != Piece::Pawn)
     }
 }
 

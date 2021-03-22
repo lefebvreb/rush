@@ -15,6 +15,7 @@ fn worker_loop(sync: Arc<Barrier>) {
         sync.wait();
         search.search_position();
         sync.wait();
+        search = Search::default();
     }
 }
 

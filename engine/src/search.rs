@@ -12,7 +12,6 @@ use crate::shared::{self, Entry, NodeFlag, table_insert};
 
 pub(crate) struct Search {
     depth: u8,
-    last_irresversible: u8,
     keys: [Zobrist; params::MAX_DEPTH as usize],
     best_move: Option<Move>,
 }
@@ -43,9 +42,9 @@ impl Search {
                 break;
             }
 
-            self.depth += 1;
+            self.next(&game, mv);
             let score = -self.quiescence(game.do_move(mv), -beta, -alpha);
-            self.depth -= 1;
+            self.prev();
 
             if shared::should_stop() {
                 return 0.0;
@@ -100,9 +99,9 @@ impl Search {
         let mut moves = 0u8;
 
         while let Some(mv) = legals.next() {
-            self.depth += 1;
+            self.next(&game, mv);
             let score = -self.alpha_beta(game.do_move(mv), -beta, -alpha, do_null, depth-1, search_depth);
-            self.depth -= 1;
+            self.prev();
 
             if shared::should_stop() || shared::search_depth() >= search_depth {
                 return 0.0;
@@ -170,7 +169,41 @@ impl Search {
     }
 
     pub(crate) fn search_position(&mut self) {
-        todo!()
+        let game = shared::game();
+
+        let best_score = self.quiescence(game.clone(), f32::NEG_INFINITY, f32::INFINITY);
+        
+        'search: loop {
+            let search_depth = shared::search_depth();
+
+            let mut alpha = best_score - params::ASPIRATION_WINDOW[0];
+            let mut beta  = best_score + params::ASPIRATION_WINDOW[0];
+        
+            let mut alpha_index = 1;
+            let mut beta_index  = 1;
+
+            loop {
+                let best_score = self.alpha_beta(game.clone(), alpha, beta, true, search_depth, search_depth);
+            
+                if shared::should_stop() || shared::search_depth() >= search_depth {
+                    break 'search;
+                }
+
+                if best_score <= alpha {
+                    alpha = best_score - params::ASPIRATION_WINDOW[alpha_index.min(3)];
+                    alpha_index += 1;
+                } else if best_score >= beta {
+                    beta = best_score + params::ASPIRATION_WINDOW[beta_index.min(3)];
+                    beta_index += 1;
+                } else {
+                    break;
+                }
+            }
+
+            if let Some(mv) = self.best_move {
+                shared::report_move(mv, search_depth);
+            }
+        }
     }
 }
 
@@ -184,15 +217,32 @@ impl Search {
     #[inline(always)]
     fn is_pseudodraw(&self, game: &Game) -> bool {
         game.get_clock().halfmoves() == 100 || 
-            (self.last_irresversible..self.depth)
+            (0..self.depth)
             .any(|i| self.keys[i as usize] == game.get_zobrist())
     }
+
+    // Put another key in the list
+    #[inline(always)]
+    fn next(&mut self, game: &Game, mv: Move) {
+        self.keys[self.depth as usize] = game.get_zobrist();
+        self.depth += 1;
+    }
+
+    // Remove the last key pushed
+    #[inline(always)]
+    fn prev(&mut self) {
+        self.depth -= 1;
+    } 
 }
 
 // ================================ traits impl
 
 impl Default for Search {
     fn default() -> Search {
-        todo!()
+        Search {
+            depth: 0,
+            keys: [Zobrist::default(); params::MAX_DEPTH as usize],
+            best_move: None,
+        }
     }
 }
