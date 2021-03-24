@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use chess::{Game, Move, MoveGenerator, Zobrist};
 
 use crate::eval::eval;
@@ -19,8 +21,10 @@ pub(crate) struct Search {
 // ================================ pub(crate) impl
 
 impl Search {
-    pub(crate) fn quiescence(&mut self, game: Game, mut alpha: f32, beta: f32) -> f32 {
-        if self.is_pseudodraw(&game) {
+    pub(crate) fn quiescence<G: Borrow<Game>>(&mut self, game: G, mut alpha: f32, beta: f32) -> f32 {
+        let game = game.borrow();
+
+        if self.is_pseudodraw(game) {
             return 0.0;
         }
         
@@ -59,12 +63,14 @@ impl Search {
         alpha
     }
 
-    pub(crate) fn alpha_beta(&mut self, game: Game, mut alpha: f32, beta: f32, do_null: bool, mut depth: u8, search_depth: u8) -> f32 {
+    pub(crate) fn alpha_beta<G: Borrow<Game>>(&mut self, game: G, mut alpha: f32, beta: f32, do_null: bool, mut depth: u8, search_depth: u8) -> f32 {
+        let game = game.borrow();
+        
         if depth == 0 {
             return self.quiescence(game, alpha, beta);
         }
 
-        if self.is_pseudodraw(&game) {
+        if self.is_pseudodraw(game) {
             return 0.0;
         }
 

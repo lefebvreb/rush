@@ -1,8 +1,7 @@
-use std::{mem, sync::atomic::Ordering};
-use std::sync::atomic::AtomicU8;
+use std::{mem, ptr};
+use std::sync::atomic::{AtomicU8, Ordering};
 
-use chess::{Game, Move};
-use chess::Zobrist;
+use chess::{Game, Move, Zobrist};
 
 use crate::params;
 
@@ -99,7 +98,7 @@ pub(crate) fn table_probe(zobrist: Zobrist, alpha: f32, beta: f32, depth: u8) ->
 //#################################################################################################
 
 // The game to be searched
-static mut GAME: Option<Game> = None;
+static mut GAME: *const Game = ptr::null();
 // The current search depth
 static mut SEARCH_DEPTH: AtomicU8 = AtomicU8::new(0);
 // A counter telling threads what depth they need to search to
@@ -111,9 +110,9 @@ static mut STOP_SEARCH: bool = false;
 
 // Reset the search infos to the defaults, preparing a new search
 #[inline(always)]
-pub(crate) fn reset_infos(game: Game) {
+pub(crate) fn reset_infos(game: &Game) {
     unsafe {
-        GAME         = Some(game);
+        GAME         = game as *const Game;
         SEARCH_DEPTH = AtomicU8::new(0);
         SEARCH_ID    = AtomicU8::new(0);
         BEST_MOVE    = None;
@@ -169,9 +168,9 @@ pub (crate) fn should_stop() -> bool {
 
 // Get a clone of the game to search
 #[inline(always)]
-pub (crate) fn game() -> Game {
+pub (crate) fn game<'search>() -> &'search Game {
     unsafe {
-        GAME.clone().unwrap()
+        GAME.as_ref().unwrap()
     }
 }
 

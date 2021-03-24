@@ -1,6 +1,7 @@
 use std::sync::{Arc, Barrier};
 
 use actix::{Actor, Context, Handler, Message};
+
 use chess::{Game, MoveGenerator};
 
 use crate::threads;
@@ -58,8 +59,7 @@ impl Handler<EngineMakeMove> for Engine {
 
     fn handle(&mut self, msg: EngineMakeMove, _: &mut Self::Context) {
         self.game = self.game.do_move(
-            self.game.parse_move(&msg.mv)
-                .expect("The engine couldn't parse the provided move.")
+            self.game.parse_move(&msg.mv).unwrap(),
         );
     }
 }

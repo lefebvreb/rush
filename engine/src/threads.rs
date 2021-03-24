@@ -9,13 +9,11 @@ use crate::shared;
 
 // The loop a worker thread is running
 fn worker_loop(sync: Arc<Barrier>) {
-    let mut search = Search::default();
-
     loop {
+        let mut search = Search::default();
         sync.wait();
         search.search_position();
         sync.wait();
-        search = Search::default();
     }
 }
 
@@ -33,7 +31,7 @@ pub(crate) fn start_threads() -> Arc<Barrier> {
 
 // Launch the threads and get the result
 pub(crate) fn launch_search(game: &Game, sync: &Arc<Barrier>) -> Option<Move> {
-    shared::reset_infos(game.clone());
+    shared::reset_infos(game);
 
     sync.wait();
     thread::sleep(params::SEARCH_DURATION);
