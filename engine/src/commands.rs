@@ -1,10 +1,8 @@
-use std::sync::{Arc, Barrier};
-
 use actix::{Actor, Context, Handler, Message};
 
-use chess::{Game, MoveGenerator};
+use chess::MoveGenerator;
 
-use crate::threads;
+use crate::{shared, threads};
 
 /// Ask the engine to compute a move and give back the result
 #[derive(Message)]
@@ -24,10 +22,7 @@ pub struct EngineMakeMove {
 //
 //#################################################################################################
 
-pub struct Engine {
-    game: Game,
-    sync: Arc<Barrier>,
-}
+pub struct Engine;
 
 // ================================ traits impl
 
@@ -37,10 +32,9 @@ impl Actor for Engine {
 
 impl Default for Engine {
     fn default() -> Engine {
-        Engine {
-            game: Game::default(),
-            sync: threads::start_threads(),
-        }
+        shared::initialize();
+        threads::start_threads();
+        Engine
     }
 }
 
@@ -48,8 +42,8 @@ impl Handler<EngineAskMove> for Engine {
     type Result = String;
 
     fn handle(&mut self, msg: EngineAskMove, _: &mut Self::Context) -> String {
-        threads::launch_search(&self.game, &self.sync)
-            .unwrap_or_else(|| self.game.legals().next().unwrap())
+        threads::launch_search()
+            .unwrap_or_else(|| shared::game().legals().next().unwrap())
             .to_string()
     }
 }
@@ -58,8 +52,8 @@ impl Handler<EngineMakeMove> for Engine {
     type Result = ();
 
     fn handle(&mut self, msg: EngineMakeMove, _: &mut Self::Context) {
-        self.game = self.game.do_move(
-            self.game.parse_move(&msg.mv).unwrap(),
+        shared::do_move(
+            shared::game().parse_move(&msg.mv).unwrap()
         );
     }
 }

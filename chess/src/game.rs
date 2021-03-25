@@ -92,7 +92,7 @@ impl Game {
     /// Quite slow, so not suitable for tree search
     pub fn do_move_status(&self, counter: &mut ThreefoldCounter, mv: Move) -> (GameStatus, Game, HashMap<String, Move>) {
         let new_game = self.do_move(mv);
-        let legals = new_game.legals().to_map();
+        let legals   = new_game.legals().to_map();
 
         macro_rules! draw {
             () => {
@@ -169,7 +169,20 @@ impl Game {
     #[inline(always)]
     pub fn in_check(&self) -> bool {
         let king_pos = self.board.get_bitboard(self.color, Piece::King).as_square_unchecked();
-        !(self.board.get_attacks(king_pos) & self.board.get_color_occupancy(self.color.invert())).empty()
+        (self.board.get_attacks(king_pos) & self.board.get_color_occupancy(self.color.invert())).not_empty()
+    }
+
+    /// Return true if the game can be considered endgame:
+    /// Both sides have no queen, or they have at most one other minor piece
+    #[inline(always)]
+    pub fn is_endgame(&self) -> bool {
+        Color::COLORS.iter().fold(true, |acc, &c| {
+            let queens = self.board.get_bitboard(c, Piece::Queen);
+            let rooks  = self.board.get_bitboard(c, Piece::Rook);
+            let occ    = self.board.get_color_occupancy(c);
+
+            acc && (queens.empty() || queens.count() == 1 && rooks.empty() && occ.count() < 3)
+        })
     }
 
     /// Try to parse a move from current position with given coordinates,
@@ -221,7 +234,7 @@ impl Game {
             }
             5 => {
                 let from = Square::from_str(&s[0..2])?;
-                let to = Square::from_str(&s[2..4])?;
+                let to   = Square::from_str(&s[2..4])?;
 
                 let promote = match s.chars().nth(4).unwrap() {
                     'r' => Piece::Rook,

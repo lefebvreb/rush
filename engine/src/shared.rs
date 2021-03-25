@@ -1,4 +1,5 @@
-use std::{mem, ptr};
+use std::mem;
+use std::sync::Barrier;
 use std::sync::atomic::{AtomicU8, Ordering};
 
 use chess::{Game, Move, Zobrist};
@@ -98,21 +99,51 @@ pub(crate) fn table_probe(zobrist: Zobrist, alpha: f32, beta: f32, depth: u8) ->
 //#################################################################################################
 
 // The game to be searched
-static mut GAME: *const Game = ptr::null();
+static mut GAME: Option<Game> = None;
+// The sync barrier
+static mut BARRIER: Option<Barrier> = None;
+
 // The current search depth
 static mut SEARCH_DEPTH: AtomicU8 = AtomicU8::new(0);
-// A counter telling threads what depth they need to search to
+// A counter telling threads what depth they need to search to next
 static mut SEARCH_ID: AtomicU8 = AtomicU8::new(0);
 // The current best move
 static mut BEST_MOVE: Option<Move> = None;
 // A bool signaling whether or not the search should end
 static mut STOP_SEARCH: bool = false;
 
+// Initialize the shared data
+#[inline(always)]
+pub (crate) fn initialize() {
+    unsafe {
+        GAME = Some(Game::default());
+        BARRIER = Some(Barrier::new(params::NUM_SEARCH_THREADS as usize + 1));
+        reset_infos();
+    }
+}
+
+// Make this thread to wait at the barrier
+#[inline(always)]
+pub(crate) fn wait() {
+    unsafe {
+        BARRIER.as_ref().unwrap().wait();
+    }
+}
+
+// Performs the move and updates the game
+#[inline(always)]
+pub (crate) fn do_move(mv: Move) {
+    unsafe {
+        GAME.replace(
+            GAME.as_ref().unwrap().do_move(mv)
+        );
+    }
+}
+
 // Reset the search infos to the defaults, preparing a new search
 #[inline(always)]
-pub(crate) fn reset_infos(game: &Game) {
+pub(crate) fn reset_infos() {
     unsafe {
-        GAME         = game as *const Game;
         SEARCH_DEPTH = AtomicU8::new(0);
         SEARCH_ID    = AtomicU8::new(0);
         BEST_MOVE    = None;
@@ -168,7 +199,7 @@ pub (crate) fn should_stop() -> bool {
 
 // Get a clone of the game to search
 #[inline(always)]
-pub (crate) fn game<'search>() -> &'search Game {
+pub (crate) fn game<'a>() -> &'a Game {
     unsafe {
         GAME.as_ref().unwrap()
     }

@@ -138,6 +138,11 @@ impl Board {
         }
     }
 
+    #[inline(always)]
+    pub fn get_king_sq(&self, color: Color) -> Square {
+        self.bitboards[color as usize][Piece::King as usize].as_square_unchecked()
+    }
+
     /// Pretty-prints the board to stdout, using utf-8 characters
     /// to represent the pieces
     pub fn pretty_print(&self) -> String {
