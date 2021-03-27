@@ -1,4 +1,5 @@
 use actix::{Addr, Message};
+use chess::Move;
 
 use crate::wsclient::WsClient;
 
@@ -43,5 +44,5 @@ pub struct Disconnect {
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct EngineMove {
-    pub mv: String,
+    pub mv: Move,
 }

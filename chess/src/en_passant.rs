@@ -90,6 +90,7 @@ pub(crate) enum EnPassantAvailability {
 
 impl EnPassantAvailability {
     // Get the en passant availability of a position
+    #[inline(always)]
     pub(crate) fn get(color: Color, color_inv: Color, pawn_sq: Square, king_sq: Square, board: &Board) -> EnPassantAvailability {
         macro_rules! is_color_pawn {
             ($sq: expr) => {

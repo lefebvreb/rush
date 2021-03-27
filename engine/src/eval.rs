@@ -99,16 +99,16 @@ pub(crate) fn eval(game: &Game) -> f32 {
         }
         
         for sq in board.get_bitboard(Color::Black, piece).iter_squares() {
-            score -= PIECE_VALUES[piece as usize] + TABLES[piece as usize][64 - sq as usize];
+            score -= PIECE_VALUES[piece as usize] + TABLES[piece as usize][63 - sq as usize];
         }  
     }
 
     if game.is_endgame() {
         score += KINGS_ENDGAME[board.get_king_sq(Color::White) as usize];
-        score -= KINGS_ENDGAME[64 - board.get_king_sq(Color::Black) as usize];
+        score -= KINGS_ENDGAME[63 - board.get_king_sq(Color::Black) as usize];
     } else {
         score += KINGS_EARLY[board.get_king_sq(Color::White) as usize];
-        score -= KINGS_EARLY[64 - board.get_king_sq(Color::Black) as usize];
+        score -= KINGS_EARLY[63 - board.get_king_sq(Color::Black) as usize];
     }
 
     match game.get_color() {

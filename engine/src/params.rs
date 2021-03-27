@@ -6,7 +6,7 @@ pub(crate) const NUM_SEARCH_THREADS: u8 = 8;
 // 16 MB of ram for the hashtable
 pub(crate) const HASHTABLE_MEM_SIZE: usize = 16777216;
 
-pub(crate) const SEARCH_DURATION: Duration = Duration::from_millis(1000);
+pub(crate) const SEARCH_DURATION: Duration = Duration::from_secs(10);
 
 pub(crate) const MAX_DEPTH: u8 = 20;
 

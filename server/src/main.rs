@@ -13,7 +13,7 @@ mod messages;
 mod state;
 mod wsclient;
 
-use engine::Engine;
+use engine;
 use wsclient::WsClient;
 use state::State;
 
@@ -38,10 +38,10 @@ async fn main() -> std::io::Result<()> {
     let address = args.next().unwrap_or(DEFAULT_ADDR.to_string());
 
     // The chess engine
-    let engine = Engine::default().start();
+    engine::initialize("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
 
     // The global state
-    let state = State::new(&engine).start();
+    let state = State::default().start();
 
     // Start the HTTP server and start listening
     HttpServer::new(move || {

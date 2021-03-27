@@ -4,7 +4,7 @@ use actix::{Actor, Addr, AsyncContext, Context, Handler};
 use actix_web::rt::spawn;
 
 use chess::{Color, Game, GameStatus, Move, MoveGenerator, ThreefoldCounter};
-use engine::{Engine, EngineAskMove, EngineMakeMove};
+use engine;
 
 use crate::wsclient::WsClient;
 use crate::messages::{ClientInfo, ClientMove, ClientRequestEngine, ClientRequestPlay, Connect, Disconnect, EngineMove};
@@ -49,7 +49,6 @@ impl Player {
 
 // A struct to hold the addresses of the different actors
 struct Addresses {
-    engine: Addr<Engine>,
     clients: HashMap<Addr<WsClient>, Option<Color>>,
     white: Option<Player>,
     black: Option<Player>,
@@ -58,16 +57,6 @@ struct Addresses {
 // ================================ impl
 
 impl Addresses {
-    // Initialize the address repository
-    fn new(engine: Addr<Engine>) -> Addresses {
-        Addresses {
-            engine,
-            clients: HashMap::default(),
-            white: None,
-            black: None,
-        }
-    }
-
     // Return the (maybe?) color of that client
     fn get_color_of(&self, addr: &Addr<WsClient>) -> Option<Color> {
         if Player::is(&self.white, addr) {
@@ -118,16 +107,23 @@ impl Addresses {
         self.clients.keys()
     }
 
-    // Return the address of the engine
-    fn engine(&self) -> &Addr<Engine> {
-        &self.engine
-    }
-
     // Return the (maybe?) player corresponding to that color
     fn get_player(&self, color: Color) -> &Option<Player> {
         match color {
             Color::White => &self.white,
             Color::Black => &self.black,
+        }
+    }
+}
+
+// ================================ trait impl
+
+impl Default for Addresses {
+    fn default() -> Addresses {
+        Addresses {
+            clients: HashMap::default(),
+            white: None,
+            black: None,
         }
     }
 }
@@ -164,6 +160,7 @@ impl GameState {
             self.history.push(mv);
             self.legals = legals;
             self.status = status;
+            engine::do_move(mv);
             true
         } else {
             false
@@ -275,23 +272,6 @@ pub struct State {
     view: View,
 }
 
-// ================================ pub impl
-
-impl State {
-    // Initialize the State of the server
-    pub fn new(engine: &Addr<Engine>) -> State {
-        let addresses = Addresses::new(engine.clone());
-        let game_state = GameState::default();
-        let view = View::new(&game_state);
-
-        State {
-            addresses,
-            game_state,
-            view,
-        }
-    }
-}
-
 // ================================ impl
 
 impl State {
@@ -310,14 +290,13 @@ impl State {
         match self.addresses.get_player(self.game_state.playing_color()) {
             Some(Player::Client(a)) => self.send_info(&a),
             Some(Player::Engine) => {
-                let future = self.addresses.engine().send(EngineAskMove);
                 let addr = addr.clone();
-
+                
                 spawn(async move {
-                    let mv = future.await.unwrap_or(String::new());
-                    addr.do_send(EngineMove {mv});
+                    let mv = engine::compute();
+                    addr.do_send(EngineMove {mv});                
                 });
-            },
+            }, 
             _ => (),
         }
     }
@@ -326,9 +305,6 @@ impl State {
     fn try_move(&mut self, addr: &Addr<State>, mv: String) {
         // If the move is valid
         if self.game_state.try_move(mv.clone()) {
-            // Send the move to the engine
-            self.addresses.engine().do_send(EngineMakeMove {mv});
-
             // Update the view
             self.view = View::new(&self.game_state);
 
@@ -355,6 +331,20 @@ impl State {
 
 impl Actor for State {
     type Context = Context<Self>;
+}
+
+impl Default for State {
+    fn default() -> State {
+        let addresses = Addresses::default();
+        let game_state = GameState::default();
+        let view = View::new(&game_state);
+
+        State {
+            addresses,
+            game_state,
+            view,
+        }
+    }
 }
 
 impl Handler<Connect> for State {
@@ -433,6 +423,6 @@ impl Handler<EngineMove> for State {
 
     // When a client requests to play
     fn handle(&mut self, msg: EngineMove, ctx: &mut Self::Context) {
-        self.try_move(&ctx.address(), msg.mv);
+        self.try_move(&ctx.address(), msg.mv.to_string());
     }  
 }

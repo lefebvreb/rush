@@ -1,10 +1,8 @@
-use std::borrow::Borrow;
-
 use chess::{Game, Move, MoveGenerator, Zobrist};
 
 use crate::eval::eval;
 use crate::params;
-use crate::shared::{self, Entry, NodeFlag, table_insert};
+use crate::shared::{self, Entry, NodeFlag};
 
 //#################################################################################################
 //
@@ -27,10 +25,10 @@ impl Search {
     pub(crate) fn search_position(&mut self) {
         let game = shared::game();
 
-        let best_score = self.quiescence(game.clone(), f32::NEG_INFINITY, f32::INFINITY);
-        
+        let best_score = self.quiescence(game, f32::NEG_INFINITY, f32::INFINITY);
+
         'search: loop {
-            let search_depth = shared::search_depth();
+            let search_depth = shared::next_search_depth();
 
             let mut alpha = best_score - params::ASPIRATION_WINDOW[0];
             let mut beta  = best_score + params::ASPIRATION_WINDOW[0];
@@ -39,10 +37,14 @@ impl Search {
             let mut beta_index  = 1;
 
             loop {
-                let best_score = self.alpha_beta(game.clone(), alpha, beta, true, search_depth, search_depth);
+                let best_score = self.alpha_beta(game, alpha, beta, true, search_depth, search_depth);
             
-                if shared::should_stop() || shared::search_depth() >= search_depth {
+                if shared::should_stop() {
                     break 'search;
+                }
+
+                if shared::search_depth() >= search_depth {
+                    break;
                 }
 
                 if best_score <= alpha {
@@ -91,9 +93,7 @@ impl Search {
     } 
 
     // Return the value of the position, computed with a quiescent search (only considering captures)
-    fn quiescence<G: Borrow<Game>>(&mut self, game: G, mut alpha: f32, beta: f32) -> f32 {
-        let game = game.borrow();
-
+    fn quiescence(&mut self, game: &Game, mut alpha: f32, beta: f32) -> f32 {
         if self.is_pseudodraw(game) {
             return 0.0;
         }
@@ -107,7 +107,7 @@ impl Search {
         if stand_pat >= beta {
             return beta;
         }
-        alpha = alpha.min(stand_pat);
+        alpha = alpha.max(stand_pat);
 
         let mut legals = game.legals();
 
@@ -117,26 +117,26 @@ impl Search {
             }
 
             self.next(&game, mv);
-            let score = -self.quiescence(game.do_move(mv), -beta, -alpha);
+            let score = -self.quiescence(&game.do_move(mv), -beta, -alpha);
             self.prev();
 
             if shared::should_stop() {
                 return 0.0;
             }
 
-            if score >= beta {
-                return beta;
+            if score > alpha {
+                if score >= beta {
+                    return beta;
+                }
+                alpha = score;
             }
-            alpha = alpha.max(score);
         }
         
         alpha
     }
 
     // The alpha-beta negamax algorithm, with a few more heuristics in it
-    pub(crate) fn alpha_beta<G: Borrow<Game>>(&mut self, game: G, mut alpha: f32, beta: f32, do_null: bool, mut depth: u8, search_depth: u8) -> f32 {
-        let game = game.borrow();
-        
+    pub(crate) fn alpha_beta(&mut self, game: &Game, mut alpha: f32, beta: f32, do_null: bool, mut depth: u8, search_depth: u8) -> f32 {        
         if depth == 0 {
             return self.quiescence(game, alpha, beta);
         }
@@ -177,7 +177,7 @@ impl Search {
 
         while let Some(mv) = legals.next() {
             self.next(&game, mv);
-            let score = -self.alpha_beta(game.do_move(mv), -beta, -alpha, do_null, depth-1, search_depth);
+            let score = -self.alpha_beta(&game.do_move(mv), -beta, -alpha, do_null, depth-1, search_depth);
             self.prev();
 
             if shared::should_stop() || shared::search_depth() >= search_depth {
@@ -194,7 +194,7 @@ impl Search {
                             // TODO: killer heuristic
                         }
 
-                        table_insert(game.get_zobrist(), Entry {
+                        shared::table_insert(game.get_zobrist(), Entry {
                             mv, 
                             score: beta, 
                             age: game.get_clock().ply(), 
@@ -217,11 +217,11 @@ impl Search {
                 -params::MATE_SCORE + self.depth as f32
             } else {
                 0.0
-            }
+            };
         }
 
         if alpha != old_alpha {
-            table_insert(game.get_zobrist(), Entry {
+            shared::table_insert(game.get_zobrist(), Entry {
                 mv: best_move.unwrap(), 
                 score: best_score, 
                 age: game.get_clock().ply(), 
@@ -233,7 +233,7 @@ impl Search {
                 self.best_move = best_move;
             }
         } else {
-            table_insert(game.get_zobrist(), Entry {
+            shared::table_insert(game.get_zobrist(), Entry {
                 mv: best_move.unwrap(), 
                 score: alpha, 
                 age: game.get_clock().ply(), 

@@ -114,9 +114,9 @@ static mut STOP_SEARCH: bool = false;
 
 // Initialize the shared data
 #[inline(always)]
-pub (crate) fn initialize() {
+pub (crate) fn initialize(game: Game) {
     unsafe {
-        GAME = Some(Game::default());
+        GAME = Some(game);
         BARRIER = Some(Barrier::new(params::NUM_SEARCH_THREADS as usize + 1));
         reset_infos();
     }
@@ -153,13 +153,21 @@ pub(crate) fn reset_infos() {
 
 // The depth a thread should search to
 #[inline(always)]
-pub(crate) fn search_depth() -> u8 {
+pub(crate) fn next_search_depth() -> u8 {
     unsafe {
         SEARCH_DEPTH.load(Ordering::Relaxed) + 1 + SEARCH_ID.fetch_update(
-            Ordering::Release, 
-            Ordering::Acquire, 
+            Ordering::SeqCst, 
+            Ordering::SeqCst, 
             |id| Some((id + 1) % params::NUM_SEARCH_THREADS)
         ).unwrap().trailing_zeros() as u8
+    }
+}
+
+// The current base depth of the searches
+#[inline(always)]
+pub(crate) fn search_depth() -> u8 {
+    unsafe {
+        SEARCH_DEPTH.load(Ordering::Relaxed)
     }
 }
 
@@ -169,11 +177,12 @@ pub(crate) fn search_depth() -> u8 {
 pub (crate) fn report_move(mv: Move, depth: u8) {
     unsafe {
         SEARCH_DEPTH.fetch_update(
-            Ordering::Release,
-            Ordering::Acquire,
+            Ordering::SeqCst,
+            Ordering::SeqCst,
             |cur_depth| if depth <= cur_depth {
                 None
             } else {
+                println!("{}, {:?}", depth, mv);
                 BEST_MOVE = Some(mv);
                 Some(depth)
             }
