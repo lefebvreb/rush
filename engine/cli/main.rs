@@ -6,7 +6,8 @@
 //     <fen> : the fen string to be used, put it into quotes
 //
 // For profiling with perf:
-//   $ perf record --call-graph dwarf target/debug/cli "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+//   $ cargo build --bin cli --release
+//   $ perf record --call-graph dwarf target/release/cli "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 //   $ perf report
 
 use std::env::args;
