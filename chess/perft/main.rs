@@ -11,7 +11,7 @@
 //               Needs to be a single arguments, use quotes
 //
 // For profiling with perf:
-//   $ cargo build --bin cli --release
+//   $ cargo build --bin perft --release
 //   $ perf record --call-graph dwarf target/release/perft 3 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 //   $ perf report
 

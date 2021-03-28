@@ -1,7 +1,7 @@
-use chess::{Game, Move, MoveGenerator, Zobrist};
+use chess::{Game, Move, MoveGenerator, Piece, Zobrist};
 
 use crate::eval::eval;
-use crate::params;
+use crate::params::{self, PawnValue};
 use crate::shared::{self, Entry, NodeFlag};
 
 //#################################################################################################
@@ -23,6 +23,8 @@ impl Search {
     // The main search loop of a single thread, lauching the alpha-beta search
     // with an increasingly wide aspiration window
     pub(crate) fn search_position(&mut self) {
+        const MAX_IDX: usize = params::ASPIRATION_WINDOW.len() - 1;
+
         let game = shared::game();
 
         let best_score = self.quiescence(game, f32::NEG_INFINITY, f32::INFINITY);
@@ -32,9 +34,8 @@ impl Search {
 
             let mut alpha = best_score - params::ASPIRATION_WINDOW[0];
             let mut beta  = best_score + params::ASPIRATION_WINDOW[0];
-        
-            let mut alpha_index = 1;
-            let mut beta_index  = 1;
+
+            let (mut alpha_idx, mut beta_idx) = (0, 0);
 
             loop {
                 let best_score = self.alpha_beta(game, alpha, beta, true, search_depth, search_depth);
@@ -48,11 +49,11 @@ impl Search {
                 }
 
                 if best_score <= alpha {
-                    alpha = best_score - params::ASPIRATION_WINDOW[alpha_index.min(3)];
-                    alpha_index += 1;
+                    alpha_idx = MAX_IDX.min(alpha_idx + 1);
+                    alpha     = best_score - params::ASPIRATION_WINDOW[alpha_idx];
                 } else if best_score >= beta {
-                    beta = best_score + params::ASPIRATION_WINDOW[beta_index.min(3)];
-                    beta_index += 1;
+                    beta_idx = MAX_IDX.min(beta_idx + 1);
+                    beta     = best_score + params::ASPIRATION_WINDOW[beta_idx];
                 } else {
                     break;
                 }
@@ -93,7 +94,7 @@ impl Search {
     } 
 
     // Return the value of the position, computed with a quiescent search (only considering captures)
-    fn quiescence(&mut self, game: &Game, mut alpha: f32, beta: f32) -> f32 {
+    fn quiescence(&mut self, game: &Game, mut alpha: PawnValue, beta: PawnValue) -> PawnValue {
         if self.is_pseudodraw(game) {
             return 0.0;
         }
@@ -107,12 +108,28 @@ impl Search {
         if stand_pat >= beta {
             return beta;
         }
+
+        // Big delta pruning
+        let mut big_delta = params::value_of(Piece::Queen);
+        if game.may_promote() {
+            big_delta += params::value_of(Piece::Queen) - params::value_of(Piece::Pawn);
+        }
+
+        if stand_pat < alpha - big_delta {
+            return alpha;
+        }
+
         alpha = alpha.max(stand_pat);
 
         let mut legals = game.legals();
 
         while let Some(mv) = legals.next() {
-            if !mv.is_capture() {
+            if let Some(capture) = mv.get_capture() {
+                // Delta pruning
+                if params::value_of(capture) + params::DELTA < alpha {
+                    continue;
+                }
+            } else {
                 break;
             }
 
@@ -136,7 +153,7 @@ impl Search {
     }
 
     // The alpha-beta negamax algorithm, with a few more heuristics in it
-    pub(crate) fn alpha_beta(&mut self, game: &Game, mut alpha: f32, beta: f32, do_null: bool, mut depth: u8, search_depth: u8) -> f32 {        
+    pub(crate) fn alpha_beta(&mut self, game: &Game, mut alpha: PawnValue, beta: PawnValue, do_null: bool, mut depth: u8, search_depth: u8) -> PawnValue {        
         if depth == 0 {
             return self.quiescence(game, alpha, beta);
         }
@@ -190,7 +207,7 @@ impl Search {
 
                 if score > alpha {
                     if score >= beta {
-                        if !mv.is_capture() {
+                        if mv.get_capture().is_none() {
                             // TODO: killer heuristic
                         }
 
@@ -214,7 +231,7 @@ impl Search {
 
         if moves == 0 {
             return if in_check {
-                -params::MATE_SCORE + self.depth as f32
+                -params::value_of(Piece::King) + self.depth as PawnValue
             } else {
                 0.0
             };

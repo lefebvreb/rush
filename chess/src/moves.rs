@@ -95,8 +95,11 @@ impl Move {
 
     /// Return true if the move is a capture
     #[inline(always)]
-    pub fn is_capture(self) -> bool {
-        matches!(self, Move::Capture {..} | Move::PromoteCapture {..} | Move::EnPassant {..})
+    pub fn get_capture(self) -> Option<Piece> {
+        match self {
+            Move::Capture {capture, ..} | Move::PromoteCapture {capture, ..} => Some(capture),
+            _ => None,
+        }
     }
 
     // Return true if the move is truly reversible

@@ -47,12 +47,12 @@ pub(crate) fn get_pawn_double_push(color: Color, sq: Square) -> Option<Square> {
 #[inline(always)]
 pub(crate) fn attacks(color: Color, piece: Piece, sq: Square, occ: BitBoard) -> BitBoard {
     match piece {
-        Piece::Pawn => pawn_attacks(color, sq),
-        Piece::Rook => rook_attacks(sq, occ),
+        Piece::Pawn   => pawn_attacks(color, sq),
+        Piece::Rook   => rook_attacks(sq, occ),
         Piece::Knight => knight_attacks(sq),
         Piece::Bishop => bishop_attacks(sq, occ),
-        Piece::Queen => queen_attacks(sq, occ),
-        Piece::King => king_attacks(sq),
+        Piece::Queen  => queen_attacks(sq, occ),
+        Piece::King   => king_attacks(sq),
     }
 }
 

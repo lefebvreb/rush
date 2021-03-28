@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
 
+use crate::BitBoard;
 use crate::board::Board;
 use crate::castle_rights::CastleRights;
 use crate::color::Color;
@@ -183,6 +184,19 @@ impl Game {
 
             acc && (queens.empty() || queens.count() == 1 && rooks.empty() && occ.count() < 3)
         })
+    }
+
+    /// Return true if the side to move has any pawns in the second to last rank,
+    /// allowing them to probably promote that pawn
+    #[inline(always)]
+    pub fn may_promote(&self) -> bool {
+        let color = self.color;
+        let pawns = self.board.get_bitboard(color, Piece::Pawn);
+
+        (pawns & match self.get_color() {
+            Color::White => BitBoard::RANK_7,
+            Color::Black => BitBoard::RANK_2,
+        }).not_empty()
     }
 
     /// Try to parse a move from current position with given coordinates,

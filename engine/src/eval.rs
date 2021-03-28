@@ -1,12 +1,8 @@
 use chess::{Color, Game, Piece};
 
-// The values of all pieces (except the king), ordered by the value
-// of the piece as an integer
-const PIECE_VALUES: [f32; 5] = [
-    1.0, 5.0, 3.2, 3.3, 9.0
-];
+use crate::params::{self, PawnValue};
 
-const PAWNS: [f32; 64] = [
+const PAWNS: [PawnValue; 64] = [
 	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
 	0.05, 0.1, 0.1, -0.2, -0.2, 0.1, 0.1, 0.05,
 	0.05, -0.05, -0.1, 0.0, 0.0, -0.1, -0.05, 0.05,
@@ -17,7 +13,7 @@ const PAWNS: [f32; 64] = [
 	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
 ];
 
-const ROOKS: [f32; 64] = [
+const ROOKS: [PawnValue; 64] = [
 	0.0, 0.0, 0.0, 0.05, 0.05, 0.0, 0.0, 0.0,
 	-0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.05,
 	-0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.05,
@@ -28,7 +24,7 @@ const ROOKS: [f32; 64] = [
 	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
 ];
 
-const KNIGHTS: [f32; 64] = [
+const KNIGHTS: [PawnValue; 64] = [
 	-0.5, -0.4, -0.3, -0.3, -0.3, -0.3, -0.4, -0.5,
 	-0.4, -0.2, 0.0, 0.05, 0.05, 0.0, -0.2, -0.4,
 	-0.3, 0.05, 0.1, 0.15, 0.15, 0.1, 0.05, -0.3,
@@ -39,7 +35,7 @@ const KNIGHTS: [f32; 64] = [
 	-0.5, -0.4, -0.3, -0.3, -0.3, -0.3, -0.4, -0.5,
 ];
 
-const BISHOPS: [f32; 64] = [
+const BISHOPS: [PawnValue; 64] = [
 	-0.2, -0.1, -0.1, -0.1, -0.1, -0.1, -0.1, -0.2,
 	-0.1, 0.05, 0.0, 0.0, 0.0, 0.0, 0.05, -0.1,
 	-0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, -0.1,
@@ -50,7 +46,7 @@ const BISHOPS: [f32; 64] = [
 	-0.2, -0.1, -0.1, -0.1, -0.1, -0.1, -0.1, -0.2,
 ];
 
-const QUEENS: [f32; 64] = [
+const QUEENS: [PawnValue; 64] = [
 	-0.2, -0.1, -0.1, -0.05, -0.05, -0.1, -0.1, -0.2,
 	-0.1, 0.0, 0.05, 0.0, 0.0, 0.0, 0.0, -0.1,
 	-0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.0, -0.1,
@@ -61,7 +57,7 @@ const QUEENS: [f32; 64] = [
 	-0.2, -0.1, -0.1, -0.05, -0.05, -0.1, -0.1, -0.2,
 ];
 
-const KINGS_EARLY: [f32; 64] = [
+const KINGS_EARLY: [PawnValue; 64] = [
 	0.2, 0.3, 0.1, 0.0, 0.0, 0.1, 0.3, 0.2,
 	0.2, 0.2, 0.0, 0.0, 0.0, 0.0, 0.2, 0.2,
 	-0.1, -0.2, -0.2, -0.2, -0.2, -0.2, -0.2, -0.1,
@@ -73,7 +69,7 @@ const KINGS_EARLY: [f32; 64] = [
 ];
 
 
-const KINGS_ENDGAME: [f32; 64] = [
+const KINGS_ENDGAME: [PawnValue; 64] = [
 	-0.5, -0.3, -0.3, -0.3, -0.3, -0.3, -0.3, -0.5,
 	-0.3, -0.3, 0.0, 0.0, 0.0, 0.0, -0.3, -0.3,
 	-0.3, -0.1, 0.2, 0.3, 0.3, 0.2, -0.1, -0.3,
@@ -84,22 +80,22 @@ const KINGS_ENDGAME: [f32; 64] = [
 	-0.5, -0.4, -0.3, -0.2, -0.2, -0.3, -0.4, -0.5,
 ];
 
-const TABLES: [[f32; 64]; 5] = [
+const TABLES: [[PawnValue; 64]; 5] = [
     PAWNS, ROOKS, KNIGHTS,
     BISHOPS, QUEENS
 ];
 
-pub(crate) fn eval(game: &Game) -> f32 {
+pub(crate) fn eval(game: &Game) -> PawnValue {
     let board = game.get_board();
     let mut score = 0.0;
 
     for &piece in &Piece::PIECES[0..5] {
         for sq in board.get_bitboard(Color::White, piece).iter_squares() {
-            score += PIECE_VALUES[piece as usize] + TABLES[piece as usize][sq as usize];
+            score += params::value_of(piece) + TABLES[piece as usize][sq as usize];
         }
         
         for sq in board.get_bitboard(Color::Black, piece).iter_squares() {
-            score -= PIECE_VALUES[piece as usize] + TABLES[piece as usize][63 - sq as usize];
+            score -= params::value_of(piece) + TABLES[piece as usize][63 - sq as usize];
         }  
     }
 

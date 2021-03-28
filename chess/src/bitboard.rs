@@ -23,6 +23,16 @@ impl BitBoard {
     /// A full BitBoard
     pub const FULL: BitBoard = BitBoard(0xFFFFFFFFFFFFFFFF);
 
+    // The ranks of the board
+    pub const RANK_1: BitBoard = BitBoard(0xFF);
+    pub const RANK_2: BitBoard = BitBoard(0xFF00);
+    pub const RANK_3: BitBoard = BitBoard(0xFF0000);
+    pub const RANK_4: BitBoard = BitBoard(0xFF000000);
+    pub const RANK_5: BitBoard = BitBoard(0xFF00000000);
+    pub const RANK_6: BitBoard = BitBoard(0xFF0000000000);
+    pub const RANK_7: BitBoard = BitBoard(0xFF000000000000);
+    pub const RANK_8: BitBoard = BitBoard(0xFF00000000000000);
+
     /// Return true if and only if the BitBoard `self` is empty
     #[inline(always)]
     pub const fn empty(self) -> bool {
@@ -54,10 +64,10 @@ impl BitBoard {
     /// Return true if that bitboard is on the last rank
     #[inline(always)]
     pub fn last_rank(self, color: Color) -> bool {
-        self.0 & match color {
-            Color::White => 0xFF00000000000000,
-            Color::Black => 0xFF,
-        } == self.0
+        (self & match color {
+            Color::White => BitBoard::RANK_8,
+            Color::Black => BitBoard::RANK_1,
+        }).0 == self.0
     }
 
     /// Return true if that bitboard contains sq
