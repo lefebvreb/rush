@@ -89,6 +89,33 @@ impl Game {
         }
     }
 
+    #[inline]
+    pub fn do_null_move(&self) -> Game {
+        let board = self.board.clone();
+        let mut zobrist = board.get_zobrist();
+
+        let color = self.color.invert();
+        zobrist ^= color;
+        
+        let ep_rights = EnPassantSquare::None;
+        zobrist ^= ep_rights;
+
+        let castle_rights = self.castle_rights;
+        zobrist ^= castle_rights;
+
+        let clock = self.clock;
+
+        Game {
+            board,
+            color,
+            castle_rights,
+            ep_rights,
+            clock,
+            zobrist,
+        }
+    }
+
+
     /// Perform a new move ad modify the game accordingly, checking for mate or draw.
     /// Quite slow, so not suitable for tree search
     pub fn do_move_status(&self, counter: &mut ThreefoldCounter, mv: Move) -> (GameStatus, Game, HashMap<String, Move>) {

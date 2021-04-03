@@ -18,8 +18,11 @@ fn worker_loop() {
 
 // Start the threads
 pub(crate) fn start_threads() {
-    for _ in 0..params::NUM_SEARCH_THREADS {
-        thread::spawn(worker_loop);
+    for i in 0..params::NUM_SEARCH_THREADS {
+        thread::Builder::new()
+            .name(format!("worker {}", i))
+            .spawn(worker_loop)
+            .ok();
     }
 }
 

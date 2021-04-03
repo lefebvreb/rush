@@ -50,10 +50,10 @@ impl Search {
 
                 if best_score <= alpha {
                     alpha_idx = MAX_IDX.min(alpha_idx + 1);
-                    alpha     = best_score - params::ASPIRATION_WINDOW[alpha_idx];
+                    alpha = best_score - params::ASPIRATION_WINDOW[alpha_idx];
                 } else if best_score >= beta {
                     beta_idx = MAX_IDX.min(beta_idx + 1);
-                    beta     = best_score + params::ASPIRATION_WINDOW[beta_idx];
+                    beta = best_score + params::ASPIRATION_WINDOW[beta_idx];
                 } else {
                     break;
                 }
@@ -82,7 +82,7 @@ impl Search {
 
     // Put another key in the list
     #[inline(always)]
-    fn next(&mut self, game: &Game, mv: Move) {
+    fn next(&mut self, game: &Game) {
         self.keys[self.depth as usize] = game.get_zobrist();
         self.depth += 1;
     }
@@ -133,7 +133,7 @@ impl Search {
                 break;
             }
 
-            self.next(&game, mv);
+            self.next(&game);
             let score = -self.quiescence(&game.do_move(mv), -beta, -alpha);
             self.prev();
 
@@ -179,8 +179,16 @@ impl Search {
         if in_check {
             depth += 1;
         } else if do_null && self.depth > 0 && depth >= 4 {
-            // TODO: avoid endgame position heuristic
-            // and do null move heuristic
+            // Null-move pruning
+            if !(game.in_check() || game.is_endgame()) {
+                self.next(&game);
+                let null_score = -self.alpha_beta(&game.do_null_move(), -beta, -beta + params::value_of(Piece::Pawn), false, depth - 4, search_depth);
+                self.prev();
+
+                if null_score >= beta {
+                    return beta;
+                }
+            }
         }
 
         if let Some(entry) = shared::table_get(game.get_zobrist()) {
@@ -193,7 +201,7 @@ impl Search {
         let mut moves = 0u8;
 
         while let Some(mv) = legals.next() {
-            self.next(&game, mv);
+            self.next(&game);
             let score = -self.alpha_beta(&game.do_move(mv), -beta, -alpha, do_null, depth-1, search_depth);
             self.prev();
 
