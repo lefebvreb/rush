@@ -115,6 +115,62 @@ impl BitBoard {
     pub(crate) fn as_square_unchecked(self) -> Square {
         Square::from(self.0.trailing_zeros() as u8)
     }
+
+    // Perform a parallel bits extract (pext) using the intrinsic (fast)
+    #[inline]
+    #[cfg(target_feature = "bmi2")]
+    pub(crate) fn pext(self, mask: BitBoard) -> BitBoard {
+        BitBoard(unsafe {
+            std::arch::x86_64::_pext_u64(self.0, mask.0)
+        })
+    }
+
+    // Perform a parallel bits extract (pext) without the intrinsic (slow)
+    #[inline]
+    #[cfg(not(target_feature = "bmi2"))]
+    pub(crate) fn pext(self, mut mask: BitBoard) -> BitBoard {
+        compile_error!("pext intrinsic not found");
+        let (mut i, mut res) = (0, 0);
+
+        while mask.0 != 0 {
+            let tmp = mask.0;
+            mask.0 &= mask.0 - 1;
+            if (mask.0 ^ tmp) & self.0 != 0 {
+                res |= shift(i).0;
+            }
+            i += 1;
+        }
+
+        BitBoard(res)
+    }
+
+    // Perform a parallel bits deposit (pdep) using the intrinsic (fast)
+    #[inline]
+    #[cfg(target_feature = "bmi2")]
+    pub(crate) fn pdep(self, mask: BitBoard) -> BitBoard {
+        BitBoard(unsafe {
+            std::arch::x86_64::_pdep_u64(self.0, mask.0)
+        })
+    }
+
+    // Perform a parallel bits deposit (pdep) without the intrinsic (slow)
+    #[inline]
+    #[cfg(not(target_feature = "bmi2"))]
+    pub(crate) fn pdep(self, mut mask: BitBoard) -> BitBoard {
+        compile_error!("pdep intrinsic not found");
+        let (mut i, mut res) = (0, 0);
+
+        while mask.0 != 0 {
+            let tmp = mask.0;
+            mask.0 &= mask.0 - 1;
+            if self.0 & shift(i).0 != 0 {
+                res |= mask.0 ^ tmp;
+            }
+            i += 1;
+        }
+
+        BitBoard(res)
+    }
 }
 
 // ================================ traits impl
