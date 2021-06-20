@@ -1,8 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use crate::bitboard::BitBoard;
-use crate::bmi2::SHIFTS;
+use crate::bitboard::{BitBoard, shift};
 use crate::color::Color;
 use crate::errors::ParseFenError;
 
@@ -42,19 +41,19 @@ impl Square {
     ];
 
     /// Return the x coodinate of that square
-    #[inline(always)]
+    #[inline]
     pub fn x(self) -> u8 {
         (self as u8) & 0x7
     }
 
     /// Return the y coodinate of that square
-    #[inline(always)]
+    #[inline]
     pub fn y(self) -> u8 {
         (self as u8).wrapping_shr(3)
     }
 
     /// Return true if that square is last rank
-    #[inline(always)]
+    #[inline]
     pub fn is_last_rank(self, color: Color) -> bool {
         self.y() == match color {
             Color::White => 7,
@@ -63,7 +62,7 @@ impl Square {
     }
 
     /// Return the color of that square on the board
-    #[inline(always)]
+    #[inline]
     pub fn parity(self) -> Color {
         if (self.x() + self.y()) % 2 == 0 {
             Color::Black
@@ -78,20 +77,20 @@ impl Square {
 impl Square {
     // Return the square immediately left of that square 
     // (from white's point of view)
-    #[inline(always)]
+    #[inline]
     pub(crate) fn get_left_unchecked(self) -> Square {
         Square::from((self.x() - 1, self.y()))
     }
 
     // Return the square immediately right of that square 
     // (from white's point of view)
-    #[inline(always)]
+    #[inline]
     pub(crate) fn get_right_unchecked(self) -> Square {
         Square::from((self.x() + 1, self.y()))
     }
 
     // Return the square between from and to
-    #[inline(always)]
+    #[inline]
     pub(crate) fn get_mid(self, other: Square) -> Square {
         Square::from((self.x(), (self.y() + other.y()) / 2))
     }
@@ -110,21 +109,21 @@ impl fmt::Display for Square {
 }
 
 impl Into<BitBoard> for Square {
-    #[inline(always)]
+    #[inline]
     fn into(self) -> BitBoard {
-        BitBoard(SHIFTS[self as usize])
+        shift(self as u8)
     }
 }
 
 impl From<u8> for Square {
-    #[inline(always)]
+    #[inline]
     fn from(i: u8) -> Square {
         Square::SQUARES[i as usize]
     }
 }
 
 impl From<(u8, u8)> for Square {
-    #[inline(always)]
+    #[inline]
     fn from(xy: (u8, u8)) -> Square {
         Square::from(xy.0 + 8*xy.1)
     }

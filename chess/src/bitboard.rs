@@ -5,6 +5,29 @@ use crate::square::Square;
 
 //#################################################################################################
 //
+//                                       static SHIFTS
+//
+//#################################################################################################
+
+// An array whose ith element is 1 << i
+static mut SHIFTS: [BitBoard; 64] = [BitBoard::EMPTY; 64];
+
+// Initialize the SHIFTS static
+pub(crate) unsafe fn init_shifts() {
+    for i in 0..64 {
+        SHIFTS[i] = BitBoard(1 << i);
+    }
+}
+
+// Return  1 << i as a BitBoard
+pub(crate) fn shift(i: u8) -> BitBoard {
+    unsafe {
+        SHIFTS[i as usize]
+    }
+}
+
+//#################################################################################################
+//
 //                                       struct BitBoard
 //
 //#################################################################################################
@@ -34,19 +57,19 @@ impl BitBoard {
     pub const RANK_8: BitBoard = BitBoard(0xFF00000000000000);
 
     /// Return true if and only if the BitBoard `self` is empty
-    #[inline(always)]
+    #[inline]
     pub const fn empty(self) -> bool {
         self.0 == 0
     }
 
     /// Return true if and only if the BitBoard `self` is not empty
-    #[inline(always)]
+    #[inline]
     pub const fn not_empty(self) -> bool {
         self.0 != 0
     }
 
     /// Return an iterator over the bits of the BitBoard `self`
-    #[inline(always)]
+    #[inline]
     pub fn iter_squares(mut self) -> impl Iterator<Item = Square> {
         (0..self.0.count_ones()).map(move |_| {
             let lsb = self.0.trailing_zeros();
@@ -56,13 +79,13 @@ impl BitBoard {
     }
     
     /// Count the bits of `self` that are 1
-    #[inline(always)]
+    #[inline]
     pub fn count(self) -> u8 {
         self.0.count_ones() as u8
     }
 
     /// Return true if that bitboard is on the last rank
-    #[inline(always)]
+    #[inline]
     pub fn last_rank(self, color: Color) -> bool {
         (self & match color {
             Color::White => BitBoard::RANK_8,
@@ -71,7 +94,7 @@ impl BitBoard {
     }
 
     /// Return true if that bitboard contains sq
-    #[inline(always)]
+    #[inline]
     pub fn contains(self, sq: Square) -> bool {
         (self & sq.into()).0 != 0
     }
@@ -88,7 +111,7 @@ macro_rules! squares {
 
 impl BitBoard {
     // Return the first square of the bitboard, with no checks
-    #[inline(always)]
+    #[inline]
     pub(crate) fn as_square_unchecked(self) -> Square {
         Square::from(self.0.trailing_zeros() as u8)
     }
@@ -121,14 +144,14 @@ impl fmt::Display for BitBoard {
 impl std::ops::Add<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn add(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.wrapping_add(rhs.0))
     }
 }
 
 impl std::ops::AddAssign<BitBoard> for BitBoard {
-    #[inline(always)]
+    #[inline]
     fn add_assign(&mut self, rhs: BitBoard) {
         self.0.add_assign(rhs.0)
     }
@@ -137,14 +160,14 @@ impl std::ops::AddAssign<BitBoard> for BitBoard {
 impl std::ops::Sub<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn sub(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.wrapping_sub(rhs.0))
     }
 }
 
 impl std::ops::SubAssign<BitBoard> for BitBoard {
-    #[inline(always)]
+    #[inline]
     fn sub_assign(&mut self, rhs: BitBoard) {
         self.0.sub_assign(rhs.0)
     }
@@ -153,14 +176,14 @@ impl std::ops::SubAssign<BitBoard> for BitBoard {
 impl std::ops::Mul<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn mul(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.wrapping_mul(rhs.0))
     }
 }
 
 impl std::ops::MulAssign<BitBoard> for BitBoard {
-    #[inline(always)]
+    #[inline]
     fn mul_assign(&mut self, rhs: BitBoard) {
         self.0.mul_assign(rhs.0)
     }
@@ -169,7 +192,7 @@ impl std::ops::MulAssign<BitBoard> for BitBoard {
 impl std::ops::Not for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn not(self) -> BitBoard {
         BitBoard(self.0.not())
     }
@@ -178,7 +201,7 @@ impl std::ops::Not for BitBoard {
 impl std::ops::Neg for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn neg(self) -> BitBoard {
         BitBoard(self.0.wrapping_neg())
     }
@@ -187,14 +210,14 @@ impl std::ops::Neg for BitBoard {
 impl std::ops::BitAnd<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn bitand(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.bitand(rhs.0))
     }
 }
 
 impl std::ops::BitAndAssign<BitBoard> for BitBoard {
-    #[inline(always)]
+    #[inline]
     fn bitand_assign(&mut self, rhs: BitBoard) {
         self.0.bitand_assign(rhs.0)
     }
@@ -203,14 +226,14 @@ impl std::ops::BitAndAssign<BitBoard> for BitBoard {
 impl std::ops::BitOr<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn bitor(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.bitor(rhs.0))
     }
 }
 
 impl std::ops::BitOrAssign<BitBoard> for BitBoard {
-    #[inline(always)]
+    #[inline]
     fn bitor_assign(&mut self, rhs: BitBoard) {
         self.0.bitor_assign(rhs.0)
     }
@@ -219,14 +242,14 @@ impl std::ops::BitOrAssign<BitBoard> for BitBoard {
 impl std::ops::BitXor<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn bitxor(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.bitxor(rhs.0))
     }
 }
 
 impl std::ops::BitXorAssign<BitBoard> for BitBoard {
-    #[inline(always)]
+    #[inline]
     fn bitxor_assign(&mut self, rhs: BitBoard) {
         self.0.bitxor_assign(rhs.0)
     }
@@ -235,14 +258,14 @@ impl std::ops::BitXorAssign<BitBoard> for BitBoard {
 impl std::ops::Shl<u32> for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn shl(self, rhs: u32) -> BitBoard {
         BitBoard(self.0.wrapping_shl(rhs))
     }
 }
 
 impl std::ops::ShlAssign<BitBoard> for BitBoard {
-    #[inline(always)]
+    #[inline]
     fn shl_assign(&mut self, rhs: BitBoard) {
         self.0.shl_assign(rhs.0)
     }
@@ -251,14 +274,14 @@ impl std::ops::ShlAssign<BitBoard> for BitBoard {
 impl std::ops::Shr<u32> for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn shr(self, rhs: u32) -> BitBoard {
         BitBoard(self.0.wrapping_shr(rhs))
     }
 }
 
 impl std::ops::ShrAssign<BitBoard> for BitBoard {
-    #[inline(always)]
+    #[inline]
     fn shr_assign(&mut self, rhs: BitBoard) {
         self.0.shr_assign(rhs.0)
     }

@@ -1,8 +1,8 @@
 [workspace]
 members = [
 	"chess",
-	"engine",
-	"server",
+	#"engine",
+	#"server",
 ]
 
 [profile.test]

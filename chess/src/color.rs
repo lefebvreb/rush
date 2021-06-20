@@ -26,7 +26,7 @@ impl Color {
     ];
 
     /// Give the opposite color of `self`
-    #[inline(always)]
+    #[inline]
     pub const fn invert(self) -> Color {
         match self {
             Color::White => Color::Black,
@@ -54,7 +54,7 @@ impl fmt::Display for Color {
 }
 
 impl From<u8> for Color {
-    #[inline(always)]
+    #[inline]
     fn from(i: u8) -> Color {
         Color::COLORS[i as usize]
     }
