@@ -123,7 +123,7 @@ impl fmt::Display for Move {
 //
 //#################################################################################################
 
-/// A compact way to represent a move
+/*/// A compact way to represent a move
 #[derive(Clone, Copy, Debug)]
 pub struct EncodedMove(u32);
 
@@ -222,11 +222,11 @@ impl Into<Move> for EncodedMove {
             _ => unreachable!(),
         }
     }
-}
+}*/
 
 //#################################################################################################
 //
-//                                   struct MoveList
+//                                     struct MoveList
 //
 //#################################################################################################
 
@@ -239,7 +239,7 @@ pub struct MoveList {
 
 impl MoveList {
     #[inline]
-    pub fn append(&mut self, mv: Move) {
+    pub fn push(&mut self, mv: Move) {
         self.list[self.size] = mv;
         self.size += 1;
     }
@@ -247,6 +247,11 @@ impl MoveList {
     #[inline]
     pub fn get(&self, i: usize) -> Move {
         self.list[i]
+    }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.size = 0
     }
 }
 

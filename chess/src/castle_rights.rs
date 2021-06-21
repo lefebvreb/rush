@@ -52,6 +52,14 @@ impl CastleRights {
     }
 }
 
+// ================================ pub(crate) impl
+
+impl CastleRights {
+    pub(crate) fn get_raw(self) -> u8 {
+        self.0
+    }
+}
+
 // ================================ traits impl
 
 impl Default for CastleRights {

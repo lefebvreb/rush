@@ -1,3 +1,11 @@
+use std::ops;
+
+use crate::castle_rights::CastleRights;
+use crate::color::Color;
+use crate::en_passant::EnPassantSquare;
+use crate::piece::Piece;
+use crate::square::Square;
+
 //#################################################################################################
 //
 //                                  struct Keys & static KEYS
@@ -57,3 +65,41 @@ pub(crate) unsafe fn init_zobrist() {
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Zobrist(u64);
+
+// ================================ traits impl
+
+impl ops::BitXorAssign<CastleRights> for Zobrist {
+    fn bitxor_assign(&mut self, rhs: CastleRights) {
+        unsafe {
+            self.0 ^= KEYS.castle_rights_keys[rhs.get_raw() as usize];
+        }
+    }
+}
+
+impl ops::BitXorAssign<Color> for Zobrist {
+    fn bitxor_assign(&mut self, rhs: Color) {
+        unsafe {
+            self.0 ^= KEYS.color_keys[rhs as usize];
+        }
+    }
+}
+
+impl ops::BitXorAssign<EnPassantSquare> for Zobrist {
+    fn bitxor_assign(&mut self, rhs: EnPassantSquare) {
+        match rhs {
+            EnPassantSquare::Some(sq) => unsafe {
+                self.0 ^= KEYS.en_passant_file_keys[sq.x() as usize];
+            },
+            _ => (),
+        }
+    }
+}
+
+impl ops::BitXorAssign<(Color, Piece, Square)> for Zobrist {
+    fn bitxor_assign(&mut self, rhs: (Color, Piece, Square)) {
+        unsafe {
+            let (color, piece, sq) = rhs;
+            self.0 ^= KEYS.squares_colors_pieces_keys[sq as usize][piece as usize][color as usize];
+        }
+    }
+}

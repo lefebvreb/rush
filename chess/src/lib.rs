@@ -11,8 +11,16 @@ mod position;
 mod square;
 mod zobrist;
 
+/// Initialize the components of the chess lib
 pub fn init() {
+    static mut DONE: bool = false;
+
     unsafe {
+        if DONE {
+            return;
+        }
+        DONE = true;
+
         bitboard::init_shifts();
         zobrist::init_zobrist();
     }
