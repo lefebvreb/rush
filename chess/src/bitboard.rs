@@ -6,14 +6,16 @@ use crate::square::Square;
 
 //#################################################################################################
 //
-//                                       static SHIFTS
+//                                       Shifts table
 //
 //#################################################################################################
 
-// An array whose ith element is 1 << i
+// An array whose ith element is 1 << i, precalculated as lookup
+// is slightly faster than calculating them
 static mut SHIFTS: [BitBoard; 64] = [BitBoard::EMPTY; 64];
 
 // Initialize the SHIFTS static
+#[cold]
 pub(crate) unsafe fn init_shifts() {
     for i in 0..64 {
         SHIFTS[i] = BitBoard(1 << i);
@@ -21,9 +23,10 @@ pub(crate) unsafe fn init_shifts() {
 }
 
 // Return  1 << i as a BitBoard
-pub(crate) fn one_shl(i: u8) -> BitBoard {
+#[inline]
+pub(crate) fn shift(i: usize) -> BitBoard {
     unsafe {
-        SHIFTS[i as usize]
+        SHIFTS[i]
     }
 }
 
@@ -130,7 +133,7 @@ impl BitBoard {
     #[inline]
     #[cfg(not(target_feature = "bmi2"))]
     pub(crate) fn pext(self, mut mask: BitBoard) -> BitBoard {
-        compile_error!("pext intrinsic not found");
+        //compile_error!("pext intrinsic not found");
         let (mut i, mut res) = (0, 0);
 
         while mask.0 != 0 {
@@ -158,7 +161,7 @@ impl BitBoard {
     #[inline]
     #[cfg(not(target_feature = "bmi2"))]
     pub(crate) fn pdep(self, mut mask: BitBoard) -> BitBoard {
-        compile_error!("pdep intrinsic not found");
+        //compile_error!("pdep intrinsic not found");
         let (mut i, mut res) = (0, 0);
 
         while mask.0 != 0 {
@@ -171,6 +174,12 @@ impl BitBoard {
         }
 
         BitBoard(res)
+    }
+
+    // Get the lower 16 bits
+    #[inline]
+    pub(crate) fn lower16(self) -> u16 {
+        self.0 as u16
     }
 }
 

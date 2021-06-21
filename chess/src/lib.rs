@@ -1,5 +1,6 @@
 #![allow(dead_code, unused_variables, unused_macros)]
 
+mod attacks;
 mod bitboard;
 mod castle_rights;
 mod color;
@@ -12,6 +13,7 @@ mod square;
 mod zobrist;
 
 /// Initialize the components of the chess lib
+#[cold]
 pub fn init() {
     static mut DONE: bool = false;
 
@@ -22,6 +24,7 @@ pub fn init() {
         DONE = true;
 
         bitboard::init_shifts();
-        zobrist::init_zobrist();
+        zobrist::init();
+        attacks::init();
     }
 }

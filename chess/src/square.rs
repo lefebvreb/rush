@@ -1,7 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use crate::bitboard::{BitBoard, one_shl};
+use crate::bitboard::{BitBoard, shift};
 use crate::color::Color;
 use crate::errors::ParseFenError;
 
@@ -111,7 +111,7 @@ impl fmt::Display for Square {
 impl Into<BitBoard> for Square {
     #[inline]
     fn into(self) -> BitBoard {
-        one_shl(self as u8)
+        shift(self as usize)
     }
 }
 

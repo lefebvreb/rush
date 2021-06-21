@@ -8,7 +8,7 @@ use crate::square::Square;
 
 //#################################################################################################
 //
-//                                  struct Keys & static KEYS
+//                                  Zobrist tables
 //
 //#################################################################################################
 
@@ -35,7 +35,8 @@ fn xorshift(seed: &mut u64) -> u64 {
     x.wrapping_mul(0x2545F4914F6CDD1D)
 }
 
-pub(crate) unsafe fn init_zobrist() {
+#[cold]
+pub(crate) unsafe fn init() {
     let mut seed = 0x0C3B301A1Af7EE42;
 
     for i in 0..16 {
