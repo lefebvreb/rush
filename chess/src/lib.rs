@@ -23,7 +23,7 @@ pub fn init() {
         }
         DONE = true;
 
-        bitboard::init_shifts();
+        bitboard::init();
         zobrist::init();
         attacks::init();
     }

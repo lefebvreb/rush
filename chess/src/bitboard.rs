@@ -6,7 +6,7 @@ use crate::square::Square;
 
 //#################################################################################################
 //
-//                                       Shifts table
+//                                            mod table
 //
 //#################################################################################################
 
@@ -14,19 +14,10 @@ use crate::square::Square;
 // is slightly faster than calculating them
 static mut SHIFTS: [BitBoard; 64] = [BitBoard::EMPTY; 64];
 
-// Initialize the SHIFTS static
-#[cold]
-pub(crate) unsafe fn init_shifts() {
+#[inline]
+pub(crate) unsafe fn init() {
     for i in 0..64 {
         SHIFTS[i] = BitBoard(1 << i);
-    }
-}
-
-// Return  1 << i as a BitBoard
-#[inline]
-pub(crate) fn shift(i: usize) -> BitBoard {
-    unsafe {
-        SHIFTS[i]
     }
 }
 
@@ -203,7 +194,18 @@ impl fmt::Display for BitBoard {
             bits = bits.wrapping_shr(8);
             writeln!(f, "│{:08b}│", rank).unwrap();
         }
-        writeln!(f, "└────────┘")
+        writeln!(f, "└────────┘").unwrap();
+
+        Ok(())
+    }
+}
+
+impl From<u8> for BitBoard {
+    #[inline]
+    fn from(i: u8) -> BitBoard {
+        unsafe {
+            SHIFTS[i as usize]
+        }
     }
 }
 

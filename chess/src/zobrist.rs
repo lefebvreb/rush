@@ -51,7 +51,7 @@ pub(crate) unsafe fn init() {
     }
 
     for i in 0..64 {
-        for j in 0..64 {
+        for j in 0..6 {
             KEYS.squares_colors_pieces_keys[i][j][0] = xorshift(&mut seed);
             KEYS.squares_colors_pieces_keys[i][j][1] = xorshift(&mut seed);
         }
@@ -100,7 +100,7 @@ impl ops::BitXorAssign<(Color, Piece, Square)> for Zobrist {
     fn bitxor_assign(&mut self, rhs: (Color, Piece, Square)) {
         unsafe {
             let (color, piece, sq) = rhs;
-            self.0 ^= KEYS.squares_colors_pieces_keys[sq as usize][piece as usize][color as usize];
+            self.0 ^= KEYS.squares_colors_pieces_keys[sq.idx()][piece as usize][color as usize];
         }
     }
 }

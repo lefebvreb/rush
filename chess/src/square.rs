@@ -1,7 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use crate::bitboard::{BitBoard, shift};
+use crate::bitboard::BitBoard;
 use crate::color::Color;
 use crate::errors::ParseFenError;
 
@@ -70,6 +70,22 @@ impl Square {
             Color::White
         }
     }
+
+    #[inline]
+    pub fn idx(self) -> usize {
+        self as usize
+    }
+
+    pub fn displace(self, (dx, dy): (i32, i32)) -> BitBoard {
+        let x = self.x() as i32 + dx;
+        let y = self.y() as i32 + dy;
+
+        if x >= 0 && x < 8 && y >= 0 && y < 8 {
+            Square::from((x as u8, y as u8)).into()
+        } else {
+            BitBoard::EMPTY
+        }
+    }
 }
 
 // ================================ pub(crate) impl
@@ -111,7 +127,7 @@ impl fmt::Display for Square {
 impl Into<BitBoard> for Square {
     #[inline]
     fn into(self) -> BitBoard {
-        shift(self as usize)
+        BitBoard::from(self as u8)
     }
 }
 
