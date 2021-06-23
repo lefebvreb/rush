@@ -24,7 +24,7 @@ pub enum Piece {
 // ================================ pub impl
 
 impl Piece {
-    // List of all pieces
+    /// The list of all pieces, in order
     pub const PIECES: [Piece; 6] = [
         Piece::Pawn, Piece::Rook, Piece::Knight, 
         Piece::Bishop, Piece::Queen, Piece::King,
@@ -35,12 +35,14 @@ impl Piece {
 
 impl Piece {
     // Return true if self is a slider
-    #[inline]
+    #[inline(always)]
     pub(crate) fn is_slider(self) -> bool {
-        match self {
-            Piece::Rook | Piece::Bishop | Piece::Queen => true,
-            _ => false,
-        }
+        matches!(self, Piece::Rook | Piece::Bishop | Piece::Queen)
+    }
+
+    #[inline(always)]
+    pub(crate) fn idx(self) -> usize {
+        self as usize
     }
 
     // Try to parse a piece from a single char

@@ -9,7 +9,9 @@ use crate::errors::ParseFenError;
 //
 //#################################################################################################
 
+// Represent the masks used to manipulate castle rights.
 #[repr(u8)]
+#[derive(Debug)]
 pub(crate) enum CastleMask {
     WhiteOO  = 0b0001,
     WhiteOOO = 0b0010,
@@ -23,38 +25,37 @@ pub(crate) enum CastleMask {
 //
 //#################################################################################################
 
-// Used to represent castle availability:
-// bit 0: White king side rights
-// bit 1: White queen side rights
-// bit 2: Black king side rights
-// bit 3: Black queen side rights
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+// Used to represent castle availability for both players
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct CastleRights(u8);
 
 // ================================ pub impl
 
 impl CastleRights {
-    #[inline]
+    /// Return true if those rights contain that mask
+    #[inline(always)]
     pub fn has(self, mask: CastleMask) -> bool {
         (self.0 & mask as u8) != 0
     }
 
-    #[inline]
-    pub fn set(mut self, mask: CastleMask) -> CastleRights {
-        self.0 |= mask as u8;
-        self
+    /// Add that mask to the rights and return the new rights
+    #[inline(always)]
+    pub fn add(self, mask: CastleMask) -> CastleRights {
+        CastleRights(self.0 | mask as u8)
     }
 
-    #[inline]
-    pub fn unset(mut self, mask: CastleMask) -> CastleRights {
-        self.0 &= !(mask as u8);
-        self
+    /// Remove that mask from the rights and return the new rights
+    #[inline(always)]
+    pub fn rem(self, mask: CastleMask) -> CastleRights {
+        CastleRights(self.0 & !(mask as u8))
     }
 }
 
 // ================================ pub(crate) impl
 
 impl CastleRights {
+    // Return the raw part of the rights, as an 8 bit integer
+    #[inline(always)]
     pub(crate) fn get_raw(self) -> u8 {
         self.0
     }

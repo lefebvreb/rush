@@ -118,8 +118,7 @@ impl Position {
 
 impl Default for Position {
     fn default() -> Position {
-        // Setup the initial position (use FromStr)
-        todo!()
+        Position::from_str("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
     }
 }
 

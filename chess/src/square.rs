@@ -7,6 +7,23 @@ use crate::errors::ParseFenError;
 
 //#################################################################################################
 //
+//                                        shifts table
+//
+//#################################################################################################
+
+// An array whose ith element is 1 << i, precalculated as lookup
+// is slightly faster than calculating them
+static mut SHIFTS: [BitBoard; 64] = [BitBoard::EMPTY; 64];
+
+// Initialize the shift array, for faster bitshifts of 1
+pub(crate) unsafe fn init() {
+    for i in 0..64 {
+        SHIFTS[i] = BitBoard(1 << i);
+    }
+}
+
+//#################################################################################################
+//
 //                                        enum Square
 //
 //#################################################################################################
@@ -41,19 +58,19 @@ impl Square {
     ];
 
     /// Return the x coodinate of that square
-    #[inline]
-    pub fn x(self) -> u8 {
-        (self as u8) & 0x7
+    #[inline(always)]
+    pub fn x(self) -> i8 {
+        (self as i8) & 0x7
     }
 
     /// Return the y coodinate of that square
-    #[inline]
-    pub fn y(self) -> u8 {
-        (self as u8).wrapping_shr(3)
+    #[inline(always)]
+    pub fn y(self) -> i8 {
+        (self as i8).wrapping_shr(3)
     }
 
     /// Return true if that square is last rank
-    #[inline]
+    #[inline(always)]
     pub fn is_last_rank(self, color: Color) -> bool {
         self.y() == match color {
             Color::White => 7,
@@ -62,7 +79,7 @@ impl Square {
     }
 
     /// Return the color of that square on the board
-    #[inline]
+    #[inline(always)]
     pub fn parity(self) -> Color {
         if (self.x() + self.y()) % 2 == 0 {
             Color::Black
@@ -71,19 +88,15 @@ impl Square {
         }
     }
 
-    #[inline]
-    pub fn idx(self) -> usize {
-        self as usize
-    }
-
-    pub fn displace(self, (dx, dy): (i32, i32)) -> BitBoard {
-        let x = self.x() as i32 + dx;
-        let y = self.y() as i32 + dy;
+    /// Displace the square by dx, dy, return None if the square is off the board
+    pub fn displace(self, (dx, dy): (i8, i8)) -> Option<Square> {
+        let x = self.x() as i8 + dx;
+        let y = self.y() as i8 + dy;
 
         if x >= 0 && x < 8 && y >= 0 && y < 8 {
-            Square::from((x as u8, y as u8)).into()
+            Some(Square::from((x, y)))
         } else {
-            BitBoard::EMPTY
+            None
         }
     }
 }
@@ -93,22 +106,28 @@ impl Square {
 impl Square {
     // Return the square immediately left of that square 
     // (from white's point of view)
-    #[inline]
+    #[inline(always)]
     pub(crate) fn get_left_unchecked(self) -> Square {
-        Square::from((self.x() - 1, self.y()))
+        Square::from(self as i8 - 1)
     }
 
     // Return the square immediately right of that square 
     // (from white's point of view)
-    #[inline]
+    #[inline(always)]
     pub(crate) fn get_right_unchecked(self) -> Square {
-        Square::from((self.x() + 1, self.y()))
+        Square::from(self as i8 + 1)
     }
 
     // Return the square between from and to
-    #[inline]
+    #[inline(always)]
     pub(crate) fn get_mid(self, other: Square) -> Square {
         Square::from((self.x(), (self.y() + other.y()) / 2))
+    }
+
+    /// Return the square as an index for an array
+    #[inline(always)]
+    pub(crate) fn idx(self) -> usize {
+        self as usize
     }
 }
 
@@ -127,20 +146,22 @@ impl fmt::Display for Square {
 impl Into<BitBoard> for Square {
     #[inline]
     fn into(self) -> BitBoard {
-        BitBoard::from(self as u8)
+        unsafe {
+            SHIFTS[self as usize]
+        }
     }
 }
 
-impl From<u8> for Square {
+impl From<i8> for Square {
     #[inline]
-    fn from(i: u8) -> Square {
+    fn from(i: i8) -> Square {
         Square::SQUARES[i as usize]
     }
 }
 
-impl From<(u8, u8)> for Square {
+impl From<(i8, i8)> for Square {
     #[inline]
-    fn from(xy: (u8, u8)) -> Square {
+    fn from(xy: (i8, i8)) -> Square {
         Square::from(xy.0 + 8*xy.1)
     }
 }
@@ -158,11 +179,11 @@ impl FromStr for Square {
 
             Ok(Square::from((
                 match file {
-                    'a'..='h' => file as u8 - 'a' as u8,
+                    'a'..='h' => file as i8 - 'a' as i8,
                     _ => return Err(ParseFenError::new("first character of a square should be a letter between a and h")),
                 },
                 match rank {
-                    '1'..='8' => rank as u8 - '1' as u8,
+                    '1'..='8' => rank as i8 - '1' as i8,
                     _ => return Err(ParseFenError::new("second character of a square should be a digit between 1 and 8")),
                 },
             )))

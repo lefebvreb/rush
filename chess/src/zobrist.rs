@@ -12,6 +12,7 @@ use crate::square::Square;
 //
 //#################################################################################################
 
+// The Keys struct, to hold all the zobrist keys
 struct Keys {
     castle_rights_keys: [u64; 16],
     color_keys: [u64; 2],
@@ -19,6 +20,8 @@ struct Keys {
     squares_colors_pieces_keys: [[[u64; 2]; 6]; 64],
 }
 
+// The only variable with a type of Keys, initialized at
+// the beginning of the program with random values
 static mut KEYS: Keys = Keys {
     castle_rights_keys: [0; 16],
     color_keys: [0; 2],
@@ -26,6 +29,9 @@ static mut KEYS: Keys = Keys {
     squares_colors_pieces_keys: [[[0; 2]; 6]; 64],
 };
 
+// The xorshift* algorithm for 64 bits numbers, producing
+// good enough pseudo-random numbers
+#[cold]
 fn xorshift(seed: &mut u64) -> u64 {
     let mut x = *seed;
     x ^= x.wrapping_shl(13);
@@ -35,6 +41,7 @@ fn xorshift(seed: &mut u64) -> u64 {
     x.wrapping_mul(0x2545F4914F6CDD1D)
 }
 
+// Initialize the zobrist keys at the beginning of the program
 #[cold]
 pub(crate) unsafe fn init() {
     let mut seed = 0x0C3B301A1Af7EE42;
@@ -64,6 +71,7 @@ pub(crate) unsafe fn init() {
 //
 //#################################################################################################
 
+/// A zobrist key, that may be used for hashing
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Zobrist(u64);
 

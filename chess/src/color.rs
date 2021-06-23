@@ -26,12 +26,21 @@ impl Color {
     ];
 
     /// Give the opposite color of `self`
-    #[inline]
+    #[inline(always)]
     pub const fn invert(self) -> Color {
         match self {
             Color::White => Color::Black,
             Color::Black => Color::White,
         }
+    }
+}
+
+// ================================ pub(crate) impl
+
+impl Color {
+    #[inline(always)]
+    pub(crate) fn idx(self) -> usize {
+        self as usize
     }
 }
 
@@ -45,6 +54,7 @@ impl Default for Color {
 }
 
 impl fmt::Display for Color {
+    // To FEN color notation
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", match self {
             Color::White => "w",
@@ -54,7 +64,7 @@ impl fmt::Display for Color {
 }
 
 impl From<u8> for Color {
-    #[inline]
+    #[inline(always)]
     fn from(i: u8) -> Color {
         Color::COLORS[i as usize]
     }
@@ -63,6 +73,7 @@ impl From<u8> for Color {
 impl FromStr for Color {
     type Err = ParseFenError;
 
+    // From FEN color notation
     fn from_str(s: &str) -> Result<Color, ParseFenError> {
         match s {
             "w" => Ok(Color::White),

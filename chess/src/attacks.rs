@@ -9,6 +9,7 @@ use crate::square::Square;
 //
 //#################################################################################################
 
+// A struct containing the informations necessary for a bmi2 lookup
 struct BMI2Info {
     offset: usize,
     mask1: BitBoard,
@@ -16,6 +17,7 @@ struct BMI2Info {
 }
 
 impl BMI2Info {
+    // A default value for that particular struct
     const ZERO: BMI2Info = BMI2Info {
         offset: 0, 
         mask1: BitBoard::EMPTY, 
@@ -23,23 +25,29 @@ impl BMI2Info {
     };
 }
 
+// An array of 64 bmi2 infos, one for each square
 type BMI2Array = [BMI2Info; 64];
 
+// The bmi2 infos associated with bishops and rooks, for every square on the board
 static mut BISHOP_BMI2: BMI2Array = [BMI2Info::ZERO; 64];
 static mut ROOK_BMI2  : BMI2Array = [BMI2Info::ZERO; 64];
 
+// The array that contains every attack pattern, indexed through bmi2 infos with pext and pdep
 static mut SLIDER_ATTACKS: [u16; 107648] = [0; 107648];
 
+// For use with the 0x88 trick
 type DIR = [(i32, i32); 4];
-
 const BISHOP_DIR: DIR = [
     (-9, -17), (-7, -15), (7, 15), (9, 17),
 ];
-
 const ROOK_DIR: DIR = [
     (-8, -16), (-1, -1), (1, 1), (8, 16),
 ];
 
+// Generate the bmi2 infos for a certain piece, with given dirs.
+// Uses some space in the SLIDER_ATTACKS array and return the index of the next
+// available spot
+#[cold]
 unsafe fn init_bmi2(info: &mut BMI2Array, dir: &DIR, mut idx: usize) -> usize {
     for sq in 0..64 {
         info[sq as usize].offset = idx as usize;
@@ -53,7 +61,7 @@ unsafe fn init_bmi2(info: &mut BMI2Array, dir: &DIR, mut idx: usize) -> usize {
 
             let mut d = 2;
             while (sq88 + d * dir[i].1) & 0x88 == 0 {
-                bb |= BitBoard::from((sq + (d-1) * dir[i].0) as u8);
+                bb |= Square::from((sq + (d-1) * dir[i].0) as i8).into();
                 d += 1;
             }
         }
@@ -75,7 +83,7 @@ unsafe fn init_bmi2(info: &mut BMI2Array, dir: &DIR, mut idx: usize) -> usize {
             for j in 0..4 {
                 let mut d = 1;
                 while (sq88 + d * dir[j].1) & 0x88 == 0 {
-                    let bb3 = BitBoard::from((sq + d * dir[j].0) as u8);
+                    let bb3 = Square::from((sq + d * dir[j].0) as i8).into();
                     bb2 |= bb3;
                     if (bb & bb3).not_empty() {
                         break;
@@ -101,14 +109,21 @@ unsafe fn init_bmi2(info: &mut BMI2Array, dir: &DIR, mut idx: usize) -> usize {
 //
 //#################################################################################################
 
+// King attacks
 static mut KING_ATTACKS: [BitBoard; 64] = [BitBoard::EMPTY; 64];
+
+// Knight attacks
 static mut KNIGHT_ATTACKS: [BitBoard; 64] = [BitBoard::EMPTY; 64];
 
+// Pawn attacks
 static mut WHITE_PAWN_ATTACKS: [BitBoard; 64] = [BitBoard::EMPTY; 64];
 static mut BLACK_PAWN_ATTACKS: [BitBoard; 64] = [BitBoard::EMPTY; 64];
 
+// Pawn pushes
 static mut WHITE_PAWN_PUSHES: [Option<Square>; 64] = [None; 64];
 static mut BLACK_PAWN_PUSHES: [Option<Square>; 64] = [None; 64];
+
+// Pawn double pushes
 static mut WHITE_PAWN_DOUBLE_PUSHES: [Option<Square>; 64] = [None; 64];
 static mut BLACK_PAWN_DOUBLE_PUSHES: [Option<Square>; 64] = [None; 64];
 
@@ -118,19 +133,18 @@ static mut BLACK_PAWN_DOUBLE_PUSHES: [Option<Square>; 64] = [None; 64];
 //
 //#################################################################################################
 
-fn to_maybe_square(bb: BitBoard) -> Option<Square> {
-    match bb.count() {
-        0 => None,
-        1 => Some(bb.as_square_unchecked()),
-        _ => panic!(),
-    }
+// Turn an Option<Square> into a bitboard. Ab empty one if the Option is None
+fn to_bitboard(sq: Option<Square>) -> BitBoard {
+    sq.map_or(BitBoard::EMPTY, |sq| sq.into())
 }
 
+// Initialize the sliders attacks and their bmi infos, then initialize the 
+// jumpers attacks
 #[cold]
 pub(crate) unsafe fn init() {
     // Slider attacks
-    let i = init_bmi2(&mut BISHOP_BMI2, &BISHOP_DIR, 0);
-    init_bmi2(&mut ROOK_BMI2, &ROOK_DIR, i);
+    let idx = init_bmi2(&mut BISHOP_BMI2, &BISHOP_DIR, 0);
+    init_bmi2(&mut ROOK_BMI2, &ROOK_DIR, idx);
 
     for sq in Square::SQUARES {
         // Kings attacks
@@ -138,7 +152,7 @@ pub(crate) unsafe fn init() {
             (1, 1), (1, 0), (1, -1), (0, -1),
             (-1, -1), (-1, 0), (-1, 1), (0, 1),
         ] {
-            KING_ATTACKS[sq.idx()] |= sq.displace(dir);
+            KING_ATTACKS[sq.idx()] |= to_bitboard(sq.displace(dir));
         }
 
         // Knights attacks
@@ -146,29 +160,22 @@ pub(crate) unsafe fn init() {
             (1, 2), (2, 1), (2, -1), (1, -2),
             (-1, -2), (-2, -1), (-2, 1), (-1, 2),
         ] {
-            KNIGHT_ATTACKS[sq.idx()] |= sq.displace(dir);
+            KNIGHT_ATTACKS[sq.idx()] |= to_bitboard(sq.displace(dir));
         }
 
-        // White pawns attacks
-        WHITE_PAWN_ATTACKS[sq.idx()] |= sq.displace((1, 1)) | sq.displace((-1, 1));
+        // Pawns attacks
+        WHITE_PAWN_ATTACKS[sq.idx()] = to_bitboard(sq.displace((1, 1)))  | to_bitboard(sq.displace((-1, 1)));
+        BLACK_PAWN_ATTACKS[sq.idx()] = to_bitboard(sq.displace((1, -1))) | to_bitboard(sq.displace((-1, -1)));
 
-        // White pawns attacks
-        BLACK_PAWN_ATTACKS[sq.idx()] |= sq.displace((1, -1)) | sq.displace((-1, -1));
+        // Pawn pushes
+        WHITE_PAWN_PUSHES[sq.idx()] = sq.displace((0,  1));
+        BLACK_PAWN_PUSHES[sq.idx()] = sq.displace((0, -1));
 
-        // White pawns pushes
-        WHITE_PAWN_PUSHES[sq.idx()] = to_maybe_square(sq.displace((0, 1)));
-
-        // White pawns pushes
-        BLACK_PAWN_PUSHES[sq.idx()] = to_maybe_square(sq.displace((0, -1)));
-
-        // White pawns double pushes
-        if sq.y() == 1 {
-            WHITE_PAWN_DOUBLE_PUSHES[sq.idx()] = to_maybe_square(sq.displace((0, 2)));
-        }
-
-        // Black pawns double pushes
-        if sq.y() == 6 {
-            BLACK_PAWN_DOUBLE_PUSHES[sq.idx()] = to_maybe_square(sq.displace((0, -2)));
+        // Pawn double pushes
+        match sq.y() {
+            1 => WHITE_PAWN_DOUBLE_PUSHES[sq.idx()] = sq.displace((0,  2)),
+            6 => BLACK_PAWN_DOUBLE_PUSHES[sq.idx()] = sq.displace((0, -2)),
+            _ => (),
         }
     }
 }
@@ -181,7 +188,7 @@ pub(crate) unsafe fn init() {
 
 // Return the attacks BitBoard of a Pawn of Color color located on square sq with Board occupancy occ
 #[inline(always)]
-fn pawn_attacks(color: Color, sq: Square) -> BitBoard {
+pub(crate) fn pawn(color: Color, sq: Square) -> BitBoard {
     unsafe {
         match color {
             Color::White => WHITE_PAWN_ATTACKS[sq.idx()],
@@ -190,9 +197,33 @@ fn pawn_attacks(color: Color, sq: Square) -> BitBoard {
     }    
 }
 
+// Return the square, if available, of the position the pawn
+// would occupy if it was pushed
+#[inline(always)]
+pub(crate) fn pawn_push(color: Color, sq: Square) -> Option<Square> {
+    unsafe {
+        match color {
+            Color::White => WHITE_PAWN_PUSHES[sq.idx()],
+            Color::Black => WHITE_PAWN_PUSHES[sq.idx()],
+        }
+    }
+}
+
+// Return the square, if available, of the position the pawn
+// would occupy if it was double pushed
+#[inline(always)]
+pub(crate) fn pawn_double_push(color: Color, sq: Square) -> Option<Square> {
+    unsafe {
+        match color {
+            Color::White => WHITE_PAWN_DOUBLE_PUSHES[sq.idx()],
+            Color::Black => WHITE_PAWN_DOUBLE_PUSHES[sq.idx()],
+        }
+    }
+}
+
 // Return the attacks BitBoard of a Rook located on square sq, with Board occupancy occ
 #[inline(always)]
-fn rook_attacks(sq: Square, occ: BitBoard) -> BitBoard {
+pub(crate) fn rook(sq: Square, occ: BitBoard) -> BitBoard {
     unsafe {
         let info = &ROOK_BMI2[sq.idx()];
         let mask = SLIDER_ATTACKS[info.offset + occ.pext(info.mask1).0 as usize];
@@ -202,7 +233,7 @@ fn rook_attacks(sq: Square, occ: BitBoard) -> BitBoard {
 
 // Return the attacks BitBoard of a Knight located on square sq
 #[inline(always)]
-fn knight_attacks(sq: Square) -> BitBoard {
+pub(crate) fn knight(sq: Square) -> BitBoard {
     unsafe {
         KNIGHT_ATTACKS[sq.idx()]
     }
@@ -210,7 +241,7 @@ fn knight_attacks(sq: Square) -> BitBoard {
 
 // Return the attacks BitBoard of a Bishop located on square sq, with Board occupancy occ
 #[inline(always)]
-fn bishop_attacks(sq: Square, occ: BitBoard) -> BitBoard {
+pub(crate) fn bishop(sq: Square, occ: BitBoard) -> BitBoard {
     unsafe {
         let info = &BISHOP_BMI2[sq.idx()];
         let mask = SLIDER_ATTACKS[info.offset + occ.pext(info.mask1).0 as usize];
@@ -220,13 +251,13 @@ fn bishop_attacks(sq: Square, occ: BitBoard) -> BitBoard {
 
 // Return the attacks BitBoard of a Queen located on square sq, with Board occupancy occ
 #[inline(always)]
-fn queen_attacks(sq: Square, occ: BitBoard) -> BitBoard {
-    bishop_attacks(sq, occ) | rook_attacks(sq, occ)
+pub(crate) fn queen(sq: Square, occ: BitBoard) -> BitBoard {
+    bishop(sq, occ) | rook(sq, occ)
 }
 
 // Return the attacks BitBoard of a King located on square sq
 #[inline(always)]
-fn king_attacks(sq: Square) -> BitBoard {
+pub(crate) fn king(sq: Square) -> BitBoard {
     unsafe {
         KING_ATTACKS[sq.idx()]
     }
