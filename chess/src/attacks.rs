@@ -10,15 +10,15 @@ use crate::square::Square;
 //#################################################################################################
 
 // A struct containing the informations necessary for a bmi2 lookup
-struct BMI2Info {
+struct Bmi2Info {
     offset: usize,
     mask1: BitBoard,
     mask2: BitBoard,
 }
 
-impl BMI2Info {
+impl Bmi2Info {
     // A default value for that particular struct
-    const ZERO: BMI2Info = BMI2Info {
+    const ZERO: Bmi2Info = Bmi2Info {
         offset: 0, 
         mask1: BitBoard::EMPTY, 
         mask2: BitBoard::EMPTY
@@ -26,11 +26,11 @@ impl BMI2Info {
 }
 
 // An array of 64 bmi2 infos, one for each square
-type BMI2Array = [BMI2Info; 64];
+type Bmi2Array = [Bmi2Info; 64];
 
 // The bmi2 infos associated with bishops and rooks, for every square on the board
-static mut BISHOP_BMI2: BMI2Array = [BMI2Info::ZERO; 64];
-static mut ROOK_BMI2  : BMI2Array = [BMI2Info::ZERO; 64];
+static mut BISHOP_BMI2: Bmi2Array = [Bmi2Info::ZERO; 64];
+static mut ROOK_BMI2  : Bmi2Array = [Bmi2Info::ZERO; 64];
 
 // The array that contains every attack pattern, indexed through bmi2 infos with pext and pdep
 static mut SLIDER_ATTACKS: [u16; 107648] = [0; 107648];
@@ -48,7 +48,7 @@ const ROOK_DIR: DIR = [
 // Uses some space in the SLIDER_ATTACKS array and return the index of the next
 // available spot
 #[cold]
-unsafe fn init_bmi2(info: &mut BMI2Array, dir: &DIR, mut idx: usize) -> usize {
+unsafe fn init_bmi2(info: &mut Bmi2Array, dir: &DIR, mut idx: usize) -> usize {
     for sq in 0..64 {
         info[sq as usize].offset = idx as usize;
 
@@ -134,6 +134,7 @@ static mut BLACK_PAWN_DOUBLE_PUSHES: [Option<Square>; 64] = [None; 64];
 //#################################################################################################
 
 // Turn an Option<Square> into a bitboard. Ab empty one if the Option is None
+#[cold]
 fn to_bitboard(sq: Option<Square>) -> BitBoard {
     sq.map_or(BitBoard::EMPTY, |sq| sq.into())
 }

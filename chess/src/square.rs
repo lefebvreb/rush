@@ -126,7 +126,7 @@ impl Square {
 
     /// Return the square as an index for an array
     #[inline(always)]
-    pub(crate) fn idx(self) -> usize {
+    pub(crate) const fn idx(self) -> usize {
         self as usize
     }
 }
