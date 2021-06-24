@@ -9,7 +9,7 @@ use crate::square::Square;
 //
 //#################################################################################################
 
-// A struct containing the informations necessary for a bmi2 lookup
+// A struct containing the informations necessary for a bmi2 lookup.
 struct Bmi2Info {
     offset: usize,
     mask1: BitBoard,
@@ -17,7 +17,7 @@ struct Bmi2Info {
 }
 
 impl Bmi2Info {
-    // A default value for that particular struct
+    // A default value for that particular struct.
     const ZERO: Bmi2Info = Bmi2Info {
         offset: 0, 
         mask1: BitBoard::EMPTY, 
@@ -25,17 +25,17 @@ impl Bmi2Info {
     };
 }
 
-// An array of 64 bmi2 infos, one for each square
+// An array of 64 bmi2 infos, one for each square.
 type Bmi2Array = [Bmi2Info; 64];
 
-// The bmi2 infos associated with bishops and rooks, for every square on the board
+// The bmi2 infos associated with bishops and rooks, for every square on the board.
 static mut BISHOP_BMI2: Bmi2Array = [Bmi2Info::ZERO; 64];
 static mut ROOK_BMI2  : Bmi2Array = [Bmi2Info::ZERO; 64];
 
-// The array that contains every attack pattern, indexed through bmi2 infos with pext and pdep
+// The array that contains every attack pattern, indexed through bmi2 infos with pext and pdep.
 static mut SLIDER_ATTACKS: [u16; 107648] = [0; 107648];
 
-// For use with the 0x88 trick
+// For use with the 0x88 trick.
 type DIR = [(i32, i32); 4];
 const BISHOP_DIR: DIR = [
     (-9, -17), (-7, -15), (7, 15), (9, 17),
@@ -44,9 +44,9 @@ const ROOK_DIR: DIR = [
     (-8, -16), (-1, -1), (1, 1), (8, 16),
 ];
 
-// Generate the bmi2 infos for a certain piece, with given dirs.
+// Generates the bmi2 infos for a certain piece, with given dirs.
 // Uses some space in the SLIDER_ATTACKS array and return the index of the next
-// available spot
+// available spot.
 #[cold]
 unsafe fn init_bmi2(info: &mut Bmi2Array, dir: &DIR, mut idx: usize) -> usize {
     for sq in 0..64 {
@@ -109,21 +109,21 @@ unsafe fn init_bmi2(info: &mut Bmi2Array, dir: &DIR, mut idx: usize) -> usize {
 //
 //#################################################################################################
 
-// King attacks
+// King attacks.
 static mut KING_ATTACKS: [BitBoard; 64] = [BitBoard::EMPTY; 64];
 
-// Knight attacks
+// Knight attacks.
 static mut KNIGHT_ATTACKS: [BitBoard; 64] = [BitBoard::EMPTY; 64];
 
-// Pawn attacks
+// Pawn attacks.
 static mut WHITE_PAWN_ATTACKS: [BitBoard; 64] = [BitBoard::EMPTY; 64];
 static mut BLACK_PAWN_ATTACKS: [BitBoard; 64] = [BitBoard::EMPTY; 64];
 
-// Pawn pushes
+// Pawn pushes.
 static mut WHITE_PAWN_PUSHES: [Option<Square>; 64] = [None; 64];
 static mut BLACK_PAWN_PUSHES: [Option<Square>; 64] = [None; 64];
 
-// Pawn double pushes
+// Pawn double pushes.
 static mut WHITE_PAWN_DOUBLE_PUSHES: [Option<Square>; 64] = [None; 64];
 static mut BLACK_PAWN_DOUBLE_PUSHES: [Option<Square>; 64] = [None; 64];
 
@@ -133,14 +133,14 @@ static mut BLACK_PAWN_DOUBLE_PUSHES: [Option<Square>; 64] = [None; 64];
 //
 //#################################################################################################
 
-// Turn an Option<Square> into a bitboard. Ab empty one if the Option is None
+// Turns an Option<Square> into a bitboard, an empty one if the Option is None.
 #[cold]
 fn to_bitboard(sq: Option<Square>) -> BitBoard {
     sq.map_or(BitBoard::EMPTY, |sq| sq.into())
 }
 
-// Initialize the sliders attacks and their bmi infos, then initialize the 
-// jumpers attacks
+// Initializes the sliders attacks and their bmi infos, then initialize the 
+// jumpers attacks.
 #[cold]
 pub(crate) unsafe fn init() {
     // Slider attacks
@@ -187,7 +187,7 @@ pub(crate) unsafe fn init() {
 //
 //#################################################################################################
 
-// Return the attacks BitBoard of a Pawn of Color color located on square sq with Board occupancy occ
+// Returns the attacks BitBoard of a Pawn of Color color located on square sq with Board occupancy occ.
 #[inline(always)]
 pub(crate) fn pawn(color: Color, sq: Square) -> BitBoard {
     unsafe {
@@ -198,8 +198,8 @@ pub(crate) fn pawn(color: Color, sq: Square) -> BitBoard {
     }    
 }
 
-// Return the square, if available, of the position the pawn
-// would occupy if it was pushed
+// Returns the square, if available, of the position the pawn
+// would occupy if it was pushed.
 #[inline(always)]
 pub(crate) fn pawn_push(color: Color, sq: Square) -> Option<Square> {
     unsafe {
@@ -210,8 +210,8 @@ pub(crate) fn pawn_push(color: Color, sq: Square) -> Option<Square> {
     }
 }
 
-// Return the square, if available, of the position the pawn
-// would occupy if it was double pushed
+// Returns the square, if available, of the position the pawn
+// would occupy if it was double pushed.
 #[inline(always)]
 pub(crate) fn pawn_double_push(color: Color, sq: Square) -> Option<Square> {
     unsafe {
@@ -222,7 +222,7 @@ pub(crate) fn pawn_double_push(color: Color, sq: Square) -> Option<Square> {
     }
 }
 
-// Return the attacks BitBoard of a Rook located on square sq, with Board occupancy occ
+// Returns the attacks BitBoard of a Rook located on square sq, with Board occupancy occ.
 #[inline(always)]
 pub(crate) fn rook(sq: Square, occ: BitBoard) -> BitBoard {
     unsafe {
@@ -232,7 +232,7 @@ pub(crate) fn rook(sq: Square, occ: BitBoard) -> BitBoard {
     }
 }
 
-// Return the attacks BitBoard of a Knight located on square sq
+// Returns the attacks BitBoard of a Knight located on square sq.
 #[inline(always)]
 pub(crate) fn knight(sq: Square) -> BitBoard {
     unsafe {
@@ -240,7 +240,7 @@ pub(crate) fn knight(sq: Square) -> BitBoard {
     }
 }
 
-// Return the attacks BitBoard of a Bishop located on square sq, with Board occupancy occ
+// Returns the attacks BitBoard of a Bishop located on square sq, with Board occupancy occ.
 #[inline(always)]
 pub(crate) fn bishop(sq: Square, occ: BitBoard) -> BitBoard {
     unsafe {
@@ -250,13 +250,13 @@ pub(crate) fn bishop(sq: Square, occ: BitBoard) -> BitBoard {
     }
 }
 
-// Return the attacks BitBoard of a Queen located on square sq, with Board occupancy occ
+// Returns the attacks BitBoard of a Queen located on square sq, with Board occupancy occ.
 #[inline(always)]
 pub(crate) fn queen(sq: Square, occ: BitBoard) -> BitBoard {
     bishop(sq, occ) | rook(sq, occ)
 }
 
-// Return the attacks BitBoard of a King located on square sq
+// Returns the attacks BitBoard of a King located on square sq.
 #[inline(always)]
 pub(crate) fn king(sq: Square) -> BitBoard {
     unsafe {

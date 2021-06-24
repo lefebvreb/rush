@@ -2,6 +2,7 @@
 
 mod attacks;
 mod bitboard;
+mod board;
 mod castle_rights;
 mod color;
 mod cuckoo;
@@ -9,11 +10,10 @@ mod en_passant;
 mod errors;
 mod moves;
 mod piece;
-mod position;
 mod square;
 mod zobrist;
 
-/// Initialize the components of the chess lib
+/// Initializes the components of the chess lib.
 #[cold]
 pub fn init() {
     unsafe {
@@ -27,6 +27,6 @@ pub fn init() {
 
 #[cfg(not(target_feature = "bmi2"))]
 fn _intrinsic_check() {
-    // Comment out that function once the warning has been acknoledged
-    compile_error!("bmi2 extension not found. Program will be slower if compiled.");
+    // Comment out that function once the warning has been acknoledged.
+    compile_error!("bmi2 extension not found: move generation will be slower if compiled.");
 }

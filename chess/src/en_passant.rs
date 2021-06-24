@@ -10,7 +10,7 @@ use crate::square::Square;
 //
 //#################################################################################################
 
-// Keep track off the en passant target square
+// Keeps track off the en passant target square.
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum EnPassantSquare {
@@ -21,13 +21,14 @@ pub(crate) enum EnPassantSquare {
 // ================================ traits impl
 
 impl Default for EnPassantSquare {
+    // Returns EnPassantSquare::None.
     fn default() -> EnPassantSquare {
         EnPassantSquare::None
     }
 }
 
 impl fmt::Display for EnPassantSquare {
-    // To FEN en passant square notation
+    // To fen en passant square notation.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             EnPassantSquare::Some(sq) => write!(f, "{}", sq),
@@ -39,7 +40,7 @@ impl fmt::Display for EnPassantSquare {
 impl FromStr for EnPassantSquare {
     type Err = ParseFenError;
 
-    // From FEN en passant square notation
+    // From fen en passant square notation.
     fn from_str(s: &str) -> Result<EnPassantSquare, ParseFenError> {
         Ok(match s {
             "-" => EnPassantSquare::None,

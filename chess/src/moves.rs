@@ -10,7 +10,7 @@ use crate::square::Square;
 //
 //#################################################################################################
 
-/// An enum to represent the type of a move
+/// An enum to represent the type of a move.
 #[repr(u8)]
 #[derive(Clone, Copy)]
 pub enum MoveType {
@@ -27,13 +27,13 @@ pub enum MoveType {
 // ================================ impl
 
 impl MoveType {
-    // The list of all type moves
+    // The list of all type moves.
     const MOVE_TYPES: [MoveType; 8] = [
         MoveType::Quiet, MoveType::Capture, MoveType::Promote, MoveType::PromoteCapture,
         MoveType::EnPassant, MoveType::DoublePush, MoveType::KingCastle, MoveType::QueenCastle,
     ];
 
-    // Generate a base move with self as type and the two given squares
+    // Generates a base move with self as type and the two given squares.
     #[inline(always)]
     const fn base(self, from: Square, to: Square) -> u32 {
         self as u32 | (from as u32) << 3 | (to as u32) << 9
@@ -49,50 +49,50 @@ impl MoveType {
 /// A move, encoded in a compact 32 bits representation:
 /// `mmmffffffttttttcccppp` where `m` is the type of the move, 
 /// `f` is the from square, `t` is the to square, `c` is the capture piece
-/// and `p` is the promoted piece
+/// and `p` is the promoted piece.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Move(u32);
 
 // ================================ pub impl
 
 impl Move {
-    /// Create a quiet move
+    /// Creates a quiet move.
     #[inline(always)]
     pub const fn quiet(from: Square, to: Square) -> Move {
         Move(MoveType::Quiet.base(from, to))
     }
 
-    /// Create a standard capture move
+    /// Creates a standard capture move.
     #[inline(always)]
     pub const fn capture(from: Square, to: Square, capture: Piece) -> Move {
         Move(MoveType::Capture.base(from, to) | (capture as u32) << 15)
     }
 
-    /// Create a promotion move
+    /// Creates a promotion move.
     #[inline(always)]
     pub const fn promote(from: Square, to: Square, promote: Piece) -> Move {
         Move(MoveType::Promote.base(from, to) | (promote as u32) << 18)
     }
 
-    /// Create a promotion and capture move
+    /// Creates a promotion and capture move.
     #[inline(always)]
     pub const fn promote_capture(from: Square, to: Square, capture: Piece, promote: Piece) -> Move {
         Move(MoveType::PromoteCapture.base(from, to) | (capture as u32) << 15 | (promote as u32) << 18)
     }
 
-    /// Create an en passant move
+    /// Creates an en passant move.
     #[inline(always)]
     pub const fn en_passant(from: Square, to: Square) -> Move {
         Move(MoveType::EnPassant.base(from, to))
     }
 
-    /// Create a double push move
+    /// Creates a double push move.
     #[inline(always)]
     pub const fn double_push(from: Square, to: Square) -> Move {
         Move(MoveType::DoublePush.base(from, to))
     }
 
-    /// Crate a king castle (o-o) move
+    /// Crates a king castle (o-o) move.
     #[inline(always)]
     pub const fn king_castle(color: Color) -> Move {
         Move(match color {
@@ -101,7 +101,7 @@ impl Move {
         })
     }
 
-    /// Crate a queen castle (o-o-o) move
+    /// Crates a queen castle (o-o-o) move.
     #[inline(always)]
     pub const fn queen_castle(color: Color) -> Move {
         Move(match color {
@@ -110,31 +110,31 @@ impl Move {
         })
     }
 
-    /// Return the type of the move
+    /// Returns the type of the move.
     #[inline(always)]
     pub const fn get_type(self) -> MoveType {
         MoveType::MOVE_TYPES[(self.0 & 0x7) as usize]
     }
 
-    /// Return the from square of the move
+    /// Returns the from square of the move.
     #[inline(always)]
     pub const fn from(self) -> Square {
         Square::SQUARES[(self.0 >> 3 & 0x3F) as usize]
     }
 
-    /// Return the to square of the move
+    /// Returns the to square of the move.
     #[inline(always)]
     pub const fn to(self) -> Square {
         Square::SQUARES[(self.0 >> 9 & 0x3F) as usize]
     }
 
-    /// Return the capture piece of the move
+    /// Returns the capture piece of the move.
     #[inline(always)]
     pub const fn get_capture(self) -> Piece {
         Piece::PIECES[(self.0 >> 15 & 0x7) as usize]
     }
 
-    /// Return the promote piece of the move
+    /// Returns the promote piece of the move.
     #[inline(always)]
     pub const fn get_promote(self) -> Piece {
         Piece::PIECES[(self.0 >> 18 & 0x7) as usize]
@@ -144,7 +144,7 @@ impl Move {
 // ================================ traits impl
 
 impl fmt::Display for Move {
-    // Display a move using pure algebraic coordinate notation
+    // Displays a move using pure algebraic coordinate notation.
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if matches!(self.get_type(), MoveType::Promote | MoveType::PromoteCapture) {
             write!(fmt, "{}{}{}", self.from(), self.to(), self.get_promote())
@@ -161,7 +161,7 @@ impl fmt::Display for Move {
 //#################################################################################################
 
 /// A type to represent a list of moves, containing up to MoveList::SIZE elements.
-/// Every operations are o(1)
+/// Every operations are o(1).
 pub struct MoveList {
     size: usize,
     list: [Move; MoveList::SIZE],
@@ -170,23 +170,23 @@ pub struct MoveList {
 // ================================ pub impl
 
 impl MoveList {
-    /// The maximal size of a move list
+    /// The maximal size of a move list.
     pub const SIZE: usize = 256;
 
-    /// Pushe an element to the top of the move
+    /// Pushes an element to the top of the move.
     #[inline(always)]
     pub fn push(&mut self, mv: Move) {
         self.list[self.size] = mv;
         self.size += 1;
     }
 
-    /// Get an element from the list
+    /// Gets an element from the list.
     #[inline(always)]
     pub fn get(&self, i: usize) -> Move {
         self.list[i]
     }
 
-    /// Clear the list
+    /// Clears the list.
     #[inline(always)]
     pub fn clear(&mut self) {
         self.size = 0

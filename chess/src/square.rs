@@ -12,10 +12,10 @@ use crate::errors::ParseFenError;
 //#################################################################################################
 
 // An array whose ith element is 1 << i, precalculated as lookup
-// is slightly faster than calculating them
+// is slightly faster than calculating them.
 static mut SHIFTS: [BitBoard; 64] = [BitBoard::EMPTY; 64];
 
-// Initialize the shift array, for faster bitshifts of 1
+// Initializes the shift array, for faster bitshifts of 1.
 pub(crate) unsafe fn init() {
     for i in 0..64 {
         SHIFTS[i] = BitBoard(1 << i);
@@ -28,7 +28,7 @@ pub(crate) unsafe fn init() {
 //
 //#################################################################################################
 
-/// Represent a Square of the board
+/// Represents a Square of the board.
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Square {
@@ -45,7 +45,7 @@ pub enum Square {
 // ================================ pub impl
 
 impl Square {
-    /// An array containing all squares in order: ranks first then files, starting from A1
+    /// An array containing all squares in order: ranks first then files, starting from A1.
     pub const SQUARES: [Square; 64] = [
         Square::A1, Square::B1, Square::C1, Square::D1, Square::E1, Square::F1, Square::G1, Square::H1,
         Square::A2, Square::B2, Square::C2, Square::D2, Square::E2, Square::F2, Square::G2, Square::H2,
@@ -57,19 +57,19 @@ impl Square {
         Square::A8, Square::B8, Square::C8, Square::D8, Square::E8, Square::F8, Square::G8, Square::H8,
     ];
 
-    /// Return the x coodinate of that square
+    /// Returns the x coodinate of that square.
     #[inline(always)]
     pub fn x(self) -> i8 {
         (self as i8) & 0x7
     }
 
-    /// Return the y coodinate of that square
+    /// Returns the y coodinate of that square.
     #[inline(always)]
     pub fn y(self) -> i8 {
         (self as i8).wrapping_shr(3)
     }
 
-    /// Return true if that square is last rank
+    /// Returns true if that square is last rank.
     #[inline(always)]
     pub fn is_last_rank(self, color: Color) -> bool {
         self.y() == match color {
@@ -78,7 +78,7 @@ impl Square {
         }
     }
 
-    /// Return the color of that square on the board
+    /// Returns the color of that square on the board.
     #[inline(always)]
     pub fn parity(self) -> Color {
         if (self.x() + self.y()) % 2 == 0 {
@@ -88,7 +88,7 @@ impl Square {
         }
     }
 
-    /// Displace the square by dx, dy, return None if the square is off the board
+    /// Displaces the square by dx, dy, return None if the square is off the board.
     pub fn displace(self, (dx, dy): (i8, i8)) -> Option<Square> {
         let x = self.x() as i8 + dx;
         let y = self.y() as i8 + dy;
@@ -104,27 +104,27 @@ impl Square {
 // ================================ pub(crate) impl
 
 impl Square {
-    // Return the square immediately left of that square 
-    // (from white's point of view)
+    // Returns the square immediately left of that square 
+    // (from white's point of view).
     #[inline(always)]
     pub(crate) fn get_left_unchecked(self) -> Square {
         Square::from(self as i8 - 1)
     }
 
-    // Return the square immediately right of that square 
-    // (from white's point of view)
+    // Returns the square immediately right of that square 
+    // (from white's point of view).
     #[inline(always)]
     pub(crate) fn get_right_unchecked(self) -> Square {
         Square::from(self as i8 + 1)
     }
 
-    // Return the square between from and to
+    // Returns the square between from and to.
     #[inline(always)]
     pub(crate) fn get_mid(self, other: Square) -> Square {
         Square::from((self.x(), (self.y() + other.y()) / 2))
     }
 
-    /// Return the square as an index for an array
+    /// Returns the square as an index for an array.
     #[inline(always)]
     pub(crate) const fn idx(self) -> usize {
         self as usize
@@ -134,7 +134,7 @@ impl Square {
 // ================================ traits impl
 
 impl fmt::Display for Square {
-    // Give the square's pure algebraic coordinates notation
+    // Gives the square's pure algebraic coordinates notation.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const FILES: [char; 8] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
         const RANKS: [char; 8] = ['1', '2', '3', '4', '5', '6', '7', '8'];
@@ -144,6 +144,7 @@ impl fmt::Display for Square {
 }
 
 impl Into<BitBoard> for Square {
+    /// Returns the bitboard containing only that square.
     #[inline]
     fn into(self) -> BitBoard {
         unsafe {
@@ -153,6 +154,7 @@ impl Into<BitBoard> for Square {
 }
 
 impl From<i8> for Square {
+    /// Creates a square from a number in 0..64.
     #[inline]
     fn from(i: i8) -> Square {
         Square::SQUARES[i as usize]
@@ -160,6 +162,7 @@ impl From<i8> for Square {
 }
 
 impl From<(i8, i8)> for Square {
+    /// Creates a square from a pair of coordinates, each in 0..8.
     #[inline]
     fn from(xy: (i8, i8)) -> Square {
         Square::from(xy.0 + 8*xy.1)
@@ -169,7 +172,7 @@ impl From<(i8, i8)> for Square {
 impl FromStr for Square {
     type Err = ParseFenError;
 
-    // Try to construct a square from a pure algebraic coordinates notation
+    // Tries to construct a square from a pure algebraic coordinates notation.
     fn from_str(s: &str) -> Result<Square, ParseFenError> {
         if s.len() == 2 {
             let mut chars = s.chars();

@@ -1,4 +1,4 @@
-use std::ops::{self, BitXor, BitXorAssign, Not};
+use std::ops::{BitXor, BitXorAssign, Not};
 
 use crate::castle_rights::CastleRights;
 use crate::color::Color;
@@ -8,11 +8,11 @@ use crate::square::Square;
 
 //#################################################################################################
 //
-//                                  Zobrist tables
+//                                       Zobrist table
 //
 //#################################################################################################
 
-// The Keys struct, to hold all the zobrist keys
+// The Keys struct, to hold all the zobrist keys.
 struct Keys {
     castle_rights_keys: [Zobrist; 16],
     color_keys: [Zobrist; 2],
@@ -21,7 +21,7 @@ struct Keys {
 }
 
 // The only variable with a type of Keys, initialized at
-// the beginning of the program with random values
+// the beginning of the program with random values.
 static mut KEYS: Keys = Keys {
     castle_rights_keys: [Zobrist::ZERO; 16],
     color_keys: [Zobrist::ZERO; 2],
@@ -30,7 +30,7 @@ static mut KEYS: Keys = Keys {
 };
 
 // The xorshift* algorithm for 64 bits numbers, producing
-// good enough pseudo-random numbers
+// good enough pseudo-random numbers.
 #[cold]
 fn xorshift(seed: &mut u64) -> Zobrist {
     let mut x = *seed;
@@ -41,10 +41,10 @@ fn xorshift(seed: &mut u64) -> Zobrist {
     Zobrist(x.wrapping_mul(0x2545F4914F6CDD1D))
 }
 
-// Initialize the zobrist keys at the beginning of the program
+// Initializes the zobrist keys at the beginning of the program.
 #[cold]
 pub(crate) unsafe fn init() {
-    // Changing the seed may make the cuckoo init() non terminating
+    // Changing the seed may make the cuckoo init() non terminating.
     let mut seed = 0x0C3B301A1Af7EE42;
 
     for i in 0..16 {
@@ -72,23 +72,23 @@ pub(crate) unsafe fn init() {
 //
 //#################################################################################################
 
-/// A zobrist key, that may be used for hashing
+/// A zobrist key, that may be used for hashing.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Zobrist(u64);
 
 // ================================ pub impl
 
 impl Zobrist {
-    /// The zero of that type
+    /// The zero of that type.
     pub const ZERO: Zobrist = Zobrist(0);
 
-    /// First hash function for indexing the cuckoo table
+    /// First hash function for indexing the cuckoo table.
     #[inline(always)]
     pub fn h1(self) -> usize {
         (self.0.wrapping_shr(32) & 0x1FFF) as usize
     }
 
-    /// Second hash function for indexing the cuckoo table
+    /// Second hash function for indexing the cuckoo table.
     #[inline(always)]
     pub fn h2(self) -> usize {
         (self.0.wrapping_shr(48) & 0x1FFF) as usize
@@ -98,6 +98,7 @@ impl Zobrist {
 // ================================ traits impl
 
 impl From<CastleRights> for Zobrist {
+    /// Hashes a castle rights.
     #[inline(always)]
     fn from(rights: CastleRights) -> Zobrist {
         unsafe {
@@ -107,6 +108,7 @@ impl From<CastleRights> for Zobrist {
 }
 
 impl From<Color> for Zobrist {
+    /// Hashes a color.
     #[inline(always)]
     fn from(color: Color) -> Zobrist {
         unsafe {
@@ -116,6 +118,7 @@ impl From<Color> for Zobrist {
 }
 
 impl From<EnPassantSquare> for Zobrist {
+    /// Hashes an en passant square.
     #[inline(always)]
     fn from(ep: EnPassantSquare) -> Zobrist {
         match ep {
@@ -128,6 +131,7 @@ impl From<EnPassantSquare> for Zobrist {
 }
 
 impl From<(Color, Piece, Square)> for Zobrist {
+    /// Hashes a color, piece, square triplet.
     #[inline(always)]
     fn from((color, piece, sq): (Color, Piece, Square)) -> Zobrist {
         unsafe {

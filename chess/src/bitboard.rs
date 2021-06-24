@@ -11,16 +11,16 @@ use crate::square::Square;
 //#################################################################################################
 
 // These arrays contain bitboards indexed by two squares, from and to. They contain respectively:
-// - the squares between from and to if they are aligned horizontally or vertically
-// - the squares between from and to if they are aligned diagonally
-// - the xor of the two former arrays
-// - same as the previous array but goes past to until the end of the board
+// - the squares between from and to if they are aligned horizontally or vertically.
+// - the squares between from and to if they are aligned diagonally.
+// - the xor of the two former arrays.
+// - same as the previous array but goes past to until the end of the board.
 static mut SQUARES_BETWEEN_STRAIGHT: [[BitBoard; 64]; 64] = [[BitBoard::EMPTY; 64]; 64];
 static mut SQUARES_BETWEEN_DIAGNOAL: [[BitBoard; 64]; 64] = [[BitBoard::EMPTY; 64]; 64];
 static mut SQUARES_BETWEEN: [[BitBoard; 64]; 64] = [[BitBoard::EMPTY; 64]; 64];
 static mut SQUARES_RAY_MASK: [[BitBoard; 64]; 64] = [[BitBoard::EMPTY; 64]; 64];
 
-// Initialize the arrays above
+// Initializes the arrays above.
 #[cold]
 pub(crate) unsafe fn init() {
     const SIGN: fn(i8) -> i8 = |i| match i {
@@ -82,7 +82,7 @@ pub(crate) unsafe fn init() {
 //
 //#################################################################################################
 
-/// Represent a 64 bits BitBoard
+/// Represents a 64 bits BitBoard.
 #[repr(transparent)]
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct BitBoard(pub u64);
@@ -90,13 +90,13 @@ pub struct BitBoard(pub u64);
 // ================================ pub impl
 
 impl BitBoard {
-    /// An empty BitBoard
+    /// An empty BitBoard.
     pub const EMPTY: BitBoard = BitBoard(0);
 
-    /// A full BitBoard
+    /// A full BitBoard.
     pub const FULL: BitBoard = BitBoard(0xFFFFFFFFFFFFFFFF);
 
-    // The ranks of the board
+    // The ranks of the board.
     pub const RANK_1: BitBoard = BitBoard(0xFF);
     pub const RANK_2: BitBoard = BitBoard(0xFF00);
     pub const RANK_3: BitBoard = BitBoard(0xFF0000);
@@ -106,19 +106,19 @@ impl BitBoard {
     pub const RANK_7: BitBoard = BitBoard(0xFF000000000000);
     pub const RANK_8: BitBoard = BitBoard(0xFF00000000000000);
 
-    /// Return true if and only if the BitBoard `self` is empty
+    /// Return true if and only if the BitBoard self is empty.
     #[inline(always)]
     pub const fn empty(self) -> bool {
         self.0 == 0
     }
 
-    /// Return true if and only if the BitBoard `self` is not empty
+    /// Returns true if and only if the BitBoard self is not empty.
     #[inline(always)]
     pub const fn not_empty(self) -> bool {
         self.0 != 0
     }
 
-    /// Return an iterator over the bits of the BitBoard `self`
+    /// Returns an iterator over the bits of the BitBoard self.
     #[inline(always)]
     pub fn iter_squares(mut self) -> impl Iterator<Item = Square> {
         (0..self.0.count_ones()).map(move |_| {
@@ -128,13 +128,13 @@ impl BitBoard {
         })
     }
     
-    /// Count the bits of `self` that are 1
+    /// Counts the bits of self that are 1.
     #[inline(always)]
     pub fn count(self) -> u8 {
         self.0.count_ones() as u8
     }
 
-    /// Return true if that bitboard is on the last rank
+    /// Returns true if that bitboard is on the last rank.
     #[inline(always)]
     pub fn last_rank(self, color: Color) -> bool {
         (self & match color {
@@ -143,14 +143,14 @@ impl BitBoard {
         }).0 == self.0
     }
 
-    /// Return true if that bitboard contains sq
+    /// Returns true if that bitboard contains sq.
     #[inline(always)]
     pub fn contains(self, sq: Square) -> bool {
         (self & sq.into()).0 != 0
     }
 
-    /// Return a bitboard of the squares between from and to (exclusive) if 
-    /// from and to are aligned horizontally or vertically. Return an empty bitboard if they are not.
+    /// Returns a bitboard of the squares between from and to (exclusive) if 
+    /// from and to are aligned horizontally or vertically. Returns an empty bitboard if they are not.
     #[inline(always)]
     pub fn between_straight(from: Square, to: Square) -> BitBoard {
         unsafe {
@@ -158,8 +158,8 @@ impl BitBoard {
         }
     }
 
-    /// Return a bitboard of the squares between from and to (exclusive) if 
-    /// from and to are aligned diagonally. Return an empty bitboard if they are not.
+    /// Returns a bitboard of the squares between from and to (exclusive) if 
+    /// from and to are aligned diagonally. Returns an empty bitboard if they are not.
     #[inline(always)]
     pub fn between_diagonal(from: Square, to: Square) -> BitBoard {
         unsafe {
@@ -167,8 +167,8 @@ impl BitBoard {
         }
     }
 
-    /// Return a bitboard of the squares between from and to (exclusive).
-    /// if they are aligned. Return an empty bitboard if they are not.
+    /// Returns a bitboard of the squares between from and to (exclusive).
+    /// if they are aligned. Returns an empty bitboard if they are not.
     #[inline(always)]
     pub fn between(from: Square, to: Square) -> BitBoard {
         unsafe {
@@ -176,9 +176,9 @@ impl BitBoard {
         }
     }
 
-    /// Return a bitboard of the squares on the ray from-to, with
+    /// Returns a bitboard of the squares on the ray from-to, with
     /// from inclusive, if from and to are aligned.
-    /// Return an empty bitboard if they are not.
+    /// Returns an empty bitboard if they are not.
     #[inline(always)]
     pub fn ray_mask(from: Square, to: Square) -> BitBoard {
         unsafe {
@@ -187,7 +187,7 @@ impl BitBoard {
     }
 }
 
-/// A convenient macro to construct a BitBoard from a collection of Squares
+/// A convenient macro to construct a BitBoard from a collection of Squares.
 macro_rules! squares {
     ($($sq: expr),*) => {
         BitBoard::EMPTY $(| $sq.into())*
@@ -197,13 +197,13 @@ macro_rules! squares {
 // ================================ pub(crate) impl
 
 impl BitBoard {
-    // Return the first square of the bitboard, with no checks
+    // Returns the first square of the bitboard, with no checks.
     #[inline(always)]
     pub(crate) fn as_square_unchecked(self) -> Square {
         Square::from(self.0.trailing_zeros() as i8)
     }
 
-    // Perform a parallel bits extract (pext) using the intrinsic (fast)
+    // Performs a parallel bits extract (pext) using the intrinsic (fast).
     #[inline(always)]
     #[cfg(target_feature = "bmi2")]
     pub(crate) fn pext(self, mask: BitBoard) -> BitBoard {
@@ -212,7 +212,7 @@ impl BitBoard {
         })
     }
 
-    // Perform a parallel bits extract (pext) without the intrinsic (slow)
+    // Performs a parallel bits extract (pext) without the intrinsic (slow).
     #[inline]
     #[cfg(not(target_feature = "bmi2"))]
     pub(crate) fn pext(self, mut mask: BitBoard) -> BitBoard {
@@ -230,7 +230,7 @@ impl BitBoard {
         BitBoard(res)
     }
 
-    // Perform a parallel bits deposit (pdep) using the intrinsic (fast)
+    // Performs a parallel bits deposit (pdep) using the intrinsic (fast).
     #[inline(always)]
     #[cfg(target_feature = "bmi2")]
     pub(crate) fn pdep(self, mask: BitBoard) -> BitBoard {
@@ -239,7 +239,7 @@ impl BitBoard {
         })
     }
 
-    // Perform a parallel bits deposit (pdep) without the intrinsic (slow)
+    // Performs a parallel bits deposit (pdep) without the intrinsic (slow).
     #[inline]
     #[cfg(not(target_feature = "bmi2"))]
     pub(crate) fn pdep(self, mut mask: BitBoard) -> BitBoard {
@@ -257,7 +257,7 @@ impl BitBoard {
         BitBoard(res)
     }
 
-    // Get the lower 16 bits of the bitboard, as an u16
+    // Gets the lower 16 bits of the bitboard, as an u16.
     #[inline(always)]
     pub(crate) fn lower16(self) -> u16 {
         self.0 as u16
@@ -267,14 +267,14 @@ impl BitBoard {
 // ================================ traits impl
 
 impl fmt::Debug for BitBoard {
-    // Print the bitboard in hex form for quick debugging
+    // Prints the bitboard in hex form for quick debugging.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "BitBoard(0x{:X})", self.0)
     }
 }
 
 impl fmt::Display for BitBoard {
-    // Pretty-print the bitboard for human eyes
+    // Pretty-prints the bitboard for human eyes.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut bits = self.0.reverse_bits();
 

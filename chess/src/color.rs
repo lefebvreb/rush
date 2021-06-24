@@ -9,7 +9,7 @@ use crate::errors::ParseFenError;
 //
 //#################################################################################################
 
-/// Represent the color of a player
+/// Represents the color of a player.
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Color {
@@ -20,12 +20,12 @@ pub enum Color {
 // ================================ pub impl
 
 impl Color {
-    /// List of colors, ordered by their values
+    /// List of colors, ordered by their values.
     pub const COLORS: [Color; 2] = [
         Color::White, Color::Black,
     ];
 
-    /// Give the opposite color of `self`
+    /// Gives the opposite color of self.
     #[inline(always)]
     pub const fn invert(self) -> Color {
         match self {
@@ -38,6 +38,7 @@ impl Color {
 // ================================ pub(crate) impl
 
 impl Color {
+    // Returns the color as an index.
     #[inline(always)]
     pub(crate) const fn idx(self) -> usize {
         self as usize
@@ -47,14 +48,14 @@ impl Color {
 // ================================ traits impl
 
 impl Default for Color {
-    /// Return Color::White
+    /// Returns Color::White.
     fn default() -> Self {
         Color::White
     }
 }
 
 impl fmt::Display for Color {
-    // To FEN color notation
+    // To fen color notation.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", match self {
             Color::White => "w",
@@ -64,6 +65,7 @@ impl fmt::Display for Color {
 }
 
 impl From<u8> for Color {
+    /// Creates a color from a number: 0 is white and 1 is black.
     #[inline(always)]
     fn from(i: u8) -> Color {
         Color::COLORS[i as usize]
@@ -73,7 +75,7 @@ impl From<u8> for Color {
 impl FromStr for Color {
     type Err = ParseFenError;
 
-    // From FEN color notation
+    // From fen color notation.
     fn from_str(s: &str) -> Result<Color, ParseFenError> {
         match s {
             "w" => Ok(Color::White),

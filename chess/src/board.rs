@@ -4,6 +4,7 @@ use std::str::FromStr;
 use crate::bitboard::BitBoard;
 use crate::castle_rights::CastleRights;
 use crate::color::Color;
+use crate::cuckoo;
 use crate::en_passant::EnPassantSquare;
 use crate::errors::ParseFenError;
 use crate::moves::Move;
@@ -17,7 +18,7 @@ use crate::zobrist::Zobrist;
 //
 //#################################################################################################
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct StateInfo {
     ep_square: EnPassantSquare,
     castle_rights: CastleRights,
@@ -43,7 +44,7 @@ struct Occupancy {
 // ================================ impl
 
 impl Occupancy {
-    // Update the occupancy according to the given color and mask
+    // Updates the occupancy according to the given color and mask.
     #[inline(always)]
     fn update(&mut self, color: Color, mask: BitBoard) {
         match color {
@@ -57,11 +58,12 @@ impl Occupancy {
 
 //#################################################################################################
 //
-//                                    struct Position
+//                                         struct Board
 //
 //#################################################################################################
 
-pub struct Position {
+#[derive(Clone, Debug)]
+pub struct Board {
     ply: u16,
     side_to_move: Color,
 
@@ -75,7 +77,7 @@ pub struct Position {
 
 // ================================ pub impl
 
-impl Position {
+impl Board {
     #[inline]
     pub fn is_legal(&self, mv: Move) -> bool {
         // Return true if the pseudo-legal move is legal:
@@ -111,47 +113,72 @@ impl Position {
         // Return the bitboard of the attackers to that square
         todo!()
     }
+
+    /// Efficiently tests for an upcoming repetition on the line,
+    /// using cuckoo hashing.
+    #[inline]
+    pub fn test_upcoming_repetition(&self) -> bool {
+        if self.state.halfmove < 3 {
+            return false;
+        }
+
+        let cur_zobrist = self.state.zobrist;
+        let nth_zobrist = |n: u8| {
+            self.prev_states[self.prev_states.len() - n as usize].zobrist
+        };
+
+        let mut other = !(cur_zobrist ^ nth_zobrist(1));
+
+        for d in (3..self.state.halfmove).step_by(2) {
+            other ^= !(nth_zobrist(d-1) ^ nth_zobrist(d));
+
+            if other != Zobrist::ZERO {
+                continue;
+            }
+
+            let diff = cur_zobrist ^ nth_zobrist(d);
+
+            if cuckoo::is_hash_of_legal_move(self, diff) {
+                return true;
+            }
+        }
+
+        return false
+    }
 }
 
 // ================================ pub(crate) impl
 
-impl Position {
+impl Board {
+    /// Returns true from and to are not aligned, or if the squares
+    /// between them are empty.
     #[inline(always)]
     pub(crate) fn is_path_clear(&self, from: Square, to: Square) -> bool {
         (BitBoard::between(from, to) & self.occ.all).empty()
-    }
-
-    #[inline(always)]
-    pub(crate) fn zobrist(&self) -> Zobrist {
-        self.state.zobrist
-    }
-
-    #[inline(always)]
-    pub(crate) fn prev_zobrist(&self, i: usize) -> Zobrist {
-        self.prev_states[self.prev_states.len() - i].zobrist
     }
 }
 
 // ================================ traits impl
 
-impl Default for Position {
-    fn default() -> Position {
-        Position::from_str("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
+impl Default for Board {
+    /// Returns the default position of chess.
+    fn default() -> Board {
+        Board::from_str("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
     }
 }
 
-impl fmt::Display for Position {
+impl fmt::Display for Board {
+    /// Formats the board to it's fen representation.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // To FEN
         todo!()
     }
 }
 
-impl FromStr for Position {
+impl FromStr for Board {
     type Err = ParseFenError;
 
-    fn from_str(s: &str) -> Result<Position, ParseFenError> {
-        // From FEN
+    /// Tries to parse a board from a string in fen representation.
+    fn from_str(s: &str) -> Result<Board, ParseFenError> {
         todo!()
     }
 }

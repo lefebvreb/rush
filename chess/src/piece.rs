@@ -9,7 +9,7 @@ use crate::errors::ParseFenError;
 //
 //#################################################################################################
 
-/// Represent a piece
+/// Represents a piece.
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Piece {
@@ -24,7 +24,7 @@ pub enum Piece {
 // ================================ pub impl
 
 impl Piece {
-    /// The list of all pieces, in order
+    /// The list of all pieces, in order.
     pub const PIECES: [Piece; 6] = [
         Piece::Pawn, Piece::Rook, Piece::Knight, 
         Piece::Bishop, Piece::Queen, Piece::King,
@@ -34,18 +34,19 @@ impl Piece {
 // ================================ pub(crate) impl
 
 impl Piece {
-    // Return true if self is a slider
+    // Returns true if self is a slider.
     #[inline(always)]
     pub(crate) fn is_slider(self) -> bool {
         matches!(self, Piece::Rook | Piece::Bishop | Piece::Queen)
     }
 
+    // Returns the piece as an index.
     #[inline(always)]
     pub(crate) const fn idx(self) -> usize {
         self as usize
     }
 
-    // Try to parse a piece from a single char
+    // Tries to parse a piece from a single char.
     pub(crate) fn from_char(c: char) -> Result<(Color, Piece), ParseFenError> {
         match c {
             'P' => Ok((Color::White, Piece::Pawn)),
@@ -68,7 +69,7 @@ impl Piece {
 // ================================ traits impl
 
 impl fmt::Display for Piece {
-    // Display the piece
+    /// Displays the piece.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", match self {
             Piece::Pawn   => 'p',
@@ -82,6 +83,7 @@ impl fmt::Display for Piece {
 }
 
 impl From<u8> for Piece {
+    /// Creates a piece from a number. See codes in number definition.
     #[inline(always)]
     fn from(i: u8) -> Piece {
         Piece::PIECES[i as usize]

@@ -1,7 +1,7 @@
 use crate::attacks;
+use crate::board::Board;
 use crate::color::Color;
 use crate::piece::Piece;
-use crate::position::Position;
 use crate::square::Square;
 use crate::zobrist::Zobrist;
 
@@ -11,14 +11,14 @@ use crate::zobrist::Zobrist;
 //
 //#################################################################################################
 
-// The cuckoo tables
+// The cuckoo tables.
 static mut CUCKOO: [Zobrist; 8192] = [Zobrist::ZERO; 8192];
 static mut SQUARES: [(Square, Square); 8192] = [(Square::A1, Square::A1); 8192];
 
-// Return true if the reversible move is valid on an empty board.
-// Pawn moves are never reversible so we don't take them into account
+// Returns true if the move is valid on an empty board.
+// Pawn moves are never reversible so we don't take them into account.
 #[cold]
-unsafe fn is_valid_reversible(color: Color, piece: Piece, from: Square, to: Square) -> bool {
+unsafe fn is_valid(color: Color, piece: Piece, from: Square, to: Square) -> bool {
     match piece {
         Piece::Rook   => attacks::rook(from, from.into()).contains(to),
         Piece::Bishop => attacks::bishop(from, from.into()).contains(to),
@@ -29,10 +29,10 @@ unsafe fn is_valid_reversible(color: Color, piece: Piece, from: Square, to: Squa
     }
 }
 
-// Insert into the cuckoo table if move is valid
+// Inserts into the cuckoo table, only if the move is valid.
 #[cold]
 unsafe fn insert(color: Color, piece: Piece, from: Square, to: Square) {
-    if !is_valid_reversible(color, piece, from, to) {             
+    if !is_valid(color, piece, from, to) {             
         return;
     }
     
@@ -58,7 +58,7 @@ unsafe fn insert(color: Color, piece: Piece, from: Square, to: Square) {
     }
 }
 
-// Initialize the cuckoo tables
+// Initializes the cuckoo tables.
 #[cold]
 pub(crate) unsafe fn init() {
     for color in Color::COLORS {
@@ -78,14 +78,14 @@ pub(crate) unsafe fn init() {
 //
 //#################################################################################################
 
-// Return true if the provided zobrist is the hash of a legal reversible move
+// Returns true if the provided zobrist is the hash of a legal reversible move.
 #[inline(always)]
-pub(crate) fn is_hash_of_legal_move(position: &Position, diff: Zobrist) -> bool {
+pub(crate) fn is_hash_of_legal_move(board: &Board, diff: Zobrist) -> bool {
     let mut i = diff.h1();
     unsafe {
         if CUCKOO[i] == diff || CUCKOO[{i = diff.h2(); i}] == diff {
             let (from, to) = SQUARES[i];
-            position.is_path_clear(from, to)
+            board.is_path_clear(from, to)
         } else {
             false
         }
