@@ -28,11 +28,3 @@ fn _intrinsic_check() {
     // Comment out that function once the warning has been acknoledged
     compile_error!("bmi2 extension not found. Program will be slower if compiled.");
 }
-
-#[test]
-fn size() {
-    use std::sync::atomic::AtomicU64;
-
-    eprintln!("{}", std::mem::size_of::<AtomicU64>());
-    eprintln!("{}", std::mem::size_of::<u64>());
-}

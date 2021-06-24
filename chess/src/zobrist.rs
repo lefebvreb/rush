@@ -78,6 +78,7 @@ pub struct Zobrist(u64);
 // ================================ traits impl
 
 impl ops::BitXorAssign<CastleRights> for Zobrist {
+    #[inline(always)]
     fn bitxor_assign(&mut self, rhs: CastleRights) {
         unsafe {
             self.0 ^= KEYS.castle_rights_keys[rhs.get_raw() as usize];
@@ -86,14 +87,16 @@ impl ops::BitXorAssign<CastleRights> for Zobrist {
 }
 
 impl ops::BitXorAssign<Color> for Zobrist {
+    #[inline(always)]
     fn bitxor_assign(&mut self, rhs: Color) {
         unsafe {
-            self.0 ^= KEYS.color_keys[rhs as usize];
+            self.0 ^= KEYS.color_keys[rhs.idx()];
         }
     }
 }
 
 impl ops::BitXorAssign<EnPassantSquare> for Zobrist {
+    #[inline(always)]
     fn bitxor_assign(&mut self, rhs: EnPassantSquare) {
         match rhs {
             EnPassantSquare::Some(sq) => unsafe {
@@ -105,10 +108,11 @@ impl ops::BitXorAssign<EnPassantSquare> for Zobrist {
 }
 
 impl ops::BitXorAssign<(Color, Piece, Square)> for Zobrist {
+    #[inline(always)]
     fn bitxor_assign(&mut self, rhs: (Color, Piece, Square)) {
         unsafe {
             let (color, piece, sq) = rhs;
-            self.0 ^= KEYS.squares_colors_pieces_keys[sq.idx()][piece as usize][color as usize];
+            self.0 ^= KEYS.squares_colors_pieces_keys[sq.idx()][piece.idx()][color.idx()];
         }
     }
 }
