@@ -4,6 +4,7 @@ mod attacks;
 mod bitboard;
 mod castle_rights;
 mod color;
+mod cuckoo;
 mod en_passant;
 mod errors;
 mod moves;
@@ -20,6 +21,7 @@ pub fn init() {
         bitboard::init();
         zobrist::init();
         attacks::init();
+        cuckoo::init();
     }
 }
 

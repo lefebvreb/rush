@@ -17,12 +17,11 @@ use crate::zobrist::Zobrist;
 //
 //#################################################################################################
 
+#[derive(Clone)]
 struct StateInfo {
     ep_square: EnPassantSquare,
     castle_rights: CastleRights,
     halfmove: u8,
-    checkers: BitBoard,
-    pinned: BitBoard,
     zobrist: Zobrist,
 }
 
@@ -62,7 +61,7 @@ impl Occupancy {
 //
 //#################################################################################################
 
-struct Position {
+pub struct Position {
     ply: u16,
     side_to_move: Color,
 
@@ -71,7 +70,7 @@ struct Position {
     occ: Occupancy,
 
     state: StateInfo,
-    state_history: Vec<StateInfo>,
+    prev_states: Vec<StateInfo>,
 }
 
 // ================================ pub impl
@@ -111,6 +110,25 @@ impl Position {
     pub fn attackers_to(&self, sq: Square) -> BitBoard {
         // Return the bitboard of the attackers to that square
         todo!()
+    }
+}
+
+// ================================ pub(crate) impl
+
+impl Position {
+    #[inline(always)]
+    pub(crate) fn is_path_clear(&self, from: Square, to: Square) -> bool {
+        (BitBoard::between(from, to) & self.occ.all).empty()
+    }
+
+    #[inline(always)]
+    pub(crate) fn zobrist(&self) -> Zobrist {
+        self.state.zobrist
+    }
+
+    #[inline(always)]
+    pub(crate) fn prev_zobrist(&self, i: usize) -> Zobrist {
+        self.prev_states[self.prev_states.len() - i].zobrist
     }
 }
 
