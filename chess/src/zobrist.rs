@@ -12,22 +12,8 @@ use crate::square::Square;
 //
 //#################################################################################################
 
-// The Keys struct, to hold all the zobrist keys.
-struct Keys {
-    castle_rights_keys: [Zobrist; 16],
-    color_keys: [Zobrist; 2],
-    en_passant_file_keys: [Zobrist; 8],
-    squares_colors_pieces_keys: [[[Zobrist; 2]; 6]; 64],
-}
-
-// The only variable with a type of Keys, initialized at
-// the beginning of the program with random values.
-static mut KEYS: Keys = Keys {
-    castle_rights_keys: [Zobrist::ZERO; 16],
-    color_keys: [Zobrist::ZERO; 2],
-    en_passant_file_keys: [Zobrist::ZERO; 8],
-    squares_colors_pieces_keys: [[[Zobrist::ZERO; 2]; 6]; 64],
-};
+// The zobrist keys.
+static mut KEYS: [[[Zobrist; 2]; 6]; 64] = [[[Zobrist::ZERO; 2]; 6]; 64];
 
 // The xorshift* algorithm for 64 bits numbers, producing
 // good enough pseudo-random numbers.
@@ -47,21 +33,10 @@ pub(crate) unsafe fn init() {
     // Changing the seed may make the cuckoo init() non terminating.
     let mut seed = 0x0C3B301A1Af7EE42;
 
-    for i in 0..16 {
-        KEYS.castle_rights_keys[i] = xorshift(&mut seed);
-    }
-
-    KEYS.color_keys[0] = Zobrist(0);
-    KEYS.color_keys[1] = Zobrist(0xFFFFFFFFFFFFFFFF);
-
-    for i in 0..8 {
-        KEYS.en_passant_file_keys[i] = xorshift(&mut seed);
-    }
-
-    for i in 0..64 {
-        for j in 0..6 {
-            KEYS.squares_colors_pieces_keys[i][j][0] = xorshift(&mut seed);
-            KEYS.squares_colors_pieces_keys[i][j][1] = xorshift(&mut seed);
+    for sq in Square::SQUARES {
+        for piece in Piece::PIECES {
+            KEYS[sq.idx()][piece.idx()][Color::White.idx()] = xorshift(&mut seed);
+            KEYS[sq.idx()][piece.idx()][Color::Black.idx()] = xorshift(&mut seed);
         }
     }
 }
@@ -97,35 +72,13 @@ impl Zobrist {
 
 // ================================ traits impl
 
-impl From<CastleRights> for Zobrist {
-    /// Hashes a castle rights.
-    #[inline(always)]
-    fn from(rights: CastleRights) -> Zobrist {
-        unsafe {
-            KEYS.castle_rights_keys[rights.get_raw() as usize]
-        }
-    }
-}
-
 impl From<Color> for Zobrist {
     /// Hashes a color.
     #[inline(always)]
     fn from(color: Color) -> Zobrist {
-        unsafe {
-            KEYS.color_keys[color.idx()]
-        }
-    }
-}
-
-impl From<EnPassantSquare> for Zobrist {
-    /// Hashes an en passant square.
-    #[inline(always)]
-    fn from(ep: EnPassantSquare) -> Zobrist {
-        match ep {
-            EnPassantSquare::Some(sq) => unsafe {
-                KEYS.en_passant_file_keys[sq.x() as usize]
-            },
-            _ => Zobrist::ZERO,
+        match color {
+            Color::White =>  Zobrist::ZERO,
+            Color::Black => !Zobrist::ZERO,
         }
     }
 }
@@ -135,7 +88,7 @@ impl From<(Color, Piece, Square)> for Zobrist {
     #[inline(always)]
     fn from((color, piece, sq): (Color, Piece, Square)) -> Zobrist {
         unsafe {
-            KEYS.squares_colors_pieces_keys[sq.idx()][piece.idx()][color.idx()]
+            KEYS[sq.idx()][piece.idx()][color.idx()]
         }
     }
 }

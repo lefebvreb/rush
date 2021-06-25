@@ -18,6 +18,18 @@ pub(crate) enum EnPassantSquare {
     None,
 }
 
+// ================================ pub(crate) impl
+
+impl EnPassantSquare {
+    #[inline(always)]
+    pub fn unwrap(self) -> Square {
+        match self {
+            EnPassantSquare::Some(sq) => sq,
+            _ => unreachable!(),
+        }
+    }
+}
+
 // ================================ traits impl
 
 impl Default for EnPassantSquare {

@@ -2,6 +2,7 @@ use std::fmt;
 use std::str::FromStr;
 
 use crate::errors::ParseFenError;
+use crate::square::Square;
 
 //#################################################################################################
 //
@@ -34,26 +35,28 @@ pub(crate) struct CastleRights(u8);
 impl CastleRights {
     // Returns true if those rights contain that mask.
     #[inline(always)]
-    pub(crate) fn has(self, mask: CastleMask) -> bool {
+    pub(crate) fn can(self, mask: CastleMask) -> bool {
         (self.0 & mask as u8) != 0
     }
 
-    // Adds that mask to the rights and return the new rights.
     #[inline(always)]
-    pub(crate) fn add(self, mask: CastleMask) -> CastleRights {
-        CastleRights(self.0 | mask as u8)
+    pub(crate) fn update(&mut self, from: Square) {
+        match from {
+            Square::G1 => self.remove(CastleMask::WhiteOO),
+            Square::C1 => self.remove(CastleMask::WhiteOOO),
+            Square::G8 => self.remove(CastleMask::BlackOO),
+            Square::C8 => self.remove(CastleMask::BlackOOO),
+            _ => (),
+        }
     }
+}
 
-    // Removes that mask from the rights and return the new rights.
-    #[inline(always)]
-    pub(crate) fn rem(self, mask: CastleMask) -> CastleRights {
-        CastleRights(self.0 & !(mask as u8))
-    }
+// ================================ impl
 
-    // Returns the raw part of the rights, as an 8 bit integer.
+impl CastleRights {
     #[inline(always)]
-    pub(crate) fn get_raw(self) -> u8 {
-        self.0
+    fn remove(&mut self, mask: CastleMask) {
+        self.0 &= !(mask as u8)
     }
 }
 

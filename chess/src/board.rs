@@ -7,7 +7,7 @@ use crate::color::Color;
 use crate::cuckoo;
 use crate::en_passant::EnPassantSquare;
 use crate::errors::ParseFenError;
-use crate::moves::Move;
+use crate::moves::{Move, MoveType};
 use crate::piece::Piece;
 use crate::square::Square;
 use crate::zobrist::Zobrist;
@@ -35,25 +35,9 @@ struct StateInfo {
 // A struct holding all necessary occupancy informations
 #[derive(Clone, Debug)]
 struct Occupancy {
-    white: BitBoard,
-    black: BitBoard,
+    colored: [BitBoard; 2],
     all: BitBoard,
     free: BitBoard,
-}
-
-// ================================ impl
-
-impl Occupancy {
-    // Updates the occupancy according to the given color and mask.
-    #[inline(always)]
-    fn update(&mut self, color: Color, mask: BitBoard) {
-        match color {
-            Color::White => self.white ^= mask,
-            Color::Black => self.black ^= mask,
-        }
-        self.all ^= mask;
-        self.free ^= mask;
-    }
 }
 
 //#################################################################################################
@@ -89,10 +73,77 @@ impl Board {
         todo!()
     }
 
+    /// Do the move without checking anything about it's legality.
+    /// Returns true if the move is irreversible.
     #[inline]
-    pub fn do_move(&mut self, mv: Move) {
-        // Do the move, creating a new state
-        todo!()
+    pub fn do_move(&mut self, mv: Move) -> bool {
+        self.prev_states.push(self.state.clone());
+
+        let (from, to) = (mv.from(), mv.to());
+        self.state.castle_rights.update(from);
+
+        match mv.get_type() {
+            MoveType::Quiet => {
+                let (_, piece) = self.displace_piece(from, to);
+
+                if piece != Piece::Pawn {
+                    self.state.ep_square = EnPassantSquare::None;
+                    self.state.halfmove += 1;
+                    return false;
+                }
+            },
+            MoveType::Capture => {
+                let (color, piece) = self.remove_piece(from);
+                self.replace_piece(color, piece, to);
+                self.state.ep_square = EnPassantSquare::None;
+            },
+            MoveType::Promote => {
+                let (color, _) = self.remove_piece(from);
+                self.place_piece(color, mv.get_promote(), to);
+                self.state.ep_square = EnPassantSquare::None;
+            },
+            MoveType::PromoteCapture => {
+                let (color, _) = self.remove_piece(from);
+                self.replace_piece(color, mv.get_promote(), to);
+                self.state.ep_square = EnPassantSquare::None;
+            },
+            MoveType::EnPassant => {
+                self.displace_piece(from, to);
+                self.remove_piece(self.state.ep_square.unwrap());
+                self.state.ep_square = EnPassantSquare::None;
+            },
+            MoveType::DoublePush => {
+                let (color, _) = self.displace_piece(from, to);
+                let y = match color {
+                    Color::White => 2,
+                    Color::Black => 5,
+                };
+                self.state.ep_square = EnPassantSquare::Some(Square::from((from.x(), y)));
+            },
+            MoveType::KingCastle => {
+                self.displace_piece(from, to);
+                match to {
+                    Square::G1 => self.displace_piece(Square::H1, Square::F1),
+                    Square::G8 => self.displace_piece(Square::H8, Square::F8),
+                    _ => unreachable!(),
+                };
+
+                self.state.ep_square = EnPassantSquare::None;
+            },
+            MoveType::QueenCastle => {
+                self.displace_piece(from, to);
+                match to {
+                    Square::C1 => self.displace_piece(Square::A1, Square::D1),
+                    Square::C8 => self.displace_piece(Square::A8, Square::D8),
+                    _ => unreachable!(),
+                };
+        
+                self.state.ep_square = EnPassantSquare::None;
+            },
+        }
+
+        self.state.halfmove = 0;
+        true
     }
 
     #[inline]
@@ -155,6 +206,60 @@ impl Board {
     #[inline(always)]
     pub(crate) fn is_path_clear(&self, from: Square, to: Square) -> bool {
         (BitBoard::between(from, to) & self.occ.all).empty()
+    }
+}
+
+// ================================ impl
+
+impl Board {
+    #[inline(always)]
+    fn place_piece(&mut self, color: Color, piece: Piece, sq: Square) {
+        self.bitboards[color.idx()][piece.idx()] ^= sq.into();
+        self.mailbox[sq.idx()] = Some((color, piece));
+
+        let mask = sq.into();
+        self.occ.colored[color.idx()] |= mask;
+        self.occ.all ^= mask;
+        self.occ.free ^= mask;
+
+        self.state.zobrist ^= Zobrist::from((color, piece, sq));
+    }
+
+    #[inline(always)]
+    fn remove_piece(&mut self, sq: Square) -> (Color, Piece) {
+        let (color, piece) = self.mailbox[sq.idx()].unwrap();
+        self.bitboards[color.idx()][piece.idx()] ^= sq.into();
+        self.mailbox[sq.idx()] = None;
+
+        let mask = sq.into();
+        self.occ.colored[color.idx()] |= mask;
+        self.occ.all ^= mask;
+        self.occ.free ^= mask;
+
+        self.state.zobrist ^= Zobrist::from((color, piece, sq));
+
+        (color, piece)
+    }
+
+    #[inline(always)]
+    fn replace_piece(&mut self, color: Color, piece: Piece, sq: Square) {
+        let (old_color, old_piece) = self.mailbox[sq.idx()].unwrap();
+
+        self.mailbox[sq.idx()] = Some((color, piece));
+
+        let mask = sq.into();
+        self.occ.colored[color.idx()] |= mask;
+        self.occ.colored[old_color.idx()] ^= mask;
+
+        self.state.zobrist ^= Zobrist::from((color, piece, sq));
+        self.state.zobrist ^= Zobrist::from((old_color, old_piece, sq));
+    }
+
+    #[inline(always)]
+    fn displace_piece(&mut self, from: Square, to: Square) -> (Color, Piece) {
+        let (color, piece) = self.remove_piece(from);
+        self.place_piece(color, piece, to);
+        (color, piece)
     }
 }
 
