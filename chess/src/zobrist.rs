@@ -1,8 +1,6 @@
 use std::ops::{BitXor, BitXorAssign, Not};
 
-use crate::castle_rights::CastleRights;
 use crate::color::Color;
-use crate::en_passant::EnPassantSquare;
 use crate::piece::Piece;
 use crate::square::Square;
 
@@ -71,17 +69,6 @@ impl Zobrist {
 }
 
 // ================================ traits impl
-
-impl From<Color> for Zobrist {
-    /// Hashes a color.
-    #[inline(always)]
-    fn from(color: Color) -> Zobrist {
-        match color {
-            Color::White =>  Zobrist::ZERO,
-            Color::Black => !Zobrist::ZERO,
-        }
-    }
-}
 
 impl From<(Color, Piece, Square)> for Zobrist {
     /// Hashes a color, piece, square triplet.

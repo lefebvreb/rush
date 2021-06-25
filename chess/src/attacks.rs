@@ -189,7 +189,7 @@ pub(crate) unsafe fn init() {
 
 // Returns the attacks BitBoard of a Pawn of Color color located on square sq with Board occupancy occ.
 #[inline(always)]
-pub(crate) fn pawn(color: Color, sq: Square) -> BitBoard {
+pub(crate) fn pawns(color: Color, sq: Square) -> BitBoard {
     unsafe {
         match color {
             Color::White => WHITE_PAWN_ATTACKS[sq.idx()],

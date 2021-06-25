@@ -118,12 +118,6 @@ impl Square {
         Square::from(self as i8 + 1)
     }
 
-    // Returns the square between from and to.
-    #[inline(always)]
-    pub(crate) fn get_mid(self, other: Square) -> Square {
-        Square::from((self.x(), (self.y() + other.y()) / 2))
-    }
-
     /// Returns the square as an index for an array.
     #[inline(always)]
     pub(crate) const fn idx(self) -> usize {

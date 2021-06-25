@@ -50,7 +50,7 @@ impl MoveType {
 /// `mmmffffffttttttcccppp` where `m` is the type of the move, 
 /// `f` is the from square, `t` is the to square, `c` is the capture piece
 /// and `p` is the promoted piece.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Move(u32);
 
 // ================================ pub impl

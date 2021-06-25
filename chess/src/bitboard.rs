@@ -222,7 +222,7 @@ impl BitBoard {
             let tmp = mask.0;
             mask.0 &= mask.0 - 1;
             if (mask.0 ^ tmp) & self.0 != 0 {
-                res |= (1 << i);
+                res |= 1 << i;
             }
             i += 1;
         }

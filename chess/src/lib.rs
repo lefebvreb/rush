@@ -13,6 +13,14 @@ mod piece;
 mod square;
 mod zobrist;
 
+pub mod prelude {
+    pub use crate::board::Board;
+    pub use crate::color::Color;
+    pub use crate::moves::Move;
+    pub use crate::piece::Piece;
+    pub use crate::square::Square;
+}
+
 /// Initializes the components of the chess lib.
 #[cold]
 pub fn init() {
@@ -23,10 +31,4 @@ pub fn init() {
         attacks::init();
         cuckoo::init();
     }
-}
-
-#[cfg(not(target_feature = "bmi2"))]
-fn _intrinsic_check() {
-    // Comment out that function once the warning has been acknoledged.
-    compile_error!("bmi2 extension not found: move generation will be slower if compiled.");
 }
