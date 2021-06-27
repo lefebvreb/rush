@@ -22,6 +22,7 @@ use crate::zobrist::Zobrist;
 #[derive(Clone, Debug)]
 struct StateInfo {
     castle_rights: CastleRights,
+    checkers: BitBoard,
     ep_square: EnPassantSquare,
     halfmove: u8,
     side_to_move: Color,
@@ -36,10 +37,31 @@ struct StateInfo {
 
 // A struct holding all necessary occupancy informations
 #[derive(Clone, Debug)]
-struct Occupancy {
+pub struct Occupancy {
     all: BitBoard,
     colored: [BitBoard; 2],
     free: BitBoard,
+}
+
+// ================================ pub impl
+
+impl Occupancy {
+    #[inline(always)]
+    pub fn all(&self) -> BitBoard {
+        self.all
+    }
+
+    #[inline(always)]
+    pub fn colored(&self, color: Color) -> BitBoard {
+        unsafe {
+            *self.colored.get_unchecked(color.idx())
+        }
+    }
+
+    #[inline(always)]
+    pub fn free(&self) -> BitBoard {
+        self.free
+    }
 }
 
 // ================================ traits impl
@@ -76,8 +98,27 @@ pub struct Board {
 
 impl Board {
     #[inline(always)]
-    pub fn get_piece(&self, sq: Square) -> Option<(Color, Piece)> {
-        self.mailbox[sq.idx()]
+    pub fn bitboard(&self, color: Color, piece: Piece) -> BitBoard {
+        unsafe {
+            *self.bitboards.get_unchecked(color.idx()).get_unchecked(piece.idx())
+        }
+    }
+
+    #[inline(always)]
+    pub fn piece_at(&self, sq: Square) -> Option<(Color, Piece)> {
+        unsafe {
+            *self.mailbox.get_unchecked(sq.idx())
+        }
+    }
+
+    #[inline(always)]
+    pub fn occupancy(&self) -> &Occupancy {
+        &self.occ
+    }
+
+    #[inline(always)]
+    pub fn king_sq(&self, color: Color) -> Square {
+        self.bitboard(color, Piece::King).as_square_unchecked()
     }
 
     #[inline]
@@ -88,6 +129,9 @@ impl Board {
         //   - Use pinned bitboard: a move is legal if the piece is not pinned or
         //     if it is moving along the king-pinner axis
         // - castling rules are respected
+
+
+
         todo!()
     }
 
@@ -217,7 +261,16 @@ impl Board {
 
     #[inline]
     pub fn attackers_to(&self, sq: Square) -> BitBoard {
-        todo!()
+        let occ = self.occ.all;
+        let us = self.state.side_to_move;
+        let them = us.invert();
+
+        attacks::pawns(us, sq) & self.bitboard(them, Piece::Pawn) 
+        | attacks::rook(sq, occ) & self.bitboard(them, Piece::Rook) 
+        | attacks::knight(sq) & self.bitboard(them, Piece::Knight) 
+        | attacks::bishop(sq, occ) & self.bitboard(them, Piece::Bishop) 
+        | attacks::queen(sq, occ) & self.bitboard(them, Piece::Queen) 
+        | attacks::king(sq) & self.bitboard(them, Piece::King)
     }
 
     /// Efficiently tests for an upcoming repetition on the line,
@@ -229,7 +282,7 @@ impl Board {
 
         let cur_zobrist = self.state.zobrist;
         let nth_zobrist = |n: u8| {
-            self.prev_states[self.prev_states.len() - n as usize].zobrist
+            self.prev_states[self.prev_states.len() - usize::from(n)].zobrist
         };
 
         let mut other = !(cur_zobrist ^ nth_zobrist(1));
@@ -248,7 +301,7 @@ impl Board {
             }
         }
 
-        return false
+        false
     }
 
     /// Pretty-prints the board to stdout, using utf-8 characters
@@ -381,7 +434,7 @@ impl fmt::Display for Board {
             let mut streak = 0;
 
             for x in 0..8 {
-                if let Some((color, piece)) = self.get_piece(Square::from((x, y))) {
+                if let Some((color, piece)) = self.piece_at(Square::from((x, y))) {
                     write_if_not_zero!(streak);
                     write!(f, "{}", match color {
                         Color::White => piece.to_string().to_uppercase(),
@@ -439,6 +492,7 @@ impl FromStr for Board {
 
             state: StateInfo {
                 castle_rights,
+                checkers: BitBoard::EMPTY,
                 ep_square,
                 halfmove,
                 side_to_move,
@@ -477,6 +531,8 @@ impl FromStr for Board {
                 return Err(ParseFenError::new(format!("rank {:?} is too small fen string", rank)))
             }
         }
+
+        //board.state.checkers = board.attackers_to()
 
         Ok(board)
     }

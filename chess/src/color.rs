@@ -33,14 +33,9 @@ impl Color {
             Color::Black => Color::White,
         }
     }
-}
 
-// ================================ pub(crate) impl
-
-impl Color {
-    // Returns the color as an index.
     #[inline(always)]
-    pub(crate) const fn idx(self) -> usize {
+    pub fn idx(self) -> usize {
         self as usize
     }
 }
@@ -61,14 +56,6 @@ impl fmt::Display for Color {
             Color::White => "w",
             Color::Black => "b",
         })
-    }
-}
-
-impl From<u8> for Color {
-    /// Creates a color from a number: 0 is white and 1 is black.
-    #[inline(always)]
-    fn from(i: u8) -> Color {
-        Color::COLORS[i as usize]
     }
 }
 

@@ -81,13 +81,17 @@ pub(crate) unsafe fn init() {
 // Returns true if the provided zobrist is the hash of a legal reversible move.
 #[inline(always)]
 pub(crate) fn is_hash_of_legal_move(board: &Board, diff: Zobrist) -> bool {
-    let mut i = diff.h1();
     unsafe {
-        if CUCKOO[i] == diff || CUCKOO[{i = diff.h2(); i}] == diff {
-            let (from, to) = SQUARES[i];
-            board.is_path_clear(from, to)
-        } else {
-            false
+        let mut i = diff.h1();
+
+        if *CUCKOO.get_unchecked(i) != diff {
+            i = diff.h2();
+            if *CUCKOO.get_unchecked(i) != diff {
+                return false;
+            }
         }
+
+        let (from, to) = SQUARES[i];
+        board.is_path_clear(from, to)
     }
 }
