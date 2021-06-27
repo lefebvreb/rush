@@ -12,7 +12,7 @@ use crate::square::Square;
 
 /// An enum to represent the type of a move.
 #[repr(u8)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub enum MoveType {
     Quiet          = 0,
     Capture        = 1,
@@ -126,6 +126,11 @@ impl Move {
     #[inline(always)]
     pub const fn to(self) -> Square {
         Square::SQUARES[(self.0 >> 9 & 0x3F) as usize]
+    }
+
+    #[inline(always)]
+    pub const fn squares(self) -> (Square, Square) {
+        (self.from(), self.to())
     }
 
     /// Returns the capture piece of the move.

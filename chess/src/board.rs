@@ -21,11 +21,12 @@ use crate::zobrist::Zobrist;
 
 #[derive(Clone, Debug)]
 struct StateInfo {
-    castle_rights: CastleRights,
-    checkers: BitBoard,
-    ep_square: EnPassantSquare,
-    halfmove: u8,
     side_to_move: Color,
+    halfmove: u8,
+    checkers: BitBoard,
+    pinned: BitBoard,
+    castle_rights: CastleRights,
+    ep_square: EnPassantSquare,
     zobrist: Zobrist,
 }
 
@@ -117,8 +118,8 @@ impl Board {
     }
 
     #[inline(always)]
-    pub fn king_sq(&self, color: Color) -> Square {
-        self.bitboard(color, Piece::King).as_square_unchecked()
+    pub fn king_sq(&self) -> Square {
+        self.bitboard(self.state.side_to_move, Piece::King).as_square_unchecked()
     }
 
     #[inline]
@@ -130,53 +131,69 @@ impl Board {
         //     if it is moving along the king-pinner axis
         // - castling rules are respected
 
+        let move_type = mv.get_type();
+        let (from, to) = mv.squares();
 
+        match move_type {
+            MoveType::EnPassant => {
+                todo!()
+            },
+            MoveType::KingCastle | MoveType::QueenCastle => {
+                todo!()
+            },
+            _ => match self.state.checkers.count() {
+                0 => !self.state.pinned.contains(from) || BitBoard::ray_mask(self.king_sq(), from).contains(to),
+                1 => {
+                    todo!()
+                },
+                2 => self.king_sq() == from && self.attackers_to(to).empty(),
+                _ => unreachable!(),
+            },
+        }
+    }
 
+    #[inline]
+    pub fn is_pseudo_legal(&self, mv: Move) -> bool {
         todo!()
     }
 
     /// Do the move without checking anything about it's legality.
     /// Returns true if the move is irreversible.
     pub fn do_move(&mut self, mv: Move) -> bool {
-        self.fullmove += 1;
+        // Store previous state.
         self.prev_states.push(self.state.clone());
+        self.fullmove += 1;
 
-        let (from, to) = (mv.from(), mv.to());
-        self.state.castle_rights.update(from, to);
-        self.state.side_to_move = self.state.side_to_move.invert();
+        // Extract move base infos.
+        let move_type = mv.get_type();
+        let (from, to) = mv.squares();
 
-        self.state.zobrist = !self.state.zobrist;
+        // Remove the piece on the from square, and determine if the move is reversible or not.
         let (color, piece) = self.remove_piece(from, true);
 
-        match mv.get_type() {
+        // Invert the side to move.
+        self.state.side_to_move = self.state.side_to_move.invert();
+
+        // Update the board according to the type of the move.
+        match move_type {
             MoveType::Quiet => {
                 self.place_piece(color, piece, to, true);
-                if piece != Piece::Pawn {
-                    self.state.ep_square = EnPassantSquare::None;
-                    self.state.halfmove += 1;
-                    return false;
-                }
             },
             MoveType::Capture => {
                 self.replace_piece(color, piece, to, true);
-                self.state.ep_square = EnPassantSquare::None;
             },
             MoveType::Promote => {
                 self.place_piece(color, mv.get_promote(), to, true);
-                self.state.ep_square = EnPassantSquare::None;
             },
             MoveType::PromoteCapture => {
                 self.replace_piece(color, mv.get_promote(), to, true);
-                self.state.ep_square = EnPassantSquare::None;
             },
             MoveType::EnPassant => {
                 self.place_piece(color, piece, to, true);
                 self.remove_piece(self.state.ep_square.unwrap(), true);
-                self.state.ep_square = EnPassantSquare::None;
             },
             MoveType::DoublePush => {
                 self.place_piece(color, piece, to, true);
-                self.state.ep_square = EnPassantSquare::Some(to);
             },
             MoveType::KingCastle => {
                 self.place_piece(color, piece, to, true);
@@ -185,7 +202,6 @@ impl Board {
                     Square::G8 => self.displace_piece(Square::H8, Square::F8, true),
                     _ => unreachable!(),
                 };
-                self.state.ep_square = EnPassantSquare::None;
             },
             MoveType::QueenCastle => {
                 self.place_piece(color, piece, to, true);
@@ -194,17 +210,44 @@ impl Board {
                     Square::C8 => self.displace_piece(Square::A8, Square::D8, true),
                     _ => unreachable!(),
                 };
-                self.state.ep_square = EnPassantSquare::None;
             },
         }
 
-        self.state.halfmove = 0;
-        true
+        // Determine checkers and pinned bitboard.
+        self.state.checkers = self.checkers();
+        self.state.pinned   = self.pinned();
+
+        let old_status = (self.state.castle_rights, self.state.ep_square);
+
+        // Update castling rights and en passant square.
+        self.state.castle_rights.update(from, to);
+        self.state.ep_square = if move_type == MoveType::DoublePush {
+            EnPassantSquare::Some(to)
+        } else {
+            EnPassantSquare::None
+        };
+        let new_status = (self.state.castle_rights, self.state.ep_square);
+
+        // Determine if the move is reversible or not.
+        let reversible = move_type == MoveType::Quiet && piece != Piece::Pawn && old_status == new_status;
+
+        // Update the halfmove clock.
+        if reversible {
+            self.state.halfmove += 1;
+        } else {
+            self.state.halfmove = 0;
+        }
+
+        // Invert the zobrist key, as we change color.
+        self.state.zobrist = !self.state.zobrist;
+
+        reversible
     }
 
     pub fn undo_move(&mut self, mv: Move) {
         self.fullmove -= 1;
-        let (from, to) = (mv.from(), mv.to());
+
+        let (from, to) = mv.squares();
         let color = self.state.side_to_move;
 
         self.state = self.prev_states.pop().unwrap();
@@ -261,9 +304,9 @@ impl Board {
 
     #[inline]
     pub fn attackers_to(&self, sq: Square) -> BitBoard {
-        let occ = self.occ.all;
-        let us = self.state.side_to_move;
+        let us   = self.state.side_to_move;
         let them = us.invert();
+        let occ  = self.occ.all;
 
         attacks::pawns(us, sq) & self.bitboard(them, Piece::Pawn) 
         | attacks::rook(sq, occ) & self.bitboard(them, Piece::Rook) 
@@ -271,6 +314,37 @@ impl Board {
         | attacks::bishop(sq, occ) & self.bitboard(them, Piece::Bishop) 
         | attacks::queen(sq, occ) & self.bitboard(them, Piece::Queen) 
         | attacks::king(sq) & self.bitboard(them, Piece::King)
+    }
+
+    #[inline(always)]
+    pub fn checkers(&self) -> BitBoard {
+        self.attackers_to(self.king_sq())
+    }
+
+    #[inline(always)]
+    pub fn pinned(&self) -> BitBoard {
+        let us      = self.state.side_to_move;
+        let them    = us.invert();
+        let queens  = self.bitboard(them, Piece::Queen);
+        let king_sq = self.king_sq();
+
+        let mut pinned = BitBoard::EMPTY;
+
+        for sq in (self.bitboard(them, Piece::Rook) | queens).iter_squares() {
+            let between = BitBoard::between_straight(king_sq, sq);
+            if (between & self.occ.all).count() == 1 {
+                pinned |= between & self.occ.colored(us);
+            }
+        }
+
+        for sq in (self.bitboard(them, Piece::Bishop) | queens).iter_squares() {
+            let between = BitBoard::between_diagonal(king_sq, sq);
+            if (between & self.occ.all).count() == 1 {
+                pinned |= between & self.occ.colored(us);
+            }
+        }
+
+        pinned
     }
 
     /// Efficiently tests for an upcoming repetition on the line,
@@ -485,18 +559,17 @@ impl FromStr for Board {
 
         let mut board = Board {
             fullmove,
-
-            bitboards: [[BitBoard::EMPTY; 6]; 2],
-            mailbox: [None; 64],
-            occ: Occupancy::default(),
-
+            bitboards:  [[BitBoard::EMPTY; 6]; 2],
+            mailbox:    [None; 64],
+            occ:        Occupancy::default(),
             state: StateInfo {
-                castle_rights,
-                checkers: BitBoard::EMPTY,
-                ep_square,
-                halfmove,
                 side_to_move,
-                zobrist: Zobrist::default(),
+                halfmove,
+                checkers:   BitBoard::EMPTY,
+                pinned:    BitBoard::EMPTY,
+                castle_rights,
+                ep_square,
+                zobrist:    Zobrist::default(),
             },
             prev_states: Vec::new(),
         };
@@ -517,6 +590,7 @@ impl FromStr for Board {
                     _ => {
                         let (color, piece) = Piece::from_char(c)?;
                         let sq = Square::from((x, y));
+                        board.bitboard(Color::White, Piece::Pawn);
                         board.place_piece(color, piece, sq, true);
                     }
                 }
@@ -532,7 +606,8 @@ impl FromStr for Board {
             }
         }
 
-        //board.state.checkers = board.attackers_to()
+        board.state.checkers = board.checkers();
+        board.state.pinned   = board.pinned();
 
         Ok(board)
     }
@@ -545,6 +620,8 @@ mod tests {
     #[test]
     fn do_and_undo() {
         use Square::*;
+
+        crate::init();
 
         let moves = vec![
             Move::double_push(D2, D4),
