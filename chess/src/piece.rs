@@ -35,13 +35,13 @@ impl Piece {
 
 impl Piece {
     // Returns true if self is a slider.
-    #[inline(always)]
+    #[inline]
     pub(crate) fn is_slider(self) -> bool {
         matches!(self, Piece::Rook | Piece::Bishop | Piece::Queen)
     }
 
     // Returns the piece as an index.
-    #[inline(always)]
+    #[inline]
     pub(crate) const fn idx(self) -> usize {
         self as usize
     }
@@ -84,10 +84,8 @@ impl fmt::Display for Piece {
 
 impl From<u8> for Piece {
     /// Creates a piece from a number. See codes in number definition.
-    #[inline(always)]
+    #[inline]
     fn from(i: u8) -> Piece {
-        unsafe {
-            *Piece::PIECES.get_unchecked(i as usize)
-        }
+        Piece::PIECES[i as usize]
     }
 }

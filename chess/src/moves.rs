@@ -4,7 +4,14 @@ use crate::color::Color;
 use crate::piece::Piece;
 use crate::square::Square;
 
-#[inline(always)]
+const QUIET      : u32 = 0b00000;
+const CAPTURE    : u32 = 0b00001;
+const PROMOTE    : u32 = 0b00010;
+const CASTLE     : u32 = 0b00100;
+const EN_PASSANT : u32 = 0b01000;
+const DOUBLE_PUSH: u32 = 0b10000;    
+
+#[inline]
 const fn base(flags: u32, from: Square, to: Square) -> u32 {
     flags | (from as u32) << 5 | (to as u32) << 11
 }
@@ -25,122 +32,115 @@ pub struct Move(u32);
 // ================================ pub impl
 
 impl Move {
-    const QUIET      : u32 = 0b00000;
-    const CAPTURE    : u32 = 0b00001;
-    const PROMOTE    : u32 = 0b00010;
-    const CASTLE     : u32 = 0b00100;
-    const EN_PASSANT : u32 = 0b01000;
-    const DOUBLE_PUSH: u32 = 0b10000;    
-
     /// Creates a quiet move.
-    #[inline(always)]
+    #[inline]
     pub const fn quiet(from: Square, to: Square) -> Move {
-        Move(base(Move::QUIET, from, to))
+        Move(base(QUIET, from, to))
     }
 
     /// Creates a standard capture move.
-    #[inline(always)]
+    #[inline]
     pub const fn capture(from: Square, to: Square, capture: Piece) -> Move {
-        Move(base(Move::CAPTURE, from, to) | (capture as u32) << 17)
+        Move(base(CAPTURE, from, to) | (capture as u32) << 17)
     }
 
     /// Creates a promotion move.
-    #[inline(always)]
+    #[inline]
     pub const fn promote(from: Square, to: Square, promote: Piece) -> Move {
-        Move(base(Move::PROMOTE, from, to) | (promote as u32) << 20)
+        Move(base(PROMOTE, from, to) | (promote as u32) << 20)
     }
 
     /// Creates a promotion and capture move.
-    #[inline(always)]
+    #[inline]
     pub const fn promote_capture(from: Square, to: Square, capture: Piece, promote: Piece) -> Move {
-        Move(base(Move::CAPTURE | Move::PROMOTE, from, to) | (capture as u32) << 17 | (promote as u32) << 20)
+        Move(base(CAPTURE | PROMOTE, from, to) | (capture as u32) << 17 | (promote as u32) << 20)
     }
 
     /// Creates an en passant move.
-    #[inline(always)]
+    #[inline]
     pub const fn en_passant(from: Square, to: Square) -> Move {
-        Move(base(Move::EN_PASSANT, from, to))
+        Move(base(EN_PASSANT, from, to))
     }
 
     /// Creates a double push move.
-    #[inline(always)]
+    #[inline]
     pub const fn double_push(from: Square, to: Square) -> Move {
-        Move(base(Move::DOUBLE_PUSH, from, to))
+        Move(base(DOUBLE_PUSH, from, to))
     }
 
     /// Crates a king castle (OO) move.
-    #[inline(always)]
+    #[inline]
     pub const fn king_castle(color: Color) -> Move {
         Move(match color {
-            Color::White => base(Move::CASTLE, Square::E1, Square::G1),
-            Color::Black => base(Move::CASTLE, Square::E8, Square::G8),
+            Color::White => base(CASTLE, Square::E1, Square::G1),
+            Color::Black => base(CASTLE, Square::E8, Square::G8),
         })
     }
 
     /// Crates a queen castle (OOO) move.
-    #[inline(always)]
+    #[inline]
     pub const fn queen_castle(color: Color) -> Move {
         Move(match color {
-            Color::White => base(Move::CASTLE, Square::E1, Square::C1),
-            Color::Black => base(Move::CASTLE, Square::E8, Square::C8),
+            Color::White => base(CASTLE, Square::E1, Square::C1),
+            Color::Black => base(CASTLE, Square::E8, Square::C8),
         })
     }
 
-    #[inline(always)]
+    #[inline]
     pub const fn is_quiet(self) -> bool {
         self.0 == 0
     }
 
-    #[inline(always)]
+    #[inline]
     pub const fn is_capture(self) -> bool {
-        self.0 & Move::CAPTURE != 0
+        self.0 & CAPTURE != 0
     }
 
-    #[inline(always)]
+    #[inline]
     pub const fn is_promote(self) -> bool {
-        self.0 & Move::PROMOTE != 0
+        self.0 & PROMOTE != 0
     }
 
-    #[inline(always)]
+    #[inline]
     pub const fn is_castle(self) -> bool {
-        self.0 & Move::CASTLE != 0
+        self.0 & CASTLE != 0
     }
 
-    #[inline(always)]
+    #[inline]
     pub const fn is_en_passant(self) -> bool {
-        self.0 & Move::EN_PASSANT != 0
+        self.0 & EN_PASSANT != 0
     }
 
-    #[inline(always)]
+    #[inline]
     pub const fn is_double_push(self) -> bool {
-        self.0 & Move::DOUBLE_PUSH != 0
+        self.0 & DOUBLE_PUSH != 0
     }
 
     /// Returns the from square of the move.
-    #[inline(always)]
+    #[inline]
     pub fn from(self) -> Square {
         Square::from((self.0 >> 5 & 0x3F) as i8)
     }
 
     /// Returns the to square of the move.
-    #[inline(always)]
+    #[inline]
     pub fn to(self) -> Square {
         Square::from((self.0 >> 11 & 0x3F) as i8)
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn squares(self) -> (Square, Square) {
         (self.from(), self.to())
     }
 
     /// Returns the capture piece of the move.
-    #[inline(always)]
+    #[inline]
     pub fn get_capture(self) -> Piece {
         Piece::from((self.0 >> 17 & 0x7) as u8)
     }
 
     /// Returns the promote piece of the move.
-    #[inline(always)]
+    #[inline]
     pub fn get_promote(self) -> Piece {
         Piece::from((self.0 >> 20 & 0x7) as u8)
     }
@@ -179,20 +179,20 @@ impl MoveList {
     pub const SIZE: usize = 256;
 
     /// Pushes an element to the top of the move.
-    #[inline(always)]
+    #[inline]
     pub fn push(&mut self, mv: Move) {
         self.list[self.size] = mv;
         self.size += 1;
     }
 
     /// Gets an element from the list.
-    #[inline(always)]
+    #[inline]
     pub fn get(&self, i: usize) -> Move {
         self.list[i]
     }
 
     /// Clears the list.
-    #[inline(always)]
+    #[inline]
     pub fn clear(&mut self) {
         self.size = 0
     }

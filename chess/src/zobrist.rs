@@ -56,13 +56,13 @@ impl Zobrist {
     pub const ZERO: Zobrist = Zobrist(0);
 
     /// First hash function for indexing the cuckoo table.
-    #[inline(always)]
+    #[inline]
     pub fn h1(self) -> usize {
         (self.0.wrapping_shr(32) & 0x1FFF) as usize
     }
 
     /// Second hash function for indexing the cuckoo table.
-    #[inline(always)]
+    #[inline]
     pub fn h2(self) -> usize {
         (self.0.wrapping_shr(48) & 0x1FFF) as usize
     }
@@ -72,7 +72,7 @@ impl Zobrist {
 
 impl From<(Color, Piece, Square)> for Zobrist {
     /// Hashes a color, piece, square triplet.
-    #[inline(always)]
+    #[inline]
     fn from((color, piece, sq): (Color, Piece, Square)) -> Zobrist {
         unsafe {
             KEYS[sq.idx()][piece.idx()][color.idx()]
@@ -83,14 +83,14 @@ impl From<(Color, Piece, Square)> for Zobrist {
 impl BitXor<Zobrist> for Zobrist {
     type Output = Zobrist;
 
-    #[inline(always)]
+    #[inline]
     fn bitxor(self, rhs: Zobrist) -> Zobrist {
         Zobrist(self.0.bitxor(rhs.0))
     }
 }
 
 impl BitXorAssign<Zobrist> for Zobrist {
-    #[inline(always)]
+    #[inline]
     fn bitxor_assign(&mut self, rhs: Zobrist) {
         self.0.bitxor_assign(rhs.0);
     }
@@ -99,7 +99,7 @@ impl BitXorAssign<Zobrist> for Zobrist {
 impl Not for Zobrist {
     type Output = Zobrist;
 
-    #[inline(always)]
+    #[inline]
     fn not(self) -> Zobrist {
         Zobrist(self.0.not())
     }

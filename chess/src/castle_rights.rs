@@ -34,12 +34,12 @@ pub(crate) struct CastleRights(u8);
 
 impl CastleRights {
     // Returns true if those rights contain that mask.
-    #[inline(always)]
-    pub(crate) fn can(self, mask: CastleMask) -> bool {
+    #[inline]
+    pub(crate) fn has(self, mask: CastleMask) -> bool {
         (self.0 & mask as u8) != 0
     }
 
-    #[inline(always)]
+    #[inline]
     pub(crate) fn update(&mut self, from: Square, to: Square) {
         match from {
             Square::C1 => self.remove(CastleMask::WhiteOOO),
@@ -62,7 +62,7 @@ impl CastleRights {
 // ================================ impl
 
 impl CastleRights {
-    #[inline(always)]
+    #[inline]
     fn remove(&mut self, mask: CastleMask) {
         self.0 &= !(mask as u8)
     }

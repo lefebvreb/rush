@@ -26,7 +26,7 @@ impl Color {
     ];
 
     /// Gives the opposite color of self.
-    #[inline(always)]
+    #[inline]
     pub const fn invert(self) -> Color {
         match self {
             Color::White => Color::Black,
@@ -34,7 +34,7 @@ impl Color {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn idx(self) -> usize {
         self as usize
     }

@@ -47,19 +47,17 @@ pub struct Occupancy {
 // ================================ pub impl
 
 impl Occupancy {
-    #[inline(always)]
+    #[inline]
     pub fn all(&self) -> BitBoard {
         self.all
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn colored(&self, color: Color) -> BitBoard {
-        unsafe {
-            *self.colored.get_unchecked(color.idx())
-        }
+        self.colored[color.idx()]
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn free(&self) -> BitBoard {
         self.free
     }
@@ -68,11 +66,9 @@ impl Occupancy {
 // ================================ impl
 
 impl Occupancy {
-    #[inline(always)]
+    #[inline]
     fn update_colored(&mut self, color: Color, mask: BitBoard) {
-        unsafe {
-            *self.colored.get_unchecked_mut(color.idx()) ^= mask;
-        }
+        self.colored[color.idx()] ^= mask;
     }
 }
 
@@ -109,31 +105,26 @@ pub struct Board {
 // ================================ pub impl
 
 impl Board {
-    #[inline(always)]
+    #[inline]
     pub fn bitboard(&self, color: Color, piece: Piece) -> BitBoard {
-        unsafe {
-            *self.bitboards.get_unchecked(color.idx()).get_unchecked(piece.idx())
-        }
+        self.bitboards[color.idx()][piece.idx()]
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn piece_at(&self, sq: Square) -> Option<(Color, Piece)> {
-        unsafe {
-            *self.mailbox.get_unchecked(sq.idx())
-        }
+        self.mailbox[sq.idx()]
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn occupancy(&self) -> &Occupancy {
         &self.occ
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn king_sq(&self) -> Square {
         self.bitboard(self.state.side_to_move, Piece::King).as_square_unchecked()
     }
 
-    #[inline]
     pub fn is_legal(&self, mv: Move) -> bool {
         let (from, to) = mv.squares();
 
@@ -178,7 +169,6 @@ impl Board {
         !self.state.pinned.contains(from) || BitBoard::ray_mask(self.king_sq(), from).contains(to)
     }
 
-    #[inline]
     pub fn is_pseudo_legal(&self, mv: Move) -> bool {
         // Piece is on our side, it does not go on a friendly piece
         // If it's en passant, there must be ep square
@@ -314,16 +304,16 @@ impl Board {
         | attacks::king(sq) & self.bitboard(them, Piece::King)
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn checkers(&self) -> BitBoard {
         self.attackers_to(self.king_sq())
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn pinned(&self) -> BitBoard {
-        let us      = self.state.side_to_move;
-        let them    = us.invert();
-        let queens  = self.bitboard(them, Piece::Queen);
+        let us = self.state.side_to_move;
+        let them = us.invert();
+        let queens = self.bitboard(them, Piece::Queen);
         let king_sq = self.king_sq();
 
         let mut pinned = BitBoard::EMPTY;
@@ -359,7 +349,7 @@ impl Board {
 
         let mut other = !(cur_zobrist ^ nth_zobrist(1));
 
-        for d in (3..self.state.halfmove).step_by(2) {
+        for d in (3..=self.state.halfmove).step_by(2) {
             other ^= !(nth_zobrist(d-1) ^ nth_zobrist(d));
 
             if other != Zobrist::ZERO {
@@ -415,7 +405,7 @@ impl Board {
 impl Board {
     /// Returns true from and to are not aligned, or if the squares
     /// between them are empty.
-    #[inline(always)]
+    #[inline]
     pub(crate) fn is_path_clear(&self, from: Square, to: Square) -> bool {
         (BitBoard::between(from, to) & self.occ.all).empty()
     }
@@ -424,31 +414,10 @@ impl Board {
 // ================================ impl
 
 impl Board {
-    #[inline(always)]
-    fn update_bitboard(&mut self, color: Color, piece: Piece, mask: BitBoard) {
-        unsafe {
-            *self.bitboards.get_unchecked_mut(color.idx()).get_unchecked_mut(piece.idx()) ^= mask;
-        }
-    }
-
-    #[inline(always)]
-    fn piece_at_unchecked(&self, sq: Square) -> (Color, Piece) {
-        unsafe {
-            self.mailbox.get_unchecked(sq.idx()).unwrap()
-        }
-    }
-
-    #[inline(always)]
-    fn update_mailbox(&mut self, sq: Square, value: Option<(Color, Piece)>) {
-        unsafe {
-            *self.mailbox.get_unchecked_mut(sq.idx()) = value;
-        }
-    }
-
-    #[inline(always)]
+    #[inline]
     fn place_piece<const ZOBRIST: bool>(&mut self, color: Color, piece: Piece, sq: Square) {
-        self.update_bitboard(color, piece, sq.into());
-        self.update_mailbox(sq, Some((color, piece)));
+        self.bitboards[color.idx()][piece.idx()] ^= sq.into();
+        self.mailbox[sq.idx()] = Some((color, piece));
 
         let mask = sq.into();
         self.occ.update_colored(color, mask);
@@ -460,11 +429,11 @@ impl Board {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     fn remove_piece<const ZOBRIST: bool>(&mut self, sq: Square) -> (Color, Piece) {
         let (color, piece) = self.mailbox[sq.idx()].unwrap();
-        self.update_bitboard(color, piece, sq.into());
-        self.update_mailbox(sq, None);
+        self.bitboards[color.idx()][piece.idx()] ^= sq.into();
+        self.mailbox[sq.idx()] = None;
 
         let mask = sq.into();
         self.occ.update_colored(color, mask);
@@ -478,7 +447,7 @@ impl Board {
         (color, piece)
     }
 
-    #[inline(always)]
+    #[inline]
     fn displace_piece<const ZOBRIST: bool>(&mut self, from: Square, to: Square) -> (Color, Piece) {
         let (color, piece) = self.remove_piece::<ZOBRIST>(from);
         self.place_piece::<ZOBRIST>(color, piece, to);

@@ -115,19 +115,19 @@ impl BitBoard {
     pub const RANK_8: BitBoard = BitBoard(0xFF00000000000000);
 
     /// Return true if and only if the BitBoard self is empty.
-    #[inline(always)]
+    #[inline]
     pub const fn empty(self) -> bool {
         self.0 == 0
     }
 
     /// Returns true if and only if the BitBoard self is not empty.
-    #[inline(always)]
+    #[inline]
     pub const fn not_empty(self) -> bool {
         self.0 != 0
     }
 
     /// Returns an iterator over the bits of the BitBoard self.
-    #[inline(always)]
+    #[inline]
     pub fn iter_squares(mut self) -> impl Iterator<Item = Square> {
         (0..self.0.count_ones()).map(move |_| {
             let lsb = self.0.trailing_zeros();
@@ -137,13 +137,13 @@ impl BitBoard {
     }
     
     /// Counts the bits of self that are 1.
-    #[inline(always)]
+    #[inline]
     pub fn count(self) -> u8 {
         self.0.count_ones() as u8
     }
 
     /// Returns true if that bitboard is on the last rank.
-    #[inline(always)]
+    #[inline]
     pub fn last_rank(self, color: Color) -> bool {
         (self & match color {
             Color::White => BitBoard::RANK_8,
@@ -152,14 +152,14 @@ impl BitBoard {
     }
 
     /// Returns true if that bitboard contains sq.
-    #[inline(always)]
+    #[inline]
     pub fn contains(self, sq: Square) -> bool {
         (self & sq.into()).0 != 0
     }
 
     /// Returns a bitboard of the squares between from and to (exclusive) if 
     /// from and to are aligned horizontally or vertically. Returns an empty bitboard if they are not.
-    #[inline(always)]
+    #[inline]
     pub fn between_straight(from: Square, to: Square) -> BitBoard {
         unsafe {
             SQUARES_BETWEEN_STRAIGHT[from.idx()][to.idx()]
@@ -168,7 +168,7 @@ impl BitBoard {
 
     /// Returns a bitboard of the squares between from and to (exclusive) if 
     /// from and to are aligned diagonally. Returns an empty bitboard if they are not.
-    #[inline(always)]
+    #[inline]
     pub fn between_diagonal(from: Square, to: Square) -> BitBoard {
         unsafe {
             SQUARES_BETWEEN_DIAGNOAL[from.idx()][to.idx()]
@@ -177,7 +177,7 @@ impl BitBoard {
 
     /// Returns a bitboard of the squares between from and to (exclusive).
     /// if they are aligned. Returns an empty bitboard if they are not.
-    #[inline(always)]
+    #[inline]
     pub fn between(from: Square, to: Square) -> BitBoard {
         unsafe {
             SQUARES_BETWEEN[from.idx()][to.idx()]
@@ -187,7 +187,7 @@ impl BitBoard {
     /// Returns a bitboard of the squares on the ray from-to, with
     /// from inclusive, if from and to are aligned.
     /// Returns an empty bitboard if they are not.
-    #[inline(always)]
+    #[inline]
     pub fn ray_mask(from: Square, to: Square) -> BitBoard {
         unsafe {
             SQUARES_RAY_MASK[from.idx()][to.idx()]
@@ -206,13 +206,13 @@ macro_rules! squares {
 
 impl BitBoard {
     // Returns the first square of the bitboard, with no checks.
-    #[inline(always)]
+    #[inline]
     pub(crate) fn as_square_unchecked(self) -> Square {
         Square::from(self.0.trailing_zeros() as i8)
     }
 
     // Performs a parallel bits extract (pext) using the intrinsic (fast).
-    #[inline(always)]
+    #[inline]
     #[cfg(target_feature = "bmi2")]
     pub(crate) fn pext(self, mask: BitBoard) -> BitBoard {
         BitBoard(unsafe {
@@ -239,7 +239,7 @@ impl BitBoard {
     }
 
     // Performs a parallel bits deposit (pdep) using the intrinsic (fast).
-    #[inline(always)]
+    #[inline]
     #[cfg(target_feature = "bmi2")]
     pub(crate) fn pdep(self, mask: BitBoard) -> BitBoard {
         BitBoard(unsafe {
@@ -266,7 +266,7 @@ impl BitBoard {
     }
 
     // Gets the lower 16 bits of the bitboard, as an u16.
-    #[inline(always)]
+    #[inline]
     pub(crate) fn lower16(self) -> u16 {
         self.0 as u16
     }
@@ -300,10 +300,10 @@ impl fmt::Display for BitBoard {
 
 impl From<Square> for BitBoard {
     /// Returns the bitboard containing only that square.
-    #[inline(always)]
+    #[inline]
     fn from(sq: Square) -> BitBoard {
         unsafe {
-            *SHIFTS.get_unchecked(sq.idx())
+            SHIFTS[sq.idx()]
         }
     }
 }
@@ -311,14 +311,14 @@ impl From<Square> for BitBoard {
 impl ops::Add<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn add(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.wrapping_add(rhs.0))
     }
 }
 
 impl ops::AddAssign<BitBoard> for BitBoard {
-    #[inline(always)]
+    #[inline]
     fn add_assign(&mut self, rhs: BitBoard) {
         self.0.add_assign(rhs.0)
     }
@@ -327,14 +327,14 @@ impl ops::AddAssign<BitBoard> for BitBoard {
 impl ops::Sub<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn sub(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.wrapping_sub(rhs.0))
     }
 }
 
 impl ops::SubAssign<BitBoard> for BitBoard {
-    #[inline(always)]
+    #[inline]
     fn sub_assign(&mut self, rhs: BitBoard) {
         self.0.sub_assign(rhs.0)
     }
@@ -343,14 +343,14 @@ impl ops::SubAssign<BitBoard> for BitBoard {
 impl ops::Mul<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn mul(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.wrapping_mul(rhs.0))
     }
 }
 
 impl ops::MulAssign<BitBoard> for BitBoard {
-    #[inline(always)]
+    #[inline]
     fn mul_assign(&mut self, rhs: BitBoard) {
         self.0.mul_assign(rhs.0)
     }
@@ -359,7 +359,7 @@ impl ops::MulAssign<BitBoard> for BitBoard {
 impl ops::Not for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn not(self) -> BitBoard {
         BitBoard(self.0.not())
     }
@@ -368,7 +368,7 @@ impl ops::Not for BitBoard {
 impl ops::Neg for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn neg(self) -> BitBoard {
         BitBoard(self.0.wrapping_neg())
     }
@@ -377,14 +377,14 @@ impl ops::Neg for BitBoard {
 impl ops::BitAnd<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn bitand(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.bitand(rhs.0))
     }
 }
 
 impl ops::BitAndAssign<BitBoard> for BitBoard {
-    #[inline(always)]
+    #[inline]
     fn bitand_assign(&mut self, rhs: BitBoard) {
         self.0.bitand_assign(rhs.0)
     }
@@ -393,14 +393,14 @@ impl ops::BitAndAssign<BitBoard> for BitBoard {
 impl ops::BitOr<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn bitor(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.bitor(rhs.0))
     }
 }
 
 impl ops::BitOrAssign<BitBoard> for BitBoard {
-    #[inline(always)]
+    #[inline]
     fn bitor_assign(&mut self, rhs: BitBoard) {
         self.0.bitor_assign(rhs.0)
     }
@@ -409,14 +409,14 @@ impl ops::BitOrAssign<BitBoard> for BitBoard {
 impl ops::BitXor<BitBoard> for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn bitxor(self, rhs: BitBoard) -> BitBoard {
         BitBoard(self.0.bitxor(rhs.0))
     }
 }
 
 impl ops::BitXorAssign<BitBoard> for BitBoard {
-    #[inline(always)]
+    #[inline]
     fn bitxor_assign(&mut self, rhs: BitBoard) {
         self.0.bitxor_assign(rhs.0)
     }
@@ -425,14 +425,14 @@ impl ops::BitXorAssign<BitBoard> for BitBoard {
 impl ops::Shl<u32> for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn shl(self, rhs: u32) -> BitBoard {
         BitBoard(self.0.wrapping_shl(rhs))
     }
 }
 
 impl ops::ShlAssign<BitBoard> for BitBoard {
-    #[inline(always)]
+    #[inline]
     fn shl_assign(&mut self, rhs: BitBoard) {
         self.0.shl_assign(rhs.0)
     }
@@ -441,14 +441,14 @@ impl ops::ShlAssign<BitBoard> for BitBoard {
 impl ops::Shr<u32> for BitBoard {
     type Output = BitBoard;
 
-    #[inline(always)]
+    #[inline]
     fn shr(self, rhs: u32) -> BitBoard {
         BitBoard(self.0.wrapping_shr(rhs))
     }
 }
 
 impl ops::ShrAssign<BitBoard> for BitBoard {
-    #[inline(always)]
+    #[inline]
     fn shr_assign(&mut self, rhs: BitBoard) {
         self.0.shr_assign(rhs.0)
     }

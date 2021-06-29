@@ -187,7 +187,7 @@ pub(crate) unsafe fn init() {
 //#################################################################################################
 
 // Returns the attacks BitBoard of a Pawn of Color color located on square sq with Board occupancy occ.
-#[inline(always)]
+#[inline]
 pub(crate) fn pawns(color: Color, sq: Square) -> BitBoard {
     unsafe {
         match color {
@@ -199,7 +199,7 @@ pub(crate) fn pawns(color: Color, sq: Square) -> BitBoard {
 
 // Returns the square, if available, of the position the pawn
 // would occupy if it was pushed.
-#[inline(always)]
+#[inline]
 pub(crate) fn pawn_push(color: Color, sq: Square) -> Option<Square> {
     unsafe {
         match color {
@@ -211,7 +211,7 @@ pub(crate) fn pawn_push(color: Color, sq: Square) -> Option<Square> {
 
 // Returns the square, if available, of the position the pawn
 // would occupy if it was double pushed.
-#[inline(always)]
+#[inline]
 pub(crate) fn pawn_double_push(color: Color, sq: Square) -> Option<Square> {
     unsafe {
         match color {
@@ -222,7 +222,7 @@ pub(crate) fn pawn_double_push(color: Color, sq: Square) -> Option<Square> {
 }
 
 // Returns the attacks BitBoard of a Rook located on square sq, with Board occupancy occ.
-#[inline(always)]
+#[inline]
 pub(crate) fn rook(sq: Square, occ: BitBoard) -> BitBoard {
     unsafe {
         let info = &ROOK_BMI2[sq.idx()];
@@ -232,7 +232,7 @@ pub(crate) fn rook(sq: Square, occ: BitBoard) -> BitBoard {
 }
 
 // Returns the attacks BitBoard of a Knight located on square sq.
-#[inline(always)]
+#[inline]
 pub(crate) fn knight(sq: Square) -> BitBoard {
     unsafe {
         KNIGHT_ATTACKS[sq.idx()]
@@ -240,7 +240,7 @@ pub(crate) fn knight(sq: Square) -> BitBoard {
 }
 
 // Returns the attacks BitBoard of a Bishop located on square sq, with Board occupancy occ.
-#[inline(always)]
+#[inline]
 pub(crate) fn bishop(sq: Square, occ: BitBoard) -> BitBoard {
     unsafe {
         let info = &BISHOP_BMI2[sq.idx()];
@@ -250,13 +250,13 @@ pub(crate) fn bishop(sq: Square, occ: BitBoard) -> BitBoard {
 }
 
 // Returns the attacks BitBoard of a Queen located on square sq, with Board occupancy occ.
-#[inline(always)]
+#[inline]
 pub(crate) fn queen(sq: Square, occ: BitBoard) -> BitBoard {
     bishop(sq, occ) | rook(sq, occ)
 }
 
 // Returns the attacks BitBoard of a King located on square sq.
-#[inline(always)]
+#[inline]
 pub(crate) fn king(sq: Square) -> BitBoard {
     unsafe {
         KING_ATTACKS[sq.idx()]

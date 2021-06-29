@@ -12,6 +12,7 @@ use crate::errors::ParseFenError;
 //#################################################################################################
 
 /// Represents a Square of the board.
+#[rustfmt::skip]
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Square {
@@ -29,6 +30,7 @@ pub enum Square {
 
 impl Square {
     /// An array containing all squares in order: ranks first then files, starting from A1.
+    #[rustfmt::skip]
     pub const SQUARES: [Square; 64] = [
         Square::A1, Square::B1, Square::C1, Square::D1, Square::E1, Square::F1, Square::G1, Square::H1,
         Square::A2, Square::B2, Square::C2, Square::D2, Square::E2, Square::F2, Square::G2, Square::H2,
@@ -41,13 +43,13 @@ impl Square {
     ];
 
     /// Returns the x coodinate of that square.
-    #[inline(always)]
+    #[inline]
     pub fn x(self) -> i8 {
         (self as i8) & 0x7
     }
 
     /// Returns the y coodinate of that square.
-    #[inline(always)]
+    #[inline]
     pub fn y(self) -> i8 {
         (self as i8).wrapping_shr(3)
     }
@@ -68,7 +70,7 @@ impl Square {
     }
 
     /// Returns the color of that square on the board.
-    #[inline(always)]
+    #[inline]
     pub fn parity(self) -> Color {
         if (self.x() + self.y()) % 2 == 0 {
             Color::Black
@@ -94,7 +96,7 @@ impl Square {
 
 impl Square {
     /// Returns the square as an index for an array.
-    #[inline(always)]
+    #[inline]
     pub(crate) const fn idx(self) -> usize {
         self as usize
     }
@@ -116,9 +118,7 @@ impl From<i8> for Square {
     /// Creates a square from a number in 0..64.
     #[inline]
     fn from(i: i8) -> Square {
-        unsafe {
-            *Square::SQUARES.get_unchecked(i as usize)
-        }
+        Square::SQUARES[i as usize]
     }
 }
 
