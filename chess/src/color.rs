@@ -34,6 +34,7 @@ impl Color {
         }
     }
 
+    /// Returns the color used as an index.
     #[inline]
     pub fn idx(self) -> usize {
         self as usize

@@ -13,12 +13,12 @@ use crate::errors::ParseFenError;
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Piece {
-    Pawn   = 0,
-    Rook   = 1,
+    Pawn = 0,
+    Rook = 1,
     Knight = 2,
     Bishop = 3,
-    Queen  = 4,
-    King   = 5,
+    Queen = 4,
+    King = 5,
 }
 
 // ================================ pub impl
@@ -42,7 +42,7 @@ impl Piece {
 
     // Returns the piece as an index.
     #[inline]
-    pub(crate) const fn idx(self) -> usize {
+    pub(crate) fn idx(self) -> usize {
         self as usize
     }
 

@@ -4,13 +4,7 @@ use crate::color::Color;
 use crate::piece::Piece;
 use crate::square::Square;
 
-const QUIET      : u32 = 0b00000;
-const CAPTURE    : u32 = 0b00001;
-const PROMOTE    : u32 = 0b00010;
-const CASTLE     : u32 = 0b00100;
-const EN_PASSANT : u32 = 0b01000;
-const DOUBLE_PUSH: u32 = 0b10000;    
-
+// Create the base for a move, with
 #[inline]
 const fn base(flags: u32, from: Square, to: Square) -> u32 {
     flags | (from as u32) << 5 | (to as u32) << 11
@@ -35,45 +29,45 @@ impl Move {
     /// Creates a quiet move.
     #[inline]
     pub const fn quiet(from: Square, to: Square) -> Move {
-        Move(base(QUIET, from, to))
+        Move(base(Move::QUIET, from, to))
     }
 
     /// Creates a standard capture move.
     #[inline]
     pub const fn capture(from: Square, to: Square, capture: Piece) -> Move {
-        Move(base(CAPTURE, from, to) | (capture as u32) << 17)
+        Move(base(Move::CAPTURE, from, to) | (capture as u32) << 17)
     }
 
     /// Creates a promotion move.
     #[inline]
     pub const fn promote(from: Square, to: Square, promote: Piece) -> Move {
-        Move(base(PROMOTE, from, to) | (promote as u32) << 20)
+        Move(base(Move::PROMOTE, from, to) | (promote as u32) << 20)
     }
 
     /// Creates a promotion and capture move.
     #[inline]
     pub const fn promote_capture(from: Square, to: Square, capture: Piece, promote: Piece) -> Move {
-        Move(base(CAPTURE | PROMOTE, from, to) | (capture as u32) << 17 | (promote as u32) << 20)
+        Move(base(Move::CAPTURE | Move::PROMOTE, from, to) | (capture as u32) << 17 | (promote as u32) << 20)
     }
 
     /// Creates an en passant move.
     #[inline]
     pub const fn en_passant(from: Square, to: Square) -> Move {
-        Move(base(EN_PASSANT, from, to))
+        Move(base(Move::EN_PASSANT, from, to))
     }
 
     /// Creates a double push move.
     #[inline]
     pub const fn double_push(from: Square, to: Square) -> Move {
-        Move(base(DOUBLE_PUSH, from, to))
+        Move(base(Move::DOUBLE_PUSH, from, to))
     }
 
     /// Crates a king castle (OO) move.
     #[inline]
     pub const fn king_castle(color: Color) -> Move {
         Move(match color {
-            Color::White => base(CASTLE, Square::E1, Square::G1),
-            Color::Black => base(CASTLE, Square::E8, Square::G8),
+            Color::White => base(Move::CASTLE, Square::E1, Square::G1),
+            Color::Black => base(Move::CASTLE, Square::E8, Square::G8),
         })
     }
 
@@ -81,8 +75,8 @@ impl Move {
     #[inline]
     pub const fn queen_castle(color: Color) -> Move {
         Move(match color {
-            Color::White => base(CASTLE, Square::E1, Square::C1),
-            Color::Black => base(CASTLE, Square::E8, Square::C8),
+            Color::White => base(Move::CASTLE, Square::E1, Square::C1),
+            Color::Black => base(Move::CASTLE, Square::E8, Square::C8),
         })
     }
 
@@ -93,27 +87,27 @@ impl Move {
 
     #[inline]
     pub const fn is_capture(self) -> bool {
-        self.0 & CAPTURE != 0
+        self.0 & Move::CAPTURE != 0
     }
 
     #[inline]
     pub const fn is_promote(self) -> bool {
-        self.0 & PROMOTE != 0
+        self.0 & Move::PROMOTE != 0
     }
 
     #[inline]
     pub const fn is_castle(self) -> bool {
-        self.0 & CASTLE != 0
+        self.0 & Move::CASTLE != 0
     }
 
     #[inline]
     pub const fn is_en_passant(self) -> bool {
-        self.0 & EN_PASSANT != 0
+        self.0 & Move::EN_PASSANT != 0
     }
 
     #[inline]
     pub const fn is_double_push(self) -> bool {
-        self.0 & DOUBLE_PUSH != 0
+        self.0 & Move::DOUBLE_PUSH != 0
     }
 
     /// Returns the from square of the move.
@@ -144,6 +138,17 @@ impl Move {
     pub fn get_promote(self) -> Piece {
         Piece::from((self.0 >> 20 & 0x7) as u8)
     }
+}
+
+// ================================ impl
+
+impl Move {
+    const QUIET: u32 = 0b00000;
+    const CAPTURE: u32 = 0b00001;
+    const PROMOTE: u32 = 0b00010;
+    const CASTLE: u32 = 0b00100;
+    const EN_PASSANT: u32 = 0b01000;
+    const DOUBLE_PUSH: u32 = 0b10000;    
 }
 
 // ================================ traits impl

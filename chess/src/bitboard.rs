@@ -1,7 +1,6 @@
 use std::fmt;
 use std::ops;
 
-use crate::color::Color;
 use crate::square::Square;
 
 //#################################################################################################
@@ -92,7 +91,7 @@ pub(crate) unsafe fn init() {
 
 /// Represents a 64 bits BitBoard.
 #[repr(transparent)]
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Eq, Default)]
 pub struct BitBoard(pub u64);
 
 // ================================ pub impl
@@ -116,13 +115,13 @@ impl BitBoard {
 
     /// Return true if and only if the BitBoard self is empty.
     #[inline]
-    pub const fn empty(self) -> bool {
+    pub fn empty(self) -> bool {
         self.0 == 0
     }
 
     /// Returns true if and only if the BitBoard self is not empty.
     #[inline]
-    pub const fn not_empty(self) -> bool {
+    pub fn not_empty(self) -> bool {
         self.0 != 0
     }
 
@@ -140,15 +139,6 @@ impl BitBoard {
     #[inline]
     pub fn count(self) -> u8 {
         self.0.count_ones() as u8
-    }
-
-    /// Returns true if that bitboard is on the last rank.
-    #[inline]
-    pub fn last_rank(self, color: Color) -> bool {
-        (self & match color {
-            Color::White => BitBoard::RANK_8,
-            Color::Black => BitBoard::RANK_1,
-        }).0 == self.0
     }
 
     /// Returns true if that bitboard contains sq.
@@ -263,12 +253,6 @@ impl BitBoard {
         }
 
         BitBoard(res)
-    }
-
-    // Gets the lower 16 bits of the bitboard, as an u16.
-    #[inline]
-    pub(crate) fn lower16(self) -> u16 {
-        self.0 as u16
     }
 }
 

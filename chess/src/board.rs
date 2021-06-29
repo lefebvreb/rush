@@ -19,6 +19,7 @@ use crate::zobrist::Zobrist;
 //
 //#################################################################################################
 
+// The state of the board at a given turn.
 #[derive(Clone, Debug)]
 struct StateInfo {
     side_to_move: Color,
@@ -36,53 +37,40 @@ struct StateInfo {
 //
 //#################################################################################################
 
-// A struct holding all necessary occupancy informations
-#[derive(Clone, Debug)]
+/// A struct holding all necessary occupancy informations of a boad.
+#[derive(Clone, Default, Debug)]
 pub struct Occupancy {
     all: BitBoard,
     colored: [BitBoard; 2],
-    free: BitBoard,
 }
 
 // ================================ pub impl
 
 impl Occupancy {
+    /// The monochrome occupancy bitboard.
     #[inline]
     pub fn all(&self) -> BitBoard {
         self.all
     }
 
+    /// The colored occupancy bitboards.
     #[inline]
     pub fn colored(&self, color: Color) -> BitBoard {
         self.colored[color.idx()]
-    }
-
-    #[inline]
-    pub fn free(&self) -> BitBoard {
-        self.free
     }
 }
 
 // ================================ impl
 
 impl Occupancy {
+    // Update the occupancy bitboard with a given color and mask.
     #[inline]
-    fn update_colored(&mut self, color: Color, mask: BitBoard) {
+    fn update(&mut self, color: Color, mask: BitBoard) {
+        self.all ^= mask;
         self.colored[color.idx()] ^= mask;
     }
 }
 
-// ================================ traits impl
-
-impl Default for Occupancy {
-    fn default() -> Occupancy {
-        Occupancy {
-            all: BitBoard::EMPTY,
-            colored: [BitBoard::EMPTY; 2],
-            free: BitBoard::FULL,
-        }
-    }
-}
 
 //#################################################################################################
 //
@@ -90,6 +78,8 @@ impl Default for Occupancy {
 //
 //#################################################################################################
 
+/// A struct representing a complete position of chess, with many accessers and
+/// methods to manipulate it.
 #[derive(Clone, Debug)]
 pub struct Board {
     fullmove: u16,
@@ -105,26 +95,38 @@ pub struct Board {
 // ================================ pub impl
 
 impl Board {
+    /// Gets the bitboard corresponding to that color and piece type.
     #[inline]
-    pub fn bitboard(&self, color: Color, piece: Piece) -> BitBoard {
+    pub fn get_bitboard(&self, color: Color, piece: Piece) -> BitBoard {
         self.bitboards[color.idx()][piece.idx()]
     }
 
+    /// Gets the (maybe) piece and it's color at that square.
     #[inline]
-    pub fn piece_at(&self, sq: Square) -> Option<(Color, Piece)> {
+    pub fn get_piece(&self, sq: Square) -> Option<(Color, Piece)> {
         self.mailbox[sq.idx()]
     }
 
+    /// Returns the occupancy object associated to that board.
     #[inline]
-    pub fn occupancy(&self) -> &Occupancy {
+    pub fn get_occupancy(&self) -> &Occupancy {
         &self.occ
     }
 
+    /// Returns the square the king of the side to move is occupying. 
     #[inline]
-    pub fn king_sq(&self) -> Square {
-        self.bitboard(self.state.side_to_move, Piece::King).as_square_unchecked()
+    pub fn get_king_sq(&self) -> Square {
+        self.get_bitboard(self.state.side_to_move, Piece::King).as_square_unchecked()
     }
 
+    /// Clears the history of the board, making it impossible to 
+    /// undo the previous moves but freeing a bit of memory.
+    #[inline]
+    pub fn clear_history(&mut self) {
+        self.prev_states.clear()
+    }
+
+    /// Returns true if that pseudo-legal move is legal.
     pub fn is_legal(&self, mv: Move) -> bool {
         let (from, to) = mv.squares();
 
@@ -146,13 +148,13 @@ impl Board {
             // If the move is en passant, we must check that there is no double pin.
             let ep_square = self.state.ep_square.unwrap();
             let rank = ep_square.rank();
-            let king_sq = self.king_sq();
+            let king_sq = self.get_king_sq();
 
             // If the king is on the same rank as the ep square (very rare).
             if rank.contains(king_sq) {
                 let them = self.state.side_to_move.invert();
                 // For every rook on that very same rank.
-                for rook_sq in (self.bitboard(them, Piece::Rook) & rank).iter_squares() {
+                for rook_sq in (self.get_bitboard(them, Piece::Rook) & rank).iter_squares() {
                     let between = BitBoard::between(king_sq, rook_sq);
                     // If the ep square is exactly between the king and the rook, 
                     // and there is nothing else than the two pawns, then it is an
@@ -166,9 +168,10 @@ impl Board {
 
         // Any move is valid if the piece is not pinned or if it is moving in the squares 
         // projected from the king and onward.
-        !self.state.pinned.contains(from) || BitBoard::ray_mask(self.king_sq(), from).contains(to)
+        !self.state.pinned.contains(from) || BitBoard::ray_mask(self.get_king_sq(), from).contains(to)
     }
 
+    /// Returns true if that random move is pseudo-legal.
     pub fn is_pseudo_legal(&self, mv: Move) -> bool {
         // Piece is on our side, it does not go on a friendly piece
         // If it's en passant, there must be ep square
@@ -249,6 +252,7 @@ impl Board {
         reversible
     }
 
+    /// Undoes the move, reverting the board to it's previous state.
     pub fn undo_move(&mut self, mv: Move) {
         // Them color.
         let them = self.state.side_to_move;
@@ -288,51 +292,6 @@ impl Board {
         }
 
         self.place_piece::<false>(color, piece, from);
-    }
-
-    #[inline]
-    pub fn attackers_to(&self, sq: Square) -> BitBoard {
-        let us   = self.state.side_to_move;
-        let them = us.invert();
-        let occ  = self.occ.all;
-
-        attacks::pawns(us, sq) & self.bitboard(them, Piece::Pawn) 
-        | attacks::rook(sq, occ) & self.bitboard(them, Piece::Rook) 
-        | attacks::knight(sq) & self.bitboard(them, Piece::Knight) 
-        | attacks::bishop(sq, occ) & self.bitboard(them, Piece::Bishop) 
-        | attacks::queen(sq, occ) & self.bitboard(them, Piece::Queen) 
-        | attacks::king(sq) & self.bitboard(them, Piece::King)
-    }
-
-    #[inline]
-    pub fn checkers(&self) -> BitBoard {
-        self.attackers_to(self.king_sq())
-    }
-
-    #[inline]
-    pub fn pinned(&self) -> BitBoard {
-        let us = self.state.side_to_move;
-        let them = us.invert();
-        let queens = self.bitboard(them, Piece::Queen);
-        let king_sq = self.king_sq();
-
-        let mut pinned = BitBoard::EMPTY;
-
-        for sq in (self.bitboard(them, Piece::Rook) | queens).iter_squares() {
-            let between = BitBoard::between_straight(king_sq, sq);
-            if (between & self.occ.all).count() == 1 {
-                pinned |= between & self.occ.colored(us);
-            }
-        }
-
-        for sq in (self.bitboard(them, Piece::Bishop) | queens).iter_squares() {
-            let between = BitBoard::between_diagonal(king_sq, sq);
-            if (between & self.occ.all).count() == 1 {
-                pinned |= between & self.occ.colored(us);
-            }
-        }
-
-        pinned
     }
 
     /// Efficiently tests for an upcoming repetition on the line,
@@ -385,7 +344,7 @@ impl Board {
             res += &(y + 1).to_string();
             for x in 0..8 {
                 res.push(' ');
-                if let Some((color, piece)) = self.piece_at(Square::from((x, y))) {
+                if let Some((color, piece)) = self.get_piece(Square::from((x, y))) {
                     res.push(CHARS[color.idx()][piece.idx()]);
                 } else {
                     res.push(' ');
@@ -420,9 +379,7 @@ impl Board {
         self.mailbox[sq.idx()] = Some((color, piece));
 
         let mask = sq.into();
-        self.occ.update_colored(color, mask);
-        self.occ.all ^= mask;
-        self.occ.free ^= mask;
+        self.occ.update(color, mask);
 
         if ZOBRIST {
             self.state.zobrist ^= Zobrist::from((color, piece, sq));
@@ -436,9 +393,7 @@ impl Board {
         self.mailbox[sq.idx()] = None;
 
         let mask = sq.into();
-        self.occ.update_colored(color, mask);
-        self.occ.all ^= mask;
-        self.occ.free ^= mask;
+        self.occ.update(color, mask);
 
         if ZOBRIST {
             self.state.zobrist ^= Zobrist::from((color, piece, sq));
@@ -452,6 +407,56 @@ impl Board {
         let (color, piece) = self.remove_piece::<ZOBRIST>(from);
         self.place_piece::<ZOBRIST>(color, piece, to);
         (color, piece)
+    }
+
+    /// The bitboard of the checkers to the current king.
+    #[inline]
+    fn checkers(&self) -> BitBoard {
+        self.attackers_to(self.get_king_sq())
+    }
+
+    /// The bitboard of the currently pinned pieces.
+    #[inline]
+    fn pinned(&self) -> BitBoard {
+        let us = self.state.side_to_move;
+        let occ_us = self.occ.colored(us);
+        let them = us.invert();
+        let queens = self.get_bitboard(them, Piece::Queen);
+        let king_sq = self.get_king_sq();
+
+        let mut pinned = BitBoard::EMPTY;
+
+        for sq in (self.get_bitboard(them, Piece::Rook) | queens).iter_squares() {
+            let between = BitBoard::between_straight(king_sq, sq);
+            if (between & self.occ.all).count() == 1 {
+                pinned |= between & occ_us;
+            }
+        }
+
+        for sq in (self.get_bitboard(them, Piece::Bishop) | queens).iter_squares() {
+            let between = BitBoard::between_diagonal(king_sq, sq);
+            if (between & self.occ.all).count() == 1 {
+                pinned |= between & occ_us;
+            }
+        }
+
+        pinned
+    }
+
+    // Returns the bitboard of all the attackers to that square. Does not take
+    // en passant into account.
+    #[inline]
+    fn attackers_to(&self, sq: Square) -> BitBoard {
+        let us   = self.state.side_to_move;
+        let them = us.invert();
+        let occ  = self.occ.all;
+
+        attacks::pawns(us, sq) & self.get_bitboard(them, Piece::Pawn) 
+        | attacks::rook(sq, occ) & self.get_bitboard(them, Piece::Rook) 
+        | attacks::knight(sq) & self.get_bitboard(them, Piece::Knight) 
+        | attacks::bishop(sq, occ) & self.get_bitboard(them, Piece::Bishop) 
+        | attacks::queen(sq, occ) & self.get_bitboard(them, Piece::Queen) 
+        | attacks::king(sq) & self.get_bitboard(them, Piece::King)
     }
 }
 
@@ -479,7 +484,7 @@ impl fmt::Display for Board {
             let mut streak = 0;
 
             for x in 0..8 {
-                if let Some((color, piece)) = self.piece_at(Square::from((x, y))) {
+                if let Some((color, piece)) = self.get_piece(Square::from((x, y))) {
                     write_if_not_zero!(streak);
                     write!(f, "{}", match color {
                         Color::White => piece.to_string().to_uppercase(),
@@ -530,17 +535,17 @@ impl FromStr for Board {
 
         let mut board = Board {
             fullmove,
-            bitboards:  [[BitBoard::EMPTY; 6]; 2],
-            mailbox:    [None; 64],
-            occ:        Occupancy::default(),
+            bitboards: [[BitBoard::EMPTY; 6]; 2],
+            mailbox: [None; 64],
+            occ: Occupancy::default(),
             state: StateInfo {
                 side_to_move,
                 halfmove,
-                checkers:   BitBoard::EMPTY,
-                pinned:    BitBoard::EMPTY,
+                checkers: BitBoard::EMPTY,
+                pinned: BitBoard::EMPTY,
                 castle_rights,
                 ep_square,
-                zobrist:    Zobrist::default(),
+                zobrist: Zobrist::default(),
             },
             prev_states: Vec::new(),
         };
@@ -561,7 +566,7 @@ impl FromStr for Board {
                     _ => {
                         let (color, piece) = Piece::from_char(c)?;
                         let sq = Square::from((x, y));
-                        board.bitboard(Color::White, Piece::Pawn);
+                        board.get_bitboard(Color::White, Piece::Pawn);
                         board.place_piece::<true>(color, piece, sq);
                     }
                 }
@@ -634,14 +639,13 @@ mod tests {
         for color in Color::COLORS {
             for piece in Piece::PIECES {
                 assert_eq!(
-                    default.bitboard(color, piece),
-                    board.bitboard(color, piece),
+                    default.get_bitboard(color, piece),
+                    board.get_bitboard(color, piece),
                 )
             }
         }
         assert_eq!(default.occ.all, board.occ.all);
         assert_eq!(default.occ.colored, board.occ.colored);
-        assert_eq!(default.occ.free, board.occ.free);
         assert_eq!(default.state.zobrist, board.state.zobrist);
     }
 }

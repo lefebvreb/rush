@@ -21,8 +21,9 @@ pub(crate) enum EnPassantSquare {
 // ================================ pub(crate) impl
 
 impl EnPassantSquare {
+    // Unwraps the en passant square, panics if there is none.
     #[inline]
-    pub fn unwrap(self) -> Square {
+    pub(crate) fn unwrap(self) -> Square {
         match self {
             EnPassantSquare::Some(sq) => sq,
             _ => unreachable!(),

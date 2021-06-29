@@ -10,6 +10,7 @@ use crate::square::Square;
 //#################################################################################################
 
 // A struct containing the informations necessary for a bmi2 lookup.
+#[derive(Debug)]
 struct Bmi2Info {
     offset: usize,
     mask1: BitBoard,
@@ -94,7 +95,7 @@ unsafe fn init_bmi2(info: &mut Bmi2Array, dirs: &Dirs, mut idx: usize) -> usize 
             if i == 0 {
                 info[sq as usize].mask2 = bb2;
             }
-            SLIDER_ATTACKS[idx] = bb2.pext(info[sq as usize].mask2).lower16();
+            SLIDER_ATTACKS[idx] = (bb2.pext(info[sq as usize].mask2).0 & 0xFFFF) as u16;
             idx += 1;
         }
     }

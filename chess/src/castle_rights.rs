@@ -39,6 +39,7 @@ impl CastleRights {
         (self.0 & mask as u8) != 0
     }
 
+    // Updates the rights with the given from and to squares of the move.
     #[inline]
     pub(crate) fn update(&mut self, from: Square, to: Square) {
         match from {
@@ -62,6 +63,7 @@ impl CastleRights {
 // ================================ impl
 
 impl CastleRights {
+    // Remove the mask from the castling rights.
     #[inline]
     fn remove(&mut self, mask: CastleMask) {
         self.0 &= !(mask as u8)
