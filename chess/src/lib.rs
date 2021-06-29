@@ -25,7 +25,6 @@ mod zobrist;
 #[cold]
 pub fn init() {
     unsafe {
-        square::init();
         bitboard::init();
         zobrist::init();
         attacks::init();

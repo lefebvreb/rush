@@ -65,6 +65,17 @@ impl Occupancy {
     }
 }
 
+// ================================ impl
+
+impl Occupancy {
+    #[inline(always)]
+    fn update_colored(&mut self, color: Color, mask: BitBoard) {
+        unsafe {
+            *self.colored.get_unchecked_mut(color.idx()) ^= mask;
+        }
+    }
+}
+
 // ================================ traits impl
 
 impl Default for Occupancy {
@@ -124,36 +135,40 @@ impl Board {
 
     #[inline]
     pub fn is_legal(&self, mv: Move) -> bool {
-        // Return true if the pseudo-legal move is legal:
-        // - the king won't be in check after it is done:
-        //   - |checkers| == 2 => king move
-        //   - Use pinned bitboard: a move is legal if the piece is not pinned or
-        //     if it is moving along the king-pinner axis
-        // - castling rules are respected
+        let checkers = self.state.checkers;
 
         let move_type = mv.get_type();
         let (from, to) = mv.squares();
 
-        match move_type {
-            MoveType::EnPassant => {
-                todo!()
-            },
-            MoveType::KingCastle | MoveType::QueenCastle => {
-                todo!()
-            },
-            _ => match self.state.checkers.count() {
-                0 => !self.state.pinned.contains(from) || BitBoard::ray_mask(self.king_sq(), from).contains(to),
-                1 => {
-                    todo!()
-                },
-                2 => self.king_sq() == from && self.attackers_to(to).empty(),
-                _ => unreachable!(),
-            },
+        if self.king_sq() == from {
+            let can_castle = |sq1, sq2| {
+                (self.attackers_to(sq1) | self.attackers_to(sq2)).empty()
+            };
+
+            return match (move_type, self.state.side_to_move) {
+                (MoveType::KingCastle,  Color::White) => can_castle(Square::F1, Square::G1),
+                (MoveType::KingCastle,  Color::Black) => can_castle(Square::F8, Square::G8),
+                (MoveType::QueenCastle, Color::White) => can_castle(Square::D1, Square::C1),
+                (MoveType::QueenCastle, Color::Black) => can_castle(Square::D8, Square::C8),
+                _ => self.attackers_to(to).empty(),
+            };
         }
+
+        if move_type == MoveType::EnPassant {
+            // The only other thing left to check is the infamous double lateral pin
+            todo!();
+        }
+
+        !self.state.pinned.contains(from) || BitBoard::ray_mask(self.king_sq(), from).contains(to)
     }
 
     #[inline]
     pub fn is_pseudo_legal(&self, mv: Move) -> bool {
+        // Piece is on our side, it does not go on a friendly piece
+        // If it's en passant, there must be ep square
+        // If it's castling, between squares must be cleared (use is_path_clear !)
+        // If |checkers| == 1 => Don't forget to check that either the king is moving or the move is blocking/capturing the checker
+        // If |checkers| == 2 => It must be a king move
         todo!()
     }
 
@@ -296,13 +311,6 @@ impl Board {
     }
 
     #[inline]
-    pub fn gives_check(&self, mv: Move) -> bool {
-        // Return true if that pseudo-legal move
-        // gives check to the other king
-        todo!()
-    }
-
-    #[inline]
     pub fn attackers_to(&self, sq: Square) -> BitBoard {
         let us   = self.state.side_to_move;
         let them = us.invert();
@@ -378,6 +386,10 @@ impl Board {
         false
     }
 
+    pub fn parse_move(&self, s: &str) -> Result<Move, ParseFenError> {
+        todo!()
+    }
+
     /// Pretty-prints the board to stdout, using utf-8 characters
     /// to represent the pieces
     pub fn pretty_print(&self) -> String {
@@ -393,7 +405,7 @@ impl Board {
             res += &(y + 1).to_string();
             for x in 0..8 {
                 res.push(' ');
-                if let Some((color, piece)) = self.mailbox[Square::from((x, y)).idx()] {
+                if let Some((color, piece)) = self.piece_at(Square::from((x, y))) {
                     res.push(CHARS[color.idx()][piece.idx()]);
                 } else {
                     res.push(' ');
@@ -423,12 +435,33 @@ impl Board {
 
 impl Board {
     #[inline(always)]
+    fn update_bitboard(&mut self, color: Color, piece: Piece, mask: BitBoard) {
+        unsafe {
+            *self.bitboards.get_unchecked_mut(color.idx()).get_unchecked_mut(piece.idx()) ^= mask;
+        }
+    }
+
+    #[inline(always)]
+    fn piece_at_unchecked(&self, sq: Square) -> (Color, Piece) {
+        unsafe {
+            self.mailbox.get_unchecked(sq.idx()).unwrap()
+        }
+    }
+
+    #[inline(always)]
+    fn update_mailbox(&mut self, sq: Square, value: Option<(Color, Piece)>) {
+        unsafe {
+            *self.mailbox.get_unchecked_mut(sq.idx()) = value;
+        }
+    }
+
+    #[inline(always)]
     fn place_piece(&mut self, color: Color, piece: Piece, sq: Square, zobrist: bool) {
-        self.bitboards[color.idx()][piece.idx()] ^= sq.into();
-        self.mailbox[sq.idx()] = Some((color, piece));
+        self.update_bitboard(color, piece, sq.into());
+        self.update_mailbox(sq, Some((color, piece)));
 
         let mask = sq.into();
-        self.occ.colored[color.idx()] |= mask;
+        self.occ.update_colored(color, mask);
         self.occ.all ^= mask;
         self.occ.free ^= mask;
 
@@ -440,11 +473,11 @@ impl Board {
     #[inline(always)]
     fn remove_piece(&mut self, sq: Square, zobrist: bool) -> (Color, Piece) {
         let (color, piece) = self.mailbox[sq.idx()].unwrap();
-        self.bitboards[color.idx()][piece.idx()] ^= sq.into();
-        self.mailbox[sq.idx()] = None;
+        self.update_bitboard(color, piece, sq.into());
+        self.update_mailbox(sq, None);
 
         let mask = sq.into();
-        self.occ.colored[color.idx()] |= mask;
+        self.occ.update_colored(color, mask);
         self.occ.all ^= mask;
         self.occ.free ^= mask;
 
@@ -457,16 +490,16 @@ impl Board {
 
     #[inline(always)]
     fn replace_piece(&mut self, color: Color, piece: Piece, sq: Square, zobrist: bool) -> (Color, Piece){
-        let (old_color, old_piece) = self.mailbox[sq.idx()].unwrap();
+        let (old_color, old_piece) = self.piece_at_unchecked(sq);
 
-        self.mailbox[sq.idx()] = Some((color, piece));
+        self.update_mailbox(sq, Some((color, piece)));
 
         let mask = sq.into();
-        self.occ.colored[color.idx()] |= mask;
-        self.occ.colored[old_color.idx()] ^= mask;
+        self.occ.update_colored(color, mask);
+        self.occ.update_colored(old_color, mask);
 
-        self.state.zobrist ^= Zobrist::from((color, piece, sq));
-        self.state.zobrist ^= Zobrist::from((old_color, old_piece, sq));
+        self.update_bitboard(color, piece, mask);
+        self.update_bitboard(old_color, old_piece, mask);
 
         if zobrist {
             self.state.zobrist ^= Zobrist::from((color, piece, sq));
@@ -545,7 +578,7 @@ impl FromStr for Board {
 
     /// Tries to parse a board from a string in fen representation.
     fn from_str(s: &str) -> Result<Board, ParseFenError> {        
-        let split = s.split(" ").into_iter().collect::<Vec<_>>();
+        let split = s.split(' ').into_iter().collect::<Vec<_>>();
         
         if split.len() != 6 {
             return Err(ParseFenError::new(format!("not enough arguments in fen string {:?}", s)));
@@ -574,7 +607,7 @@ impl FromStr for Board {
             prev_states: Vec::new(),
         };
 
-        let ranks = split[0].split("/").into_iter().collect::<Vec<_>>();
+        let ranks = split[0].split('/').into_iter().collect::<Vec<_>>();
 
         if ranks.len() != 8 {
             return Err(ParseFenError::new(format!("not enough ranks in fen board {:?}", s)));
@@ -649,12 +682,9 @@ mod tests {
         ];
 
         let mut board = Board::default();
-
         
         for &mv in moves.iter() {
-            eprintln!("move: {}", mv);
             board.do_move(mv);
-            eprintln!("{}\n{}", board.pretty_print(), board);
         }
 
         for &mv in moves.iter().rev() {
@@ -666,13 +696,14 @@ mod tests {
         for color in Color::COLORS {
             for piece in Piece::PIECES {
                 assert_eq!(
-                    default.bitboards[color.idx()][piece.idx()],
-                    board.bitboards[color.idx()][piece.idx()],
+                    default.bitboard(color, piece),
+                    board.bitboard(color, piece),
                 )
             }
         }
         assert_eq!(default.occ.all, board.occ.all);
         assert_eq!(default.occ.colored, board.occ.colored);
         assert_eq!(default.occ.free, board.occ.free);
+        assert_eq!(default.state.zobrist, board.state.zobrist);
     }
 }

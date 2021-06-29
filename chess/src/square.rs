@@ -1,26 +1,8 @@
 use std::fmt;
 use std::str::FromStr;
 
-use crate::bitboard::BitBoard;
 use crate::color::Color;
 use crate::errors::ParseFenError;
-
-//#################################################################################################
-//
-//                                        shifts table
-//
-//#################################################################################################
-
-// An array whose ith element is 1 << i, precalculated as lookup
-// is slightly faster than calculating them.
-static mut SHIFTS: [BitBoard; 64] = [BitBoard::EMPTY; 64];
-
-// Initializes the shift array, for faster bitshifts of 1.
-pub(crate) unsafe fn init() {
-    for i in 0..64 {
-        SHIFTS[i] = BitBoard(1 << i);
-    }
-}
 
 //#################################################################################################
 //
@@ -93,7 +75,7 @@ impl Square {
         let x = self.x() as i8 + dx;
         let y = self.y() as i8 + dy;
 
-        if x >= 0 && x < 8 && y >= 0 && y < 8 {
+        if (0..8).contains(&x) && (0..8).contains(&y) {
             Some(Square::from((x, y)))
         } else {
             None
@@ -134,16 +116,6 @@ impl fmt::Display for Square {
         const RANKS: [char; 8] = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
         write!(f, "{}{}", FILES[self.x() as usize], RANKS[self.y() as usize])
-    }
-}
-
-impl Into<BitBoard> for Square {
-    /// Returns the bitboard containing only that square.
-    #[inline]
-    fn into(self) -> BitBoard {
-        unsafe {
-            SHIFTS[self as usize]
-        }
     }
 }
 

@@ -36,11 +36,11 @@ static mut ROOK_BMI2  : Bmi2Array = [Bmi2Info::ZERO; 64];
 static mut SLIDER_ATTACKS: [u16; 107648] = [0; 107648];
 
 // For use with the 0x88 trick.
-type DIR = [(i32, i32); 4];
-const BISHOP_DIR: DIR = [
+type Dirs = [(i32, i32); 4];
+const BISHOP_DIR: Dirs = [
     (-9, -17), (-7, -15), (7, 15), (9, 17),
 ];
-const ROOK_DIR: DIR = [
+const ROOK_DIR: Dirs = [
     (-8, -16), (-1, -1), (1, 1), (8, 16),
 ];
 
@@ -48,42 +48,41 @@ const ROOK_DIR: DIR = [
 // Uses some space in the SLIDER_ATTACKS array and return the index of the next
 // available spot.
 #[cold]
-unsafe fn init_bmi2(info: &mut Bmi2Array, dir: &DIR, mut idx: usize) -> usize {
+unsafe fn init_bmi2(info: &mut Bmi2Array, dirs: &Dirs, mut idx: usize) -> usize {
     for sq in 0..64 {
         info[sq as usize].offset = idx as usize;
 
         let sq88 = sq + (sq & !7);
         let mut bb = BitBoard::EMPTY;
-        for i in 0..4 {
-            if (sq88 + dir[i].1) & 0x88 != 0 {
+        for dir in dirs {
+            if (sq88 + dir.1) & 0x88 != 0 {
                 continue;
             }
 
             let mut d = 2;
-            while (sq88 + d * dir[i].1) & 0x88 == 0 {
-                bb |= Square::from((sq + (d-1) * dir[i].0) as i8).into();
+            while (sq88 + d * dir.1) & 0x88 == 0 {
+                bb |= Square::from((sq + (d-1) * dir.0) as i8).into();
                 d += 1;
             }
         }
         info[sq as usize].mask1 = bb;
 
         let squares: Vec<_> = bb.iter_squares().collect();
-        let n = squares.len();
 
-        for i in 0..(1 << n) {
+        for i in 0..(1 << squares.len()) {
             bb = BitBoard::EMPTY;
 
-            for j in 0..n {
+            for (j, &square) in squares.iter().enumerate() {
                 if i & (1 << j) != 0 {
-                    bb |= squares[j].into();
+                    bb |= square.into();
                 }
             }
 
             let mut bb2 = BitBoard::EMPTY;
-            for j in 0..4 {
+            for dir in dirs {
                 let mut d = 1;
-                while (sq88 + d * dir[j].1) & 0x88 == 0 {
-                    let bb3 = Square::from((sq + d * dir[j].0) as i8).into();
+                while (sq88 + d * dir.1) & 0x88 == 0 {
+                    let bb3 = Square::from((sq + d * dir.0) as i8).into();
                     bb2 |= bb3;
                     if (bb & bb3).not_empty() {
                         break;

@@ -10,6 +10,10 @@ use crate::square::Square;
 //
 //#################################################################################################
 
+// An array whose ith element is 1 << i, precalculated as lookup
+// is slightly faster than calculating them.
+static mut SHIFTS: [BitBoard; 64] = [BitBoard::EMPTY; 64];
+
 // These arrays contain bitboards indexed by two squares, from and to. They contain respectively:
 // - the squares between from and to if they are aligned horizontally or vertically.
 // - the squares between from and to if they are aligned diagonally.
@@ -20,9 +24,13 @@ static mut SQUARES_BETWEEN_DIAGNOAL: [[BitBoard; 64]; 64] = [[BitBoard::EMPTY; 6
 static mut SQUARES_BETWEEN: [[BitBoard; 64]; 64] = [[BitBoard::EMPTY; 64]; 64];
 static mut SQUARES_RAY_MASK: [[BitBoard; 64]; 64] = [[BitBoard::EMPTY; 64]; 64];
 
-// Initializes the arrays above.
+// Initializes the arrays above and the shifts table.
 #[cold]
 pub(crate) unsafe fn init() {
+    for (i, shift) in SHIFTS.iter_mut().enumerate() {
+        *shift = BitBoard(1 << i);
+    }
+
     const SIGN: fn(i8) -> i8 = |i| match i {
         0 => 0,
         j if j > 0 => 1,
@@ -189,7 +197,7 @@ impl BitBoard {
 
 /// A convenient macro to construct a BitBoard from a collection of Squares.
 macro_rules! squares {
-    ($($sq: expr),*) => {
+    ($($sq: ident),*) => {
         BitBoard::EMPTY $(| $sq.into())*
     };
 }
@@ -287,6 +295,16 @@ impl fmt::Display for BitBoard {
         writeln!(f, "└────────┘").unwrap();
 
         Ok(())
+    }
+}
+
+impl From<Square> for BitBoard {
+    /// Returns the bitboard containing only that square.
+    #[inline(always)]
+    fn from(sq: Square) -> BitBoard {
+        unsafe {
+            *SHIFTS.get_unchecked(sq.idx())
+        }
     }
 }
 

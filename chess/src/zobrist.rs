@@ -29,7 +29,7 @@ fn xorshift(seed: &mut u64) -> Zobrist {
 #[cold]
 pub(crate) unsafe fn init() {
     // Changing the seed may make the cuckoo init() non terminating.
-    let mut seed = 0x0C3B301A1Af7EE42;
+    let mut seed = 0x0C3B301A1AF7EE42;
 
     for sq in Square::SQUARES {
         for piece in Piece::PIECES {
