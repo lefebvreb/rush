@@ -8,7 +8,7 @@ use crate::color::Color;
 use crate::cuckoo;
 use crate::en_passant::EnPassantSquare;
 use crate::errors::ParseFenError;
-use crate::moves::{Move, MoveType};
+use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
 use crate::zobrist::Zobrist;
@@ -135,30 +135,46 @@ impl Board {
 
     #[inline]
     pub fn is_legal(&self, mv: Move) -> bool {
-        let checkers = self.state.checkers;
-
-        let move_type = mv.get_type();
         let (from, to) = mv.squares();
 
-        if self.king_sq() == from {
+        if mv.is_castle() {
+            // If the move is castle, we must check that the squares the king
+            // passes are safe.
             let can_castle = |sq1, sq2| {
                 (self.attackers_to(sq1) | self.attackers_to(sq2)).empty()
             };
 
-            return match (move_type, self.state.side_to_move) {
-                (MoveType::KingCastle,  Color::White) => can_castle(Square::F1, Square::G1),
-                (MoveType::KingCastle,  Color::Black) => can_castle(Square::F8, Square::G8),
-                (MoveType::QueenCastle, Color::White) => can_castle(Square::D1, Square::C1),
-                (MoveType::QueenCastle, Color::Black) => can_castle(Square::D8, Square::C8),
-                _ => self.attackers_to(to).empty(),
+            return match to {
+                Square::G1 => can_castle(Square::H1, Square::F1),
+                Square::G8 => can_castle(Square::H8, Square::F8),
+                Square::C1 => can_castle(Square::A1, Square::D1),
+                Square::C8 => can_castle(Square::A8, Square::D8),
+                _ => unreachable!(),
             };
+        } else if mv.is_en_passant() {
+            // If the move is en passant, we must check that there is no double pin.
+            let ep_square = self.state.ep_square.unwrap();
+            let rank = ep_square.rank();
+            let king_sq = self.king_sq();
+
+            // If the king is on the same rank as the ep square (very rare).
+            if rank.contains(king_sq) {
+                let them = self.state.side_to_move.invert();
+                // For every rook on that very same rank.
+                for rook_sq in (self.bitboard(them, Piece::Rook) & rank).iter_squares() {
+                    let between = BitBoard::between(king_sq, rook_sq);
+                    // If the ep square is exactly between the king and the rook, 
+                    // and there is nothing else than the two pawns, then it is an
+                    // (incredibly rare) double pin.
+                    if between.contains(ep_square) && between.count() == 2 {
+                        return false;
+                    }
+                }
+            }
         }
 
-        if move_type == MoveType::EnPassant {
-            // The only other thing left to check is the infamous double lateral pin
-            todo!();
-        }
-
+        // Any move is valid if the piece is not pinned or if it is moving in the squares 
+        // projected from the king and onward.
         !self.state.pinned.contains(from) || BitBoard::ray_mask(self.king_sq(), from).contains(to)
     }
 
@@ -175,76 +191,60 @@ impl Board {
     /// Do the move without checking anything about it's legality.
     /// Returns true if the move is irreversible.
     pub fn do_move(&mut self, mv: Move) -> bool {
-        // Store previous state.
+        // Store previous state and increment fullmove counter.
         self.prev_states.push(self.state.clone());
-        self.fullmove += 1;
-
-        // Extract move base infos.
-        let move_type = mv.get_type();
-        let (from, to) = mv.squares();
-
-        // Remove the piece on the from square, and determine if the move is reversible or not.
-        let (color, piece) = self.remove_piece(from, true);
+        if self.state.side_to_move == Color::Black {
+            self.fullmove += 1;
+        }
 
         // Invert the side to move.
         self.state.side_to_move = self.state.side_to_move.invert();
 
-        // Update the board according to the type of the move.
-        match move_type {
-            MoveType::Quiet => {
-                self.place_piece(color, piece, to, true);
-            },
-            MoveType::Capture => {
-                self.replace_piece(color, piece, to, true);
-            },
-            MoveType::Promote => {
-                self.place_piece(color, mv.get_promote(), to, true);
-            },
-            MoveType::PromoteCapture => {
-                self.replace_piece(color, mv.get_promote(), to, true);
-            },
-            MoveType::EnPassant => {
-                self.place_piece(color, piece, to, true);
-                self.remove_piece(self.state.ep_square.unwrap(), true);
-            },
-            MoveType::DoublePush => {
-                self.place_piece(color, piece, to, true);
-            },
-            MoveType::KingCastle => {
-                self.place_piece(color, piece, to, true);
-                match to {
-                    Square::G1 => self.displace_piece(Square::H1, Square::F1, true),
-                    Square::G8 => self.displace_piece(Square::H8, Square::F8, true),
-                    _ => unreachable!(),
-                };
-            },
-            MoveType::QueenCastle => {
-                self.place_piece(color, piece, to, true);
-                match to {
-                    Square::C1 => self.displace_piece(Square::A1, Square::D1, true),
-                    Square::C8 => self.displace_piece(Square::A8, Square::D8, true),
-                    _ => unreachable!(),
-                };
-            },
+        // Extract base move infos and remove piece from it's starting position.
+        let (from, to) = mv.squares();
+        let (color, mut piece) = self.remove_piece::<true>(from);
+
+        // Determine if the move is reversible or not.
+        let reversible = mv.is_quiet() && piece != Piece::Pawn;
+
+        if mv.is_castle() {
+            // If the move is castling, move the rook as well.
+            match to {
+                Square::G1 => self.displace_piece::<true>(Square::H1, Square::F1),
+                Square::G8 => self.displace_piece::<true>(Square::H8, Square::F8),
+                Square::C1 => self.displace_piece::<true>(Square::A1, Square::D1),
+                Square::C8 => self.displace_piece::<true>(Square::A8, Square::D8),
+                _ => unreachable!(),
+            };
+        } else if mv.is_en_passant() {
+            // If the move is en passant, remove the pawn at the en passant square.
+            self.remove_piece::<true>(self.state.ep_square.unwrap());
+        } else {
+            // If the move is a capture, remove the enemy piece from the destination square.
+            if mv.is_capture() {
+                self.remove_piece::<true>(to);
+            }
+    
+            // If the move is a promotion, 
+            if mv.is_promote() {
+                piece = mv.get_promote();
+            }
         }
+
+        // Finally, place the piece at it's destination.
+        self.place_piece::<true>(color, piece, to);
 
         // Determine checkers and pinned bitboard.
         self.state.checkers = self.checkers();
-        self.state.pinned   = self.pinned();
-
-        let old_status = (self.state.castle_rights, self.state.ep_square);
+        self.state.pinned = self.pinned();
 
         // Update castling rights and en passant square.
         self.state.castle_rights.update(from, to);
-        self.state.ep_square = if move_type == MoveType::DoublePush {
-            EnPassantSquare::Some(to)
+        if mv.is_double_push() {
+            self.state.ep_square = EnPassantSquare::Some(to);
         } else {
-            EnPassantSquare::None
-        };
-        let new_status = (self.state.castle_rights, self.state.ep_square);
-
-        // Determine if the move is reversible or not.
-        let reversible = move_type == MoveType::Quiet && piece != Piece::Pawn && old_status == new_status;
+            self.state.ep_square = EnPassantSquare::None;
+        }
 
         // Update the halfmove clock.
         if reversible {
@@ -260,54 +260,44 @@ impl Board {
     }
 
     pub fn undo_move(&mut self, mv: Move) {
-        self.fullmove -= 1;
+        // Them color.
+        let them = self.state.side_to_move;
 
-        let (from, to) = mv.squares();
-        let color = self.state.side_to_move;
-
+        // Restore the previous state and decrement the fullmove counter.
         self.state = self.prev_states.pop().unwrap();
-
-        match mv.get_type() {
-            MoveType::Quiet => {
-                self.displace_piece(to, from, false);
-            },
-            MoveType::Capture => {
-                let (color, piece) = self.replace_piece(color, mv.get_capture(), to, false);
-                self.place_piece(color, piece, from, false);
-            },
-            MoveType::Promote => {
-                let (color, _) = self.remove_piece(to, false);
-                self.place_piece(color, Piece::Pawn, from, false);
-            },
-            MoveType::PromoteCapture => {
-                let (color, _) = self.replace_piece(color, mv.get_capture(), to, false);
-                self.place_piece(color, Piece::Pawn, from, false);
-            },
-            MoveType::EnPassant => {
-                self.place_piece(color, Piece::Pawn, self.state.ep_square.unwrap(), false);
-                let (color, _) = self.remove_piece(to, false);
-                self.place_piece(color, Piece::Pawn, from, false);
-            },
-            MoveType::DoublePush => {
-                self.displace_piece(to, from, false);
-            },
-            MoveType::KingCastle => {
-                self.displace_piece(to, from, false);
-                match to {
-                    Square::G1 => self.displace_piece(Square::F1, Square::H1, false),
-                    Square::G8 => self.displace_piece(Square::F8, Square::H8, false),
-                    _ => unreachable!(),
-                };
-            },
-            MoveType::QueenCastle => {
-                self.displace_piece(to, from, false);
-                match to {
-                    Square::C1 => self.displace_piece(Square::D1, Square::A1, true),
-                    Square::C8 => self.displace_piece(Square::D8, Square::A8, true),
-                    _ => unreachable!(),
-                };
-            },
+        if self.state.side_to_move == Color::Black {
+            self.fullmove -= 1;
         }
+
+        // Extract basic move info and remove the piece from it's destination.
+        let (from, to) = mv.squares();
+        let (color, mut piece) = self.remove_piece::<false>(to);
+
+        if mv.is_castle() {
+            // If the move was castling, move the rook back as well.
+            match to {
+                Square::G1 => self.displace_piece::<true>(Square::F1, Square::H1),
+                Square::G8 => self.displace_piece::<true>(Square::F8, Square::H8),
+                Square::C1 => self.displace_piece::<true>(Square::D1, Square::A1),
+                Square::C8 => self.displace_piece::<true>(Square::D8, Square::A8),
+                _ => unreachable!(),
+            };
+        } else if mv.is_en_passant() {
+            // If the move was en passant, place the enemy pawn back as well.
+            self.place_piece::<false>(them, Piece::Pawn, self.state.ep_square.unwrap());
+        } else {
+            // If the move was a capture, replace the taken enemy piece in it's place.
+            if mv.is_capture() {
+                self.place_piece::<false>(them, mv.get_capture(), to);
+            }
+    
+            // If the move was a promotion, the original piece was a pawn.
+            if mv.is_promote() {
+                piece = Piece::Pawn;
+            }
+        }
+
+        self.place_piece::<false>(color, piece, from);
     }
 
     #[inline]
@@ -456,7 +446,7 @@ impl Board {
     }
 
     #[inline(always)]
-    fn place_piece(&mut self, color: Color, piece: Piece, sq: Square, zobrist: bool) {
+    fn place_piece<const ZOBRIST: bool>(&mut self, color: Color, piece: Piece, sq: Square) {
         self.update_bitboard(color, piece, sq.into());
         self.update_mailbox(sq, Some((color, piece)));
 
@@ -465,13 +455,13 @@ impl Board {
         self.occ.all ^= mask;
         self.occ.free ^= mask;
 
-        if zobrist {
+        if ZOBRIST {
             self.state.zobrist ^= Zobrist::from((color, piece, sq));
         }
     }
 
     #[inline(always)]
-    fn remove_piece(&mut self, sq: Square, zobrist: bool) -> (Color, Piece) {
+    fn remove_piece<const ZOBRIST: bool>(&mut self, sq: Square) -> (Color, Piece) {
         let (color, piece) = self.mailbox[sq.idx()].unwrap();
         self.update_bitboard(color, piece, sq.into());
         self.update_mailbox(sq, None);
@@ -481,7 +471,7 @@ impl Board {
         self.occ.all ^= mask;
         self.occ.free ^= mask;
 
-        if zobrist {
+        if ZOBRIST {
             self.state.zobrist ^= Zobrist::from((color, piece, sq));
         }
 
@@ -489,30 +479,9 @@ impl Board {
     }
 
     #[inline(always)]
-    fn replace_piece(&mut self, color: Color, piece: Piece, sq: Square, zobrist: bool) -> (Color, Piece){
-        let (old_color, old_piece) = self.piece_at_unchecked(sq);
-
-        self.update_mailbox(sq, Some((color, piece)));
-
-        let mask = sq.into();
-        self.occ.update_colored(color, mask);
-        self.occ.update_colored(old_color, mask);
-
-        self.update_bitboard(color, piece, mask);
-        self.update_bitboard(old_color, old_piece, mask);
-
-        if zobrist {
-            self.state.zobrist ^= Zobrist::from((color, piece, sq));
-            self.state.zobrist ^= Zobrist::from((old_color, old_piece, sq));
-        }
-
-        (old_color, old_piece)
-    }
-
-    #[inline(always)]
-    fn displace_piece(&mut self, from: Square, to: Square, zobrist: bool) -> (Color, Piece) {
-        let (color, piece) = self.remove_piece(from, zobrist);
-        self.place_piece(color, piece, to, zobrist);
+    fn displace_piece<const ZOBRIST: bool>(&mut self, from: Square, to: Square) -> (Color, Piece) {
+        let (color, piece) = self.remove_piece::<ZOBRIST>(from);
+        self.place_piece::<ZOBRIST>(color, piece, to);
         (color, piece)
     }
 }
@@ -624,7 +593,7 @@ impl FromStr for Board {
                         let (color, piece) = Piece::from_char(c)?;
                         let sq = Square::from((x, y));
                         board.bitboard(Color::White, Piece::Pawn);
-                        board.place_piece(color, piece, sq, true);
+                        board.place_piece::<true>(color, piece, sq);
                     }
                 }
 

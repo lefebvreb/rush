@@ -1,6 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
+use crate::bitboard::BitBoard;
 use crate::color::Color;
 use crate::errors::ParseFenError;
 
@@ -51,12 +52,18 @@ impl Square {
         (self as i8).wrapping_shr(3)
     }
 
-    /// Returns true if that square is last rank.
-    #[inline(always)]
-    pub fn is_last_rank(self, color: Color) -> bool {
-        self.y() == match color {
-            Color::White => 7,
-            Color::Black => 0,
+    #[inline]
+    pub fn rank(self) -> BitBoard {
+        match self.y() {
+            0 => BitBoard::RANK_1,
+            1 => BitBoard::RANK_2,
+            2 => BitBoard::RANK_3,
+            3 => BitBoard::RANK_4,
+            4 => BitBoard::RANK_5,
+            5 => BitBoard::RANK_6,
+            6 => BitBoard::RANK_7,
+            7 => BitBoard::RANK_8,
+            _ => unreachable!(),
         }
     }
 
@@ -86,20 +93,6 @@ impl Square {
 // ================================ pub(crate) impl
 
 impl Square {
-    // Returns the square immediately left of that square 
-    // (from white's point of view).
-    #[inline(always)]
-    pub(crate) fn get_left_unchecked(self) -> Square {
-        Square::from(self as i8 - 1)
-    }
-
-    // Returns the square immediately right of that square 
-    // (from white's point of view).
-    #[inline(always)]
-    pub(crate) fn get_right_unchecked(self) -> Square {
-        Square::from(self as i8 + 1)
-    }
-
     /// Returns the square as an index for an array.
     #[inline(always)]
     pub(crate) const fn idx(self) -> usize {
@@ -123,7 +116,9 @@ impl From<i8> for Square {
     /// Creates a square from a number in 0..64.
     #[inline]
     fn from(i: i8) -> Square {
-        Square::SQUARES[i as usize]
+        unsafe {
+            *Square::SQUARES.get_unchecked(i as usize)
+        }
     }
 }
 

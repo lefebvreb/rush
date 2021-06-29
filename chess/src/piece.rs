@@ -86,6 +86,8 @@ impl From<u8> for Piece {
     /// Creates a piece from a number. See codes in number definition.
     #[inline(always)]
     fn from(i: u8) -> Piece {
-        Piece::PIECES[i as usize]
+        unsafe {
+            *Piece::PIECES.get_unchecked(i as usize)
+        }
     }
 }
