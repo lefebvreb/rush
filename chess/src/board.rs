@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 use crate::attacks;
 use crate::bitboard::BitBoard;
+use crate::castle_rights::CastleMask;
 use crate::castle_rights::CastleRights;
 use crate::color::Color;
 use crate::cuckoo;
@@ -127,6 +128,9 @@ impl Board {
     }
 
     /// Returns true if that pseudo-legal move is legal.
+    /// In particular, checks whether or not the move does not violate pin
+    /// (or double pin for en passant moves), or, if it is a castling move,
+    /// whether or not the squares the king traverses are safe.
     pub fn is_legal(&self, mv: Move) -> bool {
         let (from, to) = mv.squares();
 
@@ -171,14 +175,117 @@ impl Board {
         !self.state.pinned.contains(from) || BitBoard::ray_mask(self.get_king_sq(), from).contains(to)
     }
 
-    /// Returns true if that random move is pseudo-legal.
+    /// Returns true if that random move is pseudo-legal. Only assumes that the
+    /// move was created through one of the Move type's metods.
     pub fn is_pseudo_legal(&self, mv: Move) -> bool {
-        // Piece is on our side, it does not go on a friendly piece
-        // If it's en passant, there must be ep square
-        // If it's castling, between squares must be cleared (use is_path_clear !)
-        // If |checkers| == 1 => Don't forget to check that either the king is moving or the move is blocking/capturing the checker
-        // If |checkers| == 2 => It must be a king move
-        todo!()
+        macro_rules! verify {($cond: expr) => {if !($cond) {return false;}}}
+
+        let (from, to) = mv.squares();
+
+        // Verify that the from square is occupied.
+        if let Some((color, piece)) = self.get_piece(from) {
+            // Verify it is one of our pieces.
+            verify!(color == self.state.side_to_move);
+
+            // Verify to square occupied <=> move is a capture and the square 
+            // is occupied by the piece stored in the move.
+            if let Some((color, piece)) = self.get_piece(to) {
+                verify!(mv.is_capture() && color != self.state.side_to_move && piece == mv.get_capture());
+            } else {
+                verify!(!mv.is_capture());
+            }
+
+            let checkers = self.state.checkers;
+
+            // Special case for the king.
+            if piece == Piece::King {
+                // If the move is castling.
+                if mv.is_castle() {
+                    let can_castle = |king_sq, rook_sq, mask| {
+                        self.get_piece(rook_sq) == Some((color, Piece::Rook)) &&
+                        self.is_path_clear(king_sq, rook_sq) && 
+                        self.state.castle_rights.has(mask)
+                    };
+
+                    // The king must not be in check and the path between the king and the rook must be clear.
+                    // Plus, there must be a rook on the rook square and we must possess the adequate
+                    // castling rights.
+                    return checkers.empty() && match color {
+                        Color::White => match (from, to) {
+                            (Square::E1, Square::G1) => can_castle(Square::E1, Square::H1, CastleMask::WhiteOO),
+                            (Square::E1, Square::C1) => can_castle(Square::E1, Square::A1, CastleMask::WhiteOOO),
+                            _ => return false,
+                        },
+                        Color::Black => match (from, to) {
+                            (Square::E8, Square::G8) => can_castle(Square::E8, Square::H8, CastleMask::BlackOO),
+                            (Square::E8, Square::C8) => can_castle(Square::E8, Square::A8, CastleMask::BlackOOO),
+                            _ => return false,
+                        },
+                    };
+                }
+
+                // If it is a regular move, the square the king is moving to must safe.
+                // Plus, the move is a valid king move.
+                return self.attackers_to(to).empty() && attacks::king(from).contains(to);
+            } else {
+                // The move can't be a castle if the piece moving is not the king.
+                verify!(!mv.is_castle());
+
+                // If there are any checkers.
+                match checkers.count() {
+                    // One checker, the piece moving must either block or capture the enemy piece.
+                    1 => {
+                        let blocking_zone = BitBoard::between(self.get_king_sq(), checkers.as_square_unchecked());
+                        verify!((blocking_zone | checkers).contains(to));
+                    },
+                    // Two checkers, the piece moving must be the king.
+                    2 => return false,
+                    _ => (),
+                }
+            }
+
+            // Special case for pawns.
+            if piece == Piece::Pawn {
+                if mv.is_en_passant() {
+                    // There must be an en passant square.
+                    verify!(self.state.ep_square.is_some());
+                    let ep_square = self.state.ep_square.unwrap();
+
+                    // The ep square must between the move's squares.
+                    return ep_square == Square::from((to.x(), from.y())) &&
+                        attacks::pawns(color, from).contains(to);
+                } else {
+                    // If the move is a promotion, it must go to the first or last rank.
+                    verify!(to.y() == 0 || to.y() == 7 || !mv.is_promote());
+
+                    // Verify that the move is legal for a pawn.
+                    if mv.is_capture() {
+                        return attacks::pawns(color, from).contains(to)
+                    } else {
+                        return if mv.is_double_push() {
+                            attacks::pawn_double_push(color, from)
+                        } else {
+                            attacks::pawn_push(color, from)
+                        } == Some(to)
+                    };
+                }
+            } else {
+                // If the piece is not a pawn, the move can't be of any of those types. 
+                verify!(!mv.is_en_passant() && !mv.is_double_push() && !mv.is_promote());
+            }
+
+            // For any other piece, verify the move would be valid on an empty board.
+            let occ = self.occ.all;
+            return match piece {
+                Piece::Rook => attacks::rook(from, occ),
+                Piece::Knight => attacks::knight(from),
+                Piece::Bishop => attacks::bishop(from, occ),
+                Piece::Queen => attacks::queen(from, occ),
+                _ => unreachable!(),
+            }.contains(to);
+        }
+
+        false
     }
 
     /// Do the move without checking anything about it's legality.
@@ -325,8 +432,71 @@ impl Board {
         false
     }
 
+    /// Parses the move, checking the legality of the move.
     pub fn parse_move(&self, s: &str) -> Result<Move, ParseFenError> {
-        todo!()
+        let mv = match s.len() {
+            4 => {
+                let from = Square::from_str(&s[0..2])?;
+                let to = Square::from_str(&s[2..4])?;
+
+                match self.get_piece(from) {
+                    Some((_, Piece::Pawn)) => {
+                        if from.x() == to.x() {
+                            if (to.y() - from.y()).abs() == 2 {
+                                Move::double_push(from, to)
+                            } else {
+                                Move::quiet(from, to)
+                            }
+                        } else if let Some((_, capture)) = self.get_piece(to) {
+                            Move::capture(from, to, capture)
+                        } else {
+                            Move::en_passant(from, to)
+                        }
+                    },
+                    Some((_, Piece::King)) => {
+                        if (to.x() - from.x()).abs() == 2 {
+                            Move::castle(from, to)
+                        } else if let Some((_, capture)) = self.get_piece(to) {
+                            Move::capture(from, to, capture)
+                        } else {
+                            Move::quiet(from, to)
+                        }
+                    },
+                    _ => {
+                        if let Some((_, capture)) = self.get_piece(to) {
+                            Move::capture(from, to, capture)
+                        } else {
+                            Move::en_passant(from, to)
+                        }
+                    },
+                }
+            },
+            5 => {
+                let from = Square::from_str(&s[0..2])?;
+                let to = Square::from_str(&s[2..4])?;
+
+                let promote = match s.chars().nth(4).unwrap() {
+                    'r' => Piece::Rook,
+                    'n' => Piece::Knight,
+                    'b' => Piece::Bishop,
+                    'q' => Piece::Queen,
+                    c => return Err(ParseFenError::new(format!("unrecognized promotion: \"{}\", valid promotions are: \"rnbq\"", c))),
+                };
+    
+                if let Some((_, capture)) = self.get_piece(to) {
+                    Move::promote_capture(from, to, capture, promote)
+                } else {
+                    Move::promote(from, to, promote)
+                }
+            },
+            _ => return Err(ParseFenError::new("a move should be encoded in pure algebraic coordinate notation")),
+        };
+
+        if self.is_pseudo_legal(mv) && self.is_legal(mv) {
+            Ok(mv)
+        } else {
+            Err(ParseFenError::new(format!("move is illegal in this context: \"{}\"", s)))
+        }
     }
 
     /// Pretty-prints the board to stdout, using utf-8 characters
@@ -593,6 +763,7 @@ impl FromStr for Board {
 mod tests {
     use super::*;
 
+    /// Changed castle, in case it breaks: first is black kingside and second is white queen side
     #[test]
     fn do_and_undo() {
         use Square::*;
@@ -611,10 +782,10 @@ mod tests {
             Move::en_passant(D5, E6),
             Move::quiet(G8, F6),
             Move::quiet(B1, C3),
-            Move::king_castle(Color::Black),
+            Move::castle(E8, G8),
             Move::quiet(E2, E5),
             Move::double_push(B7, B5),
-            Move::queen_castle(Color::White),
+            Move::castle(E1, C1),
             Move::quiet(B5, B4),
             Move::capture(E6, D7, Piece::Pawn),
             Move::quiet(B4, B3),

@@ -64,20 +64,8 @@ impl Move {
 
     /// Crates a king castle (OO) move.
     #[inline]
-    pub const fn king_castle(color: Color) -> Move {
-        Move(match color {
-            Color::White => base(Move::CASTLE, Square::E1, Square::G1),
-            Color::Black => base(Move::CASTLE, Square::E8, Square::G8),
-        })
-    }
-
-    /// Crates a queen castle (OOO) move.
-    #[inline]
-    pub const fn queen_castle(color: Color) -> Move {
-        Move(match color {
-            Color::White => base(Move::CASTLE, Square::E1, Square::C1),
-            Color::Black => base(Move::CASTLE, Square::E8, Square::C8),
-        })
+    pub const fn castle(from: Square, to: Square) -> Move {
+        Move(base(Move::CASTLE, from, to))
     }
 
     #[inline]

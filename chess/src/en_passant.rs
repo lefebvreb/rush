@@ -21,6 +21,15 @@ pub(crate) enum EnPassantSquare {
 // ================================ pub(crate) impl
 
 impl EnPassantSquare {
+    // Returns true if the square is some.
+    #[inline]
+    pub(crate) fn is_some(self) -> bool {
+        match self {
+            EnPassantSquare::Some(_) => true,
+            _ => false,
+        }
+    }
+
     // Unwraps the en passant square, panics if there is none.
     #[inline]
     pub(crate) fn unwrap(self) -> Square {
