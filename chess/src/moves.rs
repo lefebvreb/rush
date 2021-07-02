@@ -1,6 +1,5 @@
-use std::fmt;
+use core::fmt;
 
-use crate::color::Color;
 use crate::piece::Piece;
 use crate::square::Square;
 
@@ -70,7 +69,7 @@ impl Move {
 
     #[inline]
     pub const fn is_quiet(self) -> bool {
-        self.0 == 0
+        self.0 & 0b11111 == 0
     }
 
     #[inline]
@@ -131,6 +130,7 @@ impl Move {
 // ================================ impl
 
 impl Move {
+    // Move type masks. 
     const QUIET: u32 = 0b00000;
     const CAPTURE: u32 = 0b00001;
     const PROMOTE: u32 = 0b00010;
@@ -149,44 +149,5 @@ impl fmt::Display for Move {
         } else {
             write!(fmt, "{}{}", self.from(), self.to())
         }
-    }
-}
-
-//#################################################################################################
-//
-//                                     struct MoveList
-//
-//#################################################################################################
-
-/// A type to represent a list of moves, containing up to MoveList::SIZE elements.
-/// Every operations are o(1).
-pub struct MoveList {
-    size: usize,
-    list: [Move; MoveList::SIZE],
-}
-
-// ================================ pub impl
-
-impl MoveList {
-    /// The maximal size of a move list.
-    pub const SIZE: usize = 256;
-
-    /// Pushes an element to the top of the move.
-    #[inline]
-    pub fn push(&mut self, mv: Move) {
-        self.list[self.size] = mv;
-        self.size += 1;
-    }
-
-    /// Gets an element from the list.
-    #[inline]
-    pub fn get(&self, i: usize) -> Move {
-        self.list[i]
-    }
-
-    /// Clears the list.
-    #[inline]
-    pub fn clear(&mut self) {
-        self.size = 0
     }
 }

@@ -1,5 +1,5 @@
-use std::fmt;
-use std::num::ParseIntError;
+use core::fmt;
+use core::num::ParseIntError;
 
 //#################################################################################################
 //
@@ -10,17 +10,15 @@ use std::num::ParseIntError;
 /// An error type to handle problems during fen parsing.
 #[derive(Debug)]
 pub struct ParseFenError {
-    msg: String,
+    msg: &'static str,
 }
 
 // ================================ pub(crate) impl
 
 impl ParseFenError {
     // Creates a new parse fen error.
-    pub(crate) fn new<S: ToString>(msg: S) -> ParseFenError {
-        ParseFenError {
-            msg: msg.to_string()
-        }
+    pub(crate) fn new(msg: &'static str) -> Self {
+        ParseFenError {msg}
     }
 }
 
@@ -35,7 +33,7 @@ impl fmt::Display for ParseFenError {
 
 impl From<ParseIntError> for ParseFenError {
     /// Constructs a parse fen error from an integer parse error.
-    fn from(e: ParseIntError) -> ParseFenError {
-        ParseFenError::new(format!("integer parse error: {}", e))
+    fn from(e: ParseIntError) -> Self {
+        ParseFenError::new("integer parse error")
     }
 }

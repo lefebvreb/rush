@@ -42,8 +42,8 @@ unsafe fn insert(color: Color, piece: Piece, from: Square, to: Square) {
 
     loop {
         // Take that spot
-        std::mem::swap(&mut CUCKOO[i], &mut zobrist);
-        std::mem::swap(&mut SQUARES[i], &mut squares);
+        core::mem::swap(&mut CUCKOO[i], &mut zobrist);
+        core::mem::swap(&mut SQUARES[i], &mut squares);
 
         // The spot was empty, we are done
         if zobrist == Zobrist::ZERO {

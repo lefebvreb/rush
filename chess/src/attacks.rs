@@ -1,6 +1,7 @@
 
 use crate::bitboard::BitBoard;
 use crate::color::Color;
+use crate::list::List;
 use crate::square::Square;
 
 //#################################################################################################
@@ -50,6 +51,8 @@ const ROOK_DIR: Dirs = [
 // available spot.
 #[cold]
 unsafe fn init_bmi2(info: &mut Bmi2Array, dirs: &Dirs, mut idx: usize) -> usize {
+    let mut squares = List::<Square, 12>::new();
+
     for sq in 0..64 {
         info[sq as usize].offset = idx as usize;
 
@@ -68,7 +71,10 @@ unsafe fn init_bmi2(info: &mut Bmi2Array, dirs: &Dirs, mut idx: usize) -> usize 
         }
         info[sq as usize].mask1 = bb;
 
-        let squares: Vec<_> = bb.iter_squares().collect();
+        squares.clear();
+        for sq in bb.iter_squares() {
+            squares.push(sq);
+        }
 
         for i in 0..(1 << squares.len()) {
             bb = BitBoard::EMPTY;

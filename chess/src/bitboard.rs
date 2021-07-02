@@ -1,5 +1,5 @@
-use std::fmt;
-use std::ops;
+use core::fmt;
+use core::ops;
 
 use crate::square::Square;
 
@@ -206,7 +206,7 @@ impl BitBoard {
     #[cfg(target_feature = "bmi2")]
     pub(crate) fn pext(self, mask: BitBoard) -> BitBoard {
         BitBoard(unsafe {
-            std::arch::x86_64::_pext_u64(self.0, mask.0)
+            core::arch::x86_64::_pext_u64(self.0, mask.0)
         })
     }
 
@@ -233,7 +233,7 @@ impl BitBoard {
     #[cfg(target_feature = "bmi2")]
     pub(crate) fn pdep(self, mask: BitBoard) -> BitBoard {
         BitBoard(unsafe {
-            std::arch::x86_64::_pdep_u64(self.0, mask.0)
+            core::arch::x86_64::_pdep_u64(self.0, mask.0)
         })
     }
 

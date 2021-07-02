@@ -1,5 +1,5 @@
-use std::fmt;
-use std::str::FromStr;
+use core::fmt;
+use core::str::FromStr;
 
 use crate::errors::ParseFenError;
 use crate::square::Square;
@@ -104,7 +104,7 @@ impl fmt::Display for CastleRights {
     }
 }
 
-impl FromStr for CastleRights {
+impl<'a> FromStr for CastleRights {
     type Err = ParseFenError;
 
     // From fen notation for castle rights.
@@ -126,7 +126,7 @@ impl FromStr for CastleRights {
             "Kkq"  => 0b1101,
             "Qkq"  => 0b1110,
             "KQkq" => 0b1111,
-            _ => return Err(ParseFenError::new("Invalid castle rights format".to_owned())),
+            _ => return Err(ParseFenError::new("Invalid castle rights format")),
         }))
     }
 }

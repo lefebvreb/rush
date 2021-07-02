@@ -1,5 +1,5 @@
-use std::fmt;
-use std::str::FromStr;
+use core::fmt;
+use core::str::FromStr;
 
 use crate::errors::ParseFenError;
 use crate::square::Square;
@@ -59,7 +59,7 @@ impl fmt::Display for EnPassantSquare {
     }
 }
 
-impl FromStr for EnPassantSquare {
+impl<'a> FromStr for EnPassantSquare {
     type Err = ParseFenError;
 
     // From fen en passant square notation.

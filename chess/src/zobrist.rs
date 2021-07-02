@@ -1,4 +1,4 @@
-use std::ops::{BitXor, BitXorAssign, Not};
+use core::ops::{BitXor, BitXorAssign, Not};
 
 use crate::color::Color;
 use crate::piece::Piece;

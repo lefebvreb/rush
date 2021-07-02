@@ -1,4 +1,4 @@
-use std::fmt;
+use core::fmt;
 
 use crate::color::Color;
 use crate::errors::ParseFenError;
@@ -61,7 +61,7 @@ impl Piece {
             'b' => Ok((Color::Black, Piece::Bishop)),
             'q' => Ok((Color::Black, Piece::Queen)),
             'k' => Ok((Color::Black, Piece::King)),
-            _ => Err(ParseFenError::new(format!("unrecognized piece literal: \"{}\"", c))),
+            _ => Err(ParseFenError::new("unrecognized piece literal")),
         }
     }
 }
@@ -69,15 +69,27 @@ impl Piece {
 // ================================ traits impl
 
 impl fmt::Display for Piece {
-    /// Displays the piece.
+    /// Gives the character representing the piece.
+    /// Use the # modifier to print it in uppercase.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match self {
-            Piece::Pawn   => 'p',
-            Piece::Rook   => 'r',
-            Piece::Knight => 'n',
-            Piece::Bishop => 'b',
-            Piece::Queen  => 'q',
-            Piece::King   => 'k',
+        write!(f, "{}", if f.alternate() {
+            match self {
+                Piece::Pawn   => 'P',
+                Piece::Rook   => 'R',
+                Piece::Knight => 'N',
+                Piece::Bishop => 'B',
+                Piece::Queen  => 'Q',
+                Piece::King   => 'K',
+            }
+        } else {
+            match self {
+                Piece::Pawn   => 'p',
+                Piece::Rook   => 'r',
+                Piece::Knight => 'n',
+                Piece::Bishop => 'b',
+                Piece::Queen  => 'q',
+                Piece::King   => 'k',
+            }
         })
     }
 }
