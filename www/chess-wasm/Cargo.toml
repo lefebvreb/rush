@@ -1,0 +1,19 @@
+[package]
+name = "chess-wasm"
+version = "0.1.0"
+edition = "2018"
+
+[workspace]
+
+[profile.release]
+opt-level = "s"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies.chess]
+path = "../../chess"
+
+[dependencies]
+wasm-bindgen = "0.2.74"
+wee_alloc = "0.4.5"

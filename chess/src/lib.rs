@@ -1,23 +1,38 @@
-// If compiling to wasm32, disable std use.
-#![cfg_attr(target_arch = "wasm32", no_std)]
-
 // temporary
 #![allow(dead_code, unused_variables, unused_macros)]
 
+// Utilitary modules.
+pub mod errors;
+pub mod list;
+
+// Primitive types.
+pub mod bitboard;
+pub mod color;
+pub mod moves;
+pub mod piece;
+pub mod square;
+pub mod zobrist;
+
+// Logic modules.
 mod attacks;
-mod bitboard;
-mod board;
 mod castle_rights;
-mod color;
-mod cuckoo;
 mod en_passant;
-mod errors;
-mod list;
+mod cuckoo;
 mod movegen;
-mod moves;
-mod piece;
-mod square;
-mod zobrist;
+
+// Board type.
+pub mod board;
+
+pub mod prelude {
+    pub use crate::{
+        color::Color,
+        moves::Move,
+        piece::Piece,
+        square::Square,
+
+        board::Board,
+    };
+}
 
 /// Initializes the components of the chess lib.
 /// Must be called before using the methods of the chess lib.

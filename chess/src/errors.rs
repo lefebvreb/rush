@@ -1,17 +1,6 @@
 use core::fmt;
 use core::num::ParseIntError;
 
-#[cfg(target_arch = "wasm32")]
-mod cfg_wasm32 {
-    use core::panic::PanicInfo;
-    
-    // For wasm builds, configure a custom panic handler.
-    #[panic_handler]
-    fn panic(info: &PanicInfo) -> ! {
-        loop {}
-    }
-}
-
 //#################################################################################################
 //
 //                                  struct ParseFenError

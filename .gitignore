@@ -1,2 +1,11 @@
-/target
+# Rust files.
+target
+Cargo.lock
+
+# npm files.
+node_modules
+www/public/build
+www/public/pkg
+
+# Temporary directory.
 /tmp
