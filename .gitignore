@@ -4,6 +4,7 @@ Cargo.lock
 
 # npm files.
 node_modules
+package-lock.json
 www/public/build
 www/public/pkg
 
