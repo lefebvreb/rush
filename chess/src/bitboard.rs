@@ -202,8 +202,8 @@ impl BitBoard {
     }
 
     // Performs a parallel bits extract (pext) using the intrinsic (fast).
-    #[inline]
     #[cfg(target_feature = "bmi2")]
+    #[inline]
     pub(crate) fn pext(self, mask: BitBoard) -> BitBoard {
         BitBoard(unsafe {
             core::arch::x86_64::_pext_u64(self.0, mask.0)
@@ -211,8 +211,8 @@ impl BitBoard {
     }
 
     // Performs a parallel bits extract (pext) without the intrinsic (slow).
-    #[inline]
     #[cfg(not(target_feature = "bmi2"))]
+    #[inline]
     pub(crate) fn pext(self, mut mask: BitBoard) -> BitBoard {
         let (mut i, mut res) = (0, 0);
 
@@ -229,8 +229,8 @@ impl BitBoard {
     }
 
     // Performs a parallel bits deposit (pdep) using the intrinsic (fast).
-    #[inline]
     #[cfg(target_feature = "bmi2")]
+    #[inline]
     pub(crate) fn pdep(self, mask: BitBoard) -> BitBoard {
         BitBoard(unsafe {
             core::arch::x86_64::_pdep_u64(self.0, mask.0)
@@ -238,8 +238,8 @@ impl BitBoard {
     }
 
     // Performs a parallel bits deposit (pdep) without the intrinsic (slow).
-    #[inline]
     #[cfg(not(target_feature = "bmi2"))]
+    #[inline]
     pub(crate) fn pdep(self, mut mask: BitBoard) -> BitBoard {
         let (mut i, mut res) = (0, 0);
 
