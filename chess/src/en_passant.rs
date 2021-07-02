@@ -1,5 +1,5 @@
-use core::fmt;
-use core::str::FromStr;
+use std::fmt;
+use std::str::FromStr;
 
 use crate::errors::ParseFenError;
 use crate::square::Square;

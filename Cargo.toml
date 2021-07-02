@@ -1,11 +1,15 @@
 [workspace]
 members = [
 	"chess",
-	#"engine",
-	#"server",
+	"engine",
+	"server",
 	"www/chess-wasm",
 ]
-exclude = ["www/chess-wasm"]
+default-members = [
+	"chess",
+	"engine",
+	"server",
+]
 
 [profile.test]
 opt-level = 3

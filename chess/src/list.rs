@@ -1,4 +1,4 @@
-use core::slice::Iter;
+use std::slice::Iter;
 
 /// An heapless Vec-like struct, with fixed capacity.
 #[derive(Clone, Debug)]
@@ -13,7 +13,7 @@ impl<T: Clone, const N: usize> List<T, N> {
     pub fn new() -> List<T, N> {
         List {
             len: 0,
-            elements: unsafe {core::mem::MaybeUninit::uninit().assume_init()},
+            elements: unsafe {std::mem::MaybeUninit::uninit().assume_init()},
         }
     }
 
@@ -52,7 +52,7 @@ impl<T: Clone, const N: usize> List<T, N> {
     }
 }
 
-impl<T: Clone, const N: usize> core::ops::Index<usize> for List<T, N> {
+impl<T: Clone, const N: usize> std::ops::Index<usize> for List<T, N> {
     type Output = T;
 
     /// Indexes an element of the list in an immutable context.
@@ -62,7 +62,7 @@ impl<T: Clone, const N: usize> core::ops::Index<usize> for List<T, N> {
     }
 }
 
-impl<T: Clone, const N: usize> core::ops::IndexMut<usize> for List<T, N> {
+impl<T: Clone, const N: usize> std::ops::IndexMut<usize> for List<T, N> {
     /// Indexes an element of the list in a mutable context.
     #[inline]
     fn index_mut(&mut self, index: usize) -> &mut T {

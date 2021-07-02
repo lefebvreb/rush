@@ -1,0 +1,10 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies.chess]
+path = "../chess"
+
+[dependencies.engine]
+path = "../engine"
