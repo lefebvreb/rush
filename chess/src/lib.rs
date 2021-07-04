@@ -23,16 +23,13 @@ mod movegen;
 // Board type.
 pub mod board;
 
-pub mod prelude {
-    pub use crate::{
-        color::Color,
-        moves::Move,
-        piece::Piece,
-        square::Square,
-
-        board::Board,
-    };
-}
+/*pub mod prelude {
+    pub use crate::color::Color; 
+    pub use crate::moves::Move; 
+    pub use crate::piece::Piece; 
+    pub use crate::square::Square; 
+    pub use crate::board::Board; 
+}*/
 
 /// Initializes the components of the chess lib.
 /// Must be called before using the methods of the chess lib.

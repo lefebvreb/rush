@@ -1,5 +1,6 @@
 
 use crate::bitboard::BitBoard;
+use crate::board::Occupancy;
 use crate::color::Color;
 use crate::list::List;
 use crate::square::Square;
@@ -195,13 +196,13 @@ pub(crate) unsafe fn init() {
 
 // Returns the attacks BitBoard of a Pawn of Color color located on square sq with Board occupancy occ.
 #[inline]
-pub(crate) fn pawns(color: Color, sq: Square) -> BitBoard {
+pub(crate) fn pawn(color: Color, sq: Square) -> BitBoard {
     unsafe {
         match color {
             Color::White => WHITE_PAWN_ATTACKS[sq.idx()],
             Color::Black => BLACK_PAWN_ATTACKS[sq.idx()],
         }
-    }    
+    }
 }
 
 // Returns the square, if available, of the position the pawn
@@ -230,10 +231,10 @@ pub(crate) fn pawn_double_push(color: Color, sq: Square) -> Option<Square> {
 
 // Returns the attacks BitBoard of a Rook located on square sq, with Board occupancy occ.
 #[inline]
-pub(crate) fn rook(sq: Square, occ: BitBoard) -> BitBoard {
+pub(crate) fn rook(sq: Square, occ: &Occupancy) -> BitBoard {
     unsafe {
         let info = &ROOK_BMI2[sq.idx()];
-        let mask = SLIDER_ATTACKS[info.offset + occ.pext(info.mask1).0 as usize];
+        let mask = SLIDER_ATTACKS[info.offset + occ.all().pext(info.mask1).0 as usize];
         BitBoard(mask as u64).pdep(info.mask2)
     }
 }
@@ -248,17 +249,17 @@ pub(crate) fn knight(sq: Square) -> BitBoard {
 
 // Returns the attacks BitBoard of a Bishop located on square sq, with Board occupancy occ.
 #[inline]
-pub(crate) fn bishop(sq: Square, occ: BitBoard) -> BitBoard {
+pub(crate) fn bishop(sq: Square, occ: &Occupancy) -> BitBoard {
     unsafe {
         let info = &BISHOP_BMI2[sq.idx()];
-        let mask = SLIDER_ATTACKS[info.offset + occ.pext(info.mask1).0 as usize];
+        let mask = SLIDER_ATTACKS[info.offset + occ.all().pext(info.mask1).0 as usize];
         BitBoard(mask as u64).pdep(info.mask2)
     }
 }
 
 // Returns the attacks BitBoard of a Queen located on square sq, with Board occupancy occ.
 #[inline]
-pub(crate) fn queen(sq: Square, occ: BitBoard) -> BitBoard {
+pub(crate) fn queen(sq: Square, occ: &Occupancy) -> BitBoard {
     bishop(sq, occ) | rook(sq, occ)
 }
 

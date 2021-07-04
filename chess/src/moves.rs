@@ -3,7 +3,7 @@ use std::fmt;
 use crate::piece::Piece;
 use crate::square::Square;
 
-// Create the base for a move, with
+// Create the base for a move, with the given flags, from and to squares.
 #[inline]
 const fn base(flags: u32, from: Square, to: Square) -> u32 {
     flags | (from as u32) << 5 | (to as u32) << 11
@@ -16,7 +16,7 @@ const fn base(flags: u32, from: Square, to: Square) -> u32 {
 //#################################################################################################
 
 /// A move, encoded in a compact 32 bits representation:
-/// `mmmffffffttttttcccppp` where `m` is the type of the move, 
+/// `mmmmmffffffttttttcccppp` where `m` is the type of the move, 
 /// `f` is the from square, `t` is the to square, `c` is the capture piece
 /// and `p` is the promoted piece.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
