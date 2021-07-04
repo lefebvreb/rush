@@ -1,6 +1,7 @@
 use std::fmt;
 use std::ops;
 
+use crate::color::Color;
 use crate::square::Square;
 
 //#################################################################################################
@@ -145,6 +146,15 @@ impl BitBoard {
     #[inline]
     pub fn contains(self, sq: Square) -> bool {
         (self & sq.into()).0 != 0
+    }
+
+    /// Returns the rank where the pawns of the given color are promoting from.
+    #[inline]
+    pub fn promote_rank(color: Color) -> BitBoard {
+        match color {
+            Color::White => BitBoard::RANK_7,
+            Color::Black => BitBoard::RANK_2,
+        }
     }
 
     /// Returns a bitboard of the squares between from and to (exclusive) if 

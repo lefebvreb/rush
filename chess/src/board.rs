@@ -60,6 +60,12 @@ impl Occupancy {
     pub fn colored(&self, color: Color) -> BitBoard {
         self.colored[color.idx()]
     }
+
+    /// The free squares of the board.
+    #[inline]
+    pub fn free(&self) -> BitBoard {
+        !self.all
+    }
 }
 
 // ================================ pub (crate) impl
@@ -162,6 +168,12 @@ impl Board {
 
     // ================================ Methods
 
+    // Returns the square the king of the side to move is occupying. 
+    #[inline]
+    pub fn king_sq(&self) -> Square {
+        self.get_bitboard(self.get_side_to_move(), Piece::King).as_square_unchecked()
+    }
+
     /// Returns true if that pseudo-legal move is legal.
     /// In particular, checks whether or not the move does not violate pin
     /// (or double pin for en passant moves), or, if it is a castling move,
@@ -205,7 +217,7 @@ impl Board {
             }
         } else if from == self.king_sq() {
             // If the move is done by the king, check the square it is moving to is safe.
-            return self.attackers_to(to).empty() && attacks::king(from).contains(to);
+            return self.attackers_to(to).empty();
         }
 
         // Any move is valid if the piece is not pinned or if it is moving in the squares 
@@ -262,8 +274,8 @@ impl Board {
                     };
                 }
 
-                // Checking wether the square the king is moving to is safe is done in is_legal().
-                return true;
+                // Checking wether the square the king is valid for a king.
+                return attacks::king(from).contains(to);
             } else {
                 // The move can't be a castle if the piece moving is not the king.
                 verify!(!mv.is_castle());
@@ -297,13 +309,13 @@ impl Board {
 
                     // Verify that the move is legal for a pawn.
                     if mv.is_capture() {
-                        return attacks::pawn(color, from).contains(to)
+                        return attacks::pawn(color, from).contains(to);
                     } else {
                         return if mv.is_double_push() {
                             attacks::pawn_double_push(color, from)
                         } else {
                             attacks::pawn_push(color, from)
-                        } == Some(to)
+                        } == Some(to);
                     };
                 }
             } else {
@@ -563,6 +575,22 @@ impl Board {
     pub(crate) fn piece_unchecked(&self, sq: Square) -> Piece {
         self.mailbox[sq.idx()].unwrap().1
     }
+
+    // Returns the bitboard of all the attackers to that square. Does not take
+    // en passant into account.
+    #[inline]
+    pub(crate) fn attackers_to(&self, sq: Square) -> BitBoard {
+        let us = self.get_side_to_move();
+        let them = self.get_other_side();
+
+        let queens = self.get_bitboard(them, Piece::Queen);
+
+        attacks::pawn(us, sq) & self.get_bitboard(them, Piece::Pawn) 
+        | attacks::rook(sq, &self.occ) & (self.get_bitboard(them, Piece::Rook) | queens)
+        | attacks::knight(sq) & self.get_bitboard(them, Piece::Knight) 
+        | attacks::bishop(sq, &self.occ) & (self.get_bitboard(them, Piece::Bishop) | queens)
+        | attacks::king(sq) & self.get_bitboard(them, Piece::King)
+    }
 }
 
 // ================================ impl
@@ -642,27 +670,6 @@ impl Board {
         }
 
         pinned
-    }
-
-    // Returns the bitboard of all the attackers to that square. Does not take
-    // en passant into account.
-    #[inline]
-    fn attackers_to(&self, sq: Square) -> BitBoard {
-        let us = self.get_side_to_move();
-        let them = self.get_other_side();
-
-        attacks::pawn(us, sq) & self.get_bitboard(them, Piece::Pawn) 
-            | attacks::rook(sq, &self.occ) & self.get_bitboard(them, Piece::Rook) 
-            | attacks::knight(sq) & self.get_bitboard(them, Piece::Knight) 
-            | attacks::bishop(sq, &self.occ) & self.get_bitboard(them, Piece::Bishop) 
-            | attacks::queen(sq, &self.occ) & self.get_bitboard(them, Piece::Queen) 
-            | attacks::king(sq) & self.get_bitboard(them, Piece::King)
-    }
-
-    // Returns the square the king of the side to move is occupying. 
-    #[inline]
-    pub fn king_sq(&self) -> Square {
-        self.get_bitboard(self.get_side_to_move(), Piece::King).as_square_unchecked()
     }
 }
 

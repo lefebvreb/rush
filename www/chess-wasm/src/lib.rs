@@ -1,6 +1,7 @@
-extern crate chess;
 extern crate wasm_bindgen;
 extern crate wee_alloc;
+
+extern crate chess;
 
 use wasm_bindgen::prelude::*;
 

@@ -24,7 +24,7 @@ impl<T: Clone, const N: usize> List<T, N> {
     }
 
     /// Pushes a new element at the end of the list. 
-    /// Make sur list.len() <= N before attempting to push.
+    /// Make sure list.len() <= N before attempting to push.
     #[inline]
     pub fn push(&mut self, element: T) {
         self.elements[self.len] = element;
