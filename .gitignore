@@ -6,7 +6,7 @@ Cargo.lock
 node_modules
 package-lock.json
 www/public/build
-www/public/pkg
+www/public/wasm
 
 # Temporary directory.
 /tmp

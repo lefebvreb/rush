@@ -24,12 +24,8 @@ pub mod board;
 pub mod movegen;
 
 pub mod prelude {
-    pub use crate::color::Color; 
-    pub use crate::movegen;
-    pub use crate::moves::Move;
-    pub use crate::piece::Piece; 
-    pub use crate::square::Square; 
     pub use crate::board::Board; 
+    pub use crate::movegen;
 }
 
 /// Initializes the components of the chess lib.
