@@ -103,6 +103,11 @@ pub struct Board {
 // ================================ pub impl
 
 impl Board {
+    /// Tries to parse the fen string into a board.
+    pub fn from_fen(fen: &str) -> Result<Board, ParseFenError> {
+        Board::from_str(fen)
+    }
+
     // ================================ Accessers
 
     /// Returns the color of the side to move.
@@ -827,7 +832,7 @@ impl<'a> FromStr for Board {
         }
 
         board.state.checkers = board.checkers();
-        board.state.pinned   = board.pinned();
+        board.state.pinned = board.pinned();
 
         Ok(board)
     }

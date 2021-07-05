@@ -2,3 +2,7 @@
 name = "chess"
 version = "0.1.0"
 edition = "2018"
+
+[[bin]]
+name = "perft"
+path = "perft/main.rs"

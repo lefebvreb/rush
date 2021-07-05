@@ -1,6 +1,4 @@
-use std::slice::Iter;
-
-/// An heapless Vec-like struct, with fixed capacity.
+/// A heapless Vec-like struct, with fixed capacity.
 #[derive(Clone, Debug)]
 pub struct List<T: Clone, const N: usize> {
     len: usize,
@@ -47,7 +45,7 @@ impl<T: Clone, const N: usize> List<T, N> {
 
     /// Returns an iterator to the elements of the list.
     #[inline]
-    pub fn iter(&self) -> Iter<T> {
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.elements.iter()
     }
 }
