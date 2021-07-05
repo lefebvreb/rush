@@ -1,6 +1,5 @@
 use crate::attacks;
 use crate::board::Board;
-use crate::board::Occupancy;
 use crate::color::Color;
 use crate::piece::Piece;
 use crate::square::Square;
@@ -20,15 +19,13 @@ static mut SQUARES: [(Square, Square); 8192] = [(Square::A1, Square::A1); 8192];
 // Pawn moves are never reversible so we don't take them into account.
 #[cold]
 unsafe fn is_valid(color: Color, piece: Piece, from: Square, to: Square) -> bool {
-    // Emulate a board with only that piece on it.
-    let mut occ = Occupancy::default();
-    occ.update(Color::White, from.into());
+    let occ = from.into();
 
     match piece {
-        Piece::Rook => attacks::rook(from, &occ),
-        Piece::Bishop => attacks::bishop(from, &occ),
+        Piece::Rook => attacks::rook(from, occ),
+        Piece::Bishop => attacks::bishop(from, occ),
         Piece::Knight => attacks::knight(from),
-        Piece::Queen => attacks::queen(from, &occ),
+        Piece::Queen => attacks::queen(from, occ),
         Piece::King => attacks::knight(from),
         _ => unreachable!(),
     }.contains(to)

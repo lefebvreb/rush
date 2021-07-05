@@ -11,7 +11,7 @@
 //               Needs to be a single arguments, use quotes
 //
 // Ex:
-//   $ cargo run --bin perft -- 3 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+//   $ ./target/release/perft -- 3 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 //
 // For profiling with perf:
 //   $ cargo build --bin perft --release
@@ -28,12 +28,16 @@ fn perft(board: &mut Board, depth: usize) -> u64 {
     if depth == 0 {
         return 1;
     }
-
-    let mut nodes = 0;
     
     let mut list = movegen::MoveList::new();
     movegen::legals(&board, &mut list);
-
+    
+    if depth == 1 {
+        return list.len() as u64;
+    }
+    
+    let mut nodes = 0;
+    
     for &mv in list.iter() {
         board.do_move(mv);
         nodes += perft(board, depth - 1);
@@ -44,6 +48,9 @@ fn perft(board: &mut Board, depth: usize) -> u64 {
 }
 
 fn main() {
+    // Initialize the chess library.
+    chess::init();
+
     let mut args = args();
     
     // Executable path.

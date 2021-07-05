@@ -176,8 +176,8 @@ pub fn gen_captures(board: &Board, mut gen: impl FnMut(Square, Square, Piece)) {
     let us = board.get_side_to_move();
     let them = board.get_other_side();
 
-    let occ = board.get_occupancy();
-    let them_occ = occ.colored(them);
+    let occ = board.get_occupancy().all();
+    let them_occ = board.get_occupancy().colored(them);
 
     for from in board.get_bitboard(us, Piece::Knight).iter_squares() {
         for to in (attacks::knight(from) & them_occ).iter_squares() {
@@ -209,8 +209,8 @@ pub fn gen_quiets(board: &Board, mut gen: impl FnMut(Square, Square)) {
     let us = board.get_side_to_move();
     let them = board.get_other_side();
 
-    let occ = board.get_occupancy();
-    let free = occ.free();
+    let occ = board.get_occupancy().all();
+    let free = board.get_occupancy().free();
 
     for from in board.get_bitboard(us, Piece::Knight).iter_squares() {
         for to in (attacks::knight(from) & free).iter_squares() {

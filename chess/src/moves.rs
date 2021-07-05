@@ -19,7 +19,7 @@ const fn base(flags: u32, from: Square, to: Square) -> u32 {
 /// `mmmmmffffffttttttcccppp` where `m` is the type of the move, 
 /// `f` is the from square, `t` is the to square, `c` is the capture piece
 /// and `p` is the promoted piece.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub struct Move(u32);
 
 // ================================ pub impl
@@ -131,12 +131,12 @@ impl Move {
 
 impl Move {
     // Move type masks. 
-    const QUIET: u32 = 0b00000;
-    const CAPTURE: u32 = 0b00001;
-    const PROMOTE: u32 = 0b00010;
-    const CASTLE: u32 = 0b00100;
-    const EN_PASSANT: u32 = 0b01000;
-    const DOUBLE_PUSH: u32 = 0b10000;    
+    const QUIET       : u32 = 0b00000;
+    const CAPTURE     : u32 = 0b00001;
+    const PROMOTE     : u32 = 0b00010;
+    const CASTLE      : u32 = 0b00100;
+    const EN_PASSANT  : u32 = 0b01000;
+    const DOUBLE_PUSH : u32 = 0b10000;    
 }
 
 // ================================ traits impl
@@ -149,5 +149,21 @@ impl fmt::Display for Move {
         } else {
             write!(fmt, "{}{}", self.from(), self.to())
         }
+    }
+}
+
+impl fmt::Debug for Move {
+    // Displays useful debugging informations about a move.
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("Move")
+            .field("from", &self.from())
+            .field("to", &self.to())
+            .field("is_quiet", &self.is_quiet())
+            .field("is_capture", &self.is_capture())
+            .field("is_promote", &self.is_promote())
+            .field("is_castle", &self.is_castle())
+            .field("is_en_passant", &self.is_en_passant())
+            .field("is_double_push", &self.is_double_push())
+            .finish()
     }
 }

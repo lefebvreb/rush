@@ -68,18 +68,6 @@ impl Occupancy {
     }
 }
 
-// ================================ pub (crate) impl
-
-impl Occupancy {
-    // Update the occupancy bitboard with a given color and mask.
-    #[inline]
-    pub (crate) fn update(&mut self, color: Color, mask: BitBoard) {
-        self.all ^= mask;
-        self.colored[color.idx()] ^= mask;
-    }
-}
-
-
 //#################################################################################################
 //
 //                                         struct Board
@@ -190,14 +178,15 @@ impl Board {
             // If the move is castle, we must check that the squares the king
             // passes are safe.
             let can_castle = |sq1, sq2| {
-                (self.attackers_to(sq1) | self.attackers_to(sq2)).empty()
+                let occ = self.get_occupancy().all();
+                (self.attackers_to(sq1, occ) | self.attackers_to(sq2, occ)).empty()
             };
 
             return match to {
-                Square::G1 => can_castle(Square::H1, Square::F1),
-                Square::G8 => can_castle(Square::H8, Square::F8),
-                Square::C1 => can_castle(Square::A1, Square::D1),
-                Square::C8 => can_castle(Square::A8, Square::D8),
+                Square::G1 => can_castle(Square::F1, Square::G1),
+                Square::G8 => can_castle(Square::F8, Square::G8),
+                Square::C1 => can_castle(Square::C1, Square::D1),
+                Square::C8 => can_castle(Square::C8, Square::D8),
                 _ => unreachable!(),
             };
         } else if mv.is_en_passant() {
@@ -221,8 +210,9 @@ impl Board {
                 }
             }
         } else if from == self.king_sq() {
+            let new_occ = self.get_occupancy().all() ^ (BitBoard::from(from) | BitBoard::from(to));
             // If the move is done by the king, check the square it is moving to is safe.
-            return self.attackers_to(to).empty();
+            return self.attackers_to(to, new_occ).empty();
         }
 
         // Any move is valid if the piece is not pinned or if it is moving in the squares 
@@ -328,12 +318,15 @@ impl Board {
                 verify!(!mv.is_en_passant() && !mv.is_double_push() && !mv.is_promote());
             }
 
+            // Monochrome occupancy.
+            let occ = self.get_occupancy().all();
+
             // For any other piece, verify the move would be valid on an empty board.
             return match piece {
-                Piece::Rook => attacks::rook(from, &self.occ),
+                Piece::Rook => attacks::rook(from, occ),
                 Piece::Knight => attacks::knight(from),
-                Piece::Bishop => attacks::bishop(from, &self.occ),
-                Piece::Queen => attacks::queen(from, &self.occ),
+                Piece::Bishop => attacks::bishop(from, occ),
+                Piece::Queen => attacks::queen(from, occ),
                 _ => unreachable!(),
             }.contains(to);
         }
@@ -519,7 +512,7 @@ impl Board {
                         if let Some((_, capture)) = self.get_piece(to) {
                             Move::capture(from, to, capture)
                         } else {
-                            Move::en_passant(from, to)
+                            Move::quiet(from, to)
                         }
                     },
                 }
@@ -584,16 +577,16 @@ impl Board {
     // Returns the bitboard of all the attackers to that square. Does not take
     // en passant into account.
     #[inline]
-    pub(crate) fn attackers_to(&self, sq: Square) -> BitBoard {
+    pub(crate) fn attackers_to(&self, sq: Square, occ: BitBoard) -> BitBoard {
         let us = self.get_side_to_move();
         let them = self.get_other_side();
 
         let queens = self.get_bitboard(them, Piece::Queen);
 
         attacks::pawn(us, sq) & self.get_bitboard(them, Piece::Pawn) 
-        | attacks::rook(sq, &self.occ) & (self.get_bitboard(them, Piece::Rook) | queens)
+        | attacks::rook(sq, occ) & (self.get_bitboard(them, Piece::Rook) | queens)
         | attacks::knight(sq) & self.get_bitboard(them, Piece::Knight) 
-        | attacks::bishop(sq, &self.occ) & (self.get_bitboard(them, Piece::Bishop) | queens)
+        | attacks::bishop(sq, occ) & (self.get_bitboard(them, Piece::Bishop) | queens)
         | attacks::king(sq) & self.get_bitboard(them, Piece::King)
     }
 }
@@ -605,11 +598,12 @@ impl Board {
     // updates the zobrist key accordingly.
     #[inline]
     fn place_piece<const ZOBRIST: bool>(&mut self, color: Color, piece: Piece, sq: Square) {
-        self.bitboards[color.idx()][piece.idx()] ^= sq.into();
         self.mailbox[sq.idx()] = Some((color, piece));
-
+        
         let mask = sq.into();
-        self.occ.update(color, mask);
+        self.bitboards[color.idx()][piece.idx()] ^= mask;
+        self.occ.all ^= mask;
+        self.occ.colored[color.idx()] ^= mask;
 
         if ZOBRIST {
             self.state.zobrist ^= Zobrist::from((color, piece, sq));
@@ -621,11 +615,12 @@ impl Board {
     #[inline]
     fn remove_piece<const ZOBRIST: bool>(&mut self, sq: Square) -> (Color, Piece) {
         let (color, piece) = self.mailbox[sq.idx()].unwrap();
-        self.bitboards[color.idx()][piece.idx()] ^= sq.into();
         self.mailbox[sq.idx()] = None;
-
+        
         let mask = sq.into();
-        self.occ.update(color, mask);
+        self.bitboards[color.idx()][piece.idx()] ^= mask;
+        self.occ.all ^= mask;
+        self.occ.colored[color.idx()] ^= mask;
 
         if ZOBRIST {
             self.state.zobrist ^= Zobrist::from((color, piece, sq));
@@ -646,7 +641,8 @@ impl Board {
     /// The bitboard of the checkers to the current king.
     #[inline]
     fn checkers(&self) -> BitBoard {
-        self.attackers_to(self.king_sq())
+        let occ = self.get_occupancy().all();
+        self.attackers_to(self.king_sq(), occ)
     }
 
     /// The bitboard of the currently pinned pieces.
@@ -742,9 +738,7 @@ impl fmt::Display for Board {
                 }
             }
     
-            write!(
-                f, 
-                " {} {} {} {} {}", 
+            write!(f, " {} {} {} {} {}", 
                 self.get_side_to_move(),
                 self.get_castle_rights(),
                 self.get_ep_square(),
@@ -837,65 +831,3 @@ impl<'a> FromStr for Board {
         Ok(board)
     }
 }
-
-/*#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Changed castle, in case it breaks: first is black kingside and second is white queen side
-    #[test]
-    fn do_and_undo() {
-        use Square::*;
-
-        crate::init();
-
-        let moves = vec![
-            Move::double_push(D2, D4),
-            Move::quiet(B8, C6),
-            Move::quiet(D4, D5),
-            Move::quiet(G7, G6),
-            Move::quiet(C1, H6),
-            Move::capture(F8, H6, Piece::Bishop),
-            Move::quiet(D1, D3),
-            Move::double_push(E7, E5),
-            Move::en_passant(D5, E6),
-            Move::quiet(G8, F6),
-            Move::quiet(B1, C3),
-            Move::castle(E8, G8),
-            Move::quiet(E2, E5),
-            Move::double_push(B7, B5),
-            Move::castle(E1, C1),
-            Move::quiet(B5, B4),
-            Move::capture(E6, D7, Piece::Pawn),
-            Move::quiet(B4, B3),
-            Move::promote_capture(D7, C8, Piece::Bishop, Piece::Knight),
-            Move::capture(B3, A2, Piece::Pawn),
-            Move::quiet(C8, B6),
-            Move::promote(A2, A1, Piece::Queen),
-        ];
-
-        let mut board = Board::default();
-        
-        for &mv in moves.iter() {
-            board.do_move(mv);
-        }
-
-        for &mv in moves.iter().rev() {
-            board.undo_move(mv);
-        }
-
-        let default = Board::default();
-
-        for color in Color::COLORS {
-            for piece in Piece::PIECES {
-                assert_eq!(
-                    default.get_bitboard(color, piece),
-                    board.get_bitboard(color, piece),
-                )
-            }
-        }
-        assert_eq!(default.occ.all, board.occ.all);
-        assert_eq!(default.occ.colored, board.occ.colored);
-        assert_eq!(default.state.zobrist, board.state.zobrist);
-    }
-}*/

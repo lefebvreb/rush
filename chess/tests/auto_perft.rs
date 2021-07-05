@@ -5,12 +5,16 @@ fn perft(board: &mut Board, depth: usize) -> u64 {
     if depth == 0 {
         return 1;
     }
-
-    let mut nodes = 0;
     
     let mut list = movegen::MoveList::new();
     movegen::legals(&board, &mut list);
+    
+    if depth == 1 {
+        return list.len() as u64;
+    }
 
+    let mut nodes = 0;
+    
     for &mv in list.iter() {
         board.do_move(mv);
         nodes += perft(board, depth - 1);
@@ -152,65 +156,11 @@ const FENS: [(&'static str, u64); 127] = [
 ];
 
 #[test]
-fn perft1() {
-    for &(fen, res) in &FENS[..16] {
+fn auto_perft() {
+    chess::init();
+    for &(fen, res) in &FENS {
+        dbg!(fen);
         let mut board = Board::from_fen(fen).unwrap();
-        assert_eq!(perft(&mut board, 4), res);
-    }
-}
-
-#[test]
-fn perft2() {
-    for &(fen, res) in &FENS[16..32] {
-        let mut board = Board::from_fen(fen).unwrap();
-        assert_eq!(perft(&mut board, 4), res);
-    }
-}
-
-#[test]
-fn perft3() {
-    for &(fen, res) in &FENS[32..48] {
-        let mut board = Board::from_fen(fen).unwrap();
-        assert_eq!(perft(&mut board, 4), res);
-    }
-}
-
-#[test]
-fn perft4() {
-    for &(fen, res) in &FENS[48..64] {
-        let mut board = Board::from_fen(fen).unwrap();
-        assert_eq!(perft(&mut board, 4), res);
-    }
-}
-
-#[test]
-fn perft5() {
-    for &(fen, res) in &FENS[64..80] {
-        let mut board = Board::from_fen(fen).unwrap();
-        assert_eq!(perft(&mut board, 4), res);
-    }
-}
-
-#[test]
-fn perft6() {
-    for &(fen, res) in &FENS[80..96] {
-        let mut board = Board::from_fen(fen).unwrap();
-        assert_eq!(perft(&mut board, 4), res);
-    }
-}
-
-#[test]
-fn perft7() {
-    for &(fen, res) in &FENS[96..112] {
-        let mut board = Board::from_fen(fen).unwrap();
-        assert_eq!(perft(&mut board, 4), res);
-    }
-}
-
-#[test]
-fn perft8() {
-    for &(fen, res) in &FENS[112..] {
-        let mut board = Board::from_fen(fen).unwrap();
-        assert_eq!(perft(&mut board, 4), res);
+        assert_eq!(perft(&mut board, 4), res, "Error at {:?}.", fen);
     }
 }

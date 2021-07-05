@@ -193,6 +193,13 @@ impl BitBoard {
             SQUARES_RAY_MASK[from.idx()][to.idx()]
         }
     }
+
+    /// Returns true if that bitboard contains more than
+    /// one bit set to 1.
+    #[inline]
+    pub fn more_than_one(self) -> bool {
+        (self & self - BitBoard(1)).0 != 0
+    }
 }
 
 /// A convenient macro to construct a BitBoard from a collection of Squares.

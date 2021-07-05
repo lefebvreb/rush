@@ -46,7 +46,7 @@ impl<T: Clone, const N: usize> List<T, N> {
     /// Returns an iterator to the elements of the list.
     #[inline]
     pub fn iter(&self) -> impl Iterator<Item = &T> {
-        self.elements.iter()
+        (0..self.len).map(move |i| &self.elements[i])
     }
 }
 

@@ -43,10 +43,18 @@ impl CastleRights {
     #[inline]
     pub(crate) fn update(&mut self, from: Square, to: Square) {
         match from {
-            Square::C1 => self.remove(CastleMask::WhiteOOO),
-            Square::G1 => self.remove(CastleMask::WhiteOO),
-            Square::C8 => self.remove(CastleMask::BlackOOO),
-            Square::G8 => self.remove(CastleMask::BlackOO),
+            Square::A1 => self.remove(CastleMask::WhiteOOO),
+            Square::E1 => {
+                self.remove(CastleMask::WhiteOOO);
+                self.remove(CastleMask::WhiteOO);
+            },
+            Square::H1 => self.remove(CastleMask::WhiteOO),
+            Square::A8 => self.remove(CastleMask::BlackOOO),
+            Square::E8 => {
+                self.remove(CastleMask::BlackOOO);
+                self.remove(CastleMask::BlackOO);
+            },
+            Square::H8 => self.remove(CastleMask::BlackOO),
             _ => (),
         }
 
