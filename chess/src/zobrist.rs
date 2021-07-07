@@ -46,6 +46,7 @@ pub(crate) unsafe fn init() {
 //#################################################################################################
 
 /// A zobrist key, that may be used for hashing.
+#[repr(transparent)]
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Zobrist(u64);
 
@@ -65,6 +66,11 @@ impl Zobrist {
     #[inline]
     pub fn h2(self) -> usize {
         (self.0.wrapping_shr(48) & 0x1FFF) as usize
+    }
+
+    #[inline]
+    pub fn idx<const MAX: usize>(self) -> isize {
+        (self.0 % MAX as u64) as isize
     }
 }
 

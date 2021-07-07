@@ -18,7 +18,7 @@ static mut SQUARES: [(Square, Square); 8192] = [(Square::A1, Square::A1); 8192];
 // Returns true if the move is valid on an empty board.
 // Pawn moves are never reversible so we don't take them into account.
 #[cold]
-unsafe fn is_valid(color: Color, piece: Piece, from: Square, to: Square) -> bool {
+unsafe fn is_valid(piece: Piece, from: Square, to: Square) -> bool {
     let occ = from.into();
 
     match piece {
@@ -34,7 +34,7 @@ unsafe fn is_valid(color: Color, piece: Piece, from: Square, to: Square) -> bool
 // Inserts into the cuckoo table, only if the move is valid.
 #[cold]
 unsafe fn insert(color: Color, piece: Piece, from: Square, to: Square) {
-    if !is_valid(color, piece, from, to) {             
+    if !is_valid(piece, from, to) {             
         return;
     }
     

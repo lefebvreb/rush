@@ -4,13 +4,12 @@ use crate::board::Board;
 use crate::castle_rights::CastleMask;
 use crate::color::Color;
 use crate::en_passant::EnPassantSquare;
-use crate::list::List;
 use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
 
 /// A type alias representing a movelist, of a fixed maximum capacity.
-pub type MoveList = List<Move, 256>;
+pub type MoveList = Vec<Move>;
 
 //#################################################################################################
 //
@@ -42,7 +41,6 @@ pub fn gen_promote_captures(board: &Board, mut gen: impl FnMut(Square, Square, P
 #[inline]
 pub fn gen_promotes(board: &Board, mut gen: impl FnMut(Square, Square)) {
     let us = board.get_side_to_move();
-    let them = board.get_other_side();
 
     for from in (board.get_bitboard(us, Piece::Pawn) & BitBoard::promote_rank(us)).iter_squares() {
         let to = attacks::pawn_push(us, from).unwrap();
@@ -207,7 +205,6 @@ pub fn gen_captures(board: &Board, mut gen: impl FnMut(Square, Square, Piece)) {
 #[inline]
 pub fn gen_quiets(board: &Board, mut gen: impl FnMut(Square, Square)) {
     let us = board.get_side_to_move();
-    let them = board.get_other_side();
 
     let occ = board.get_occupancy().all();
     let free = board.get_occupancy().free();

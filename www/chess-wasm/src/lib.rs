@@ -11,6 +11,6 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 // The start function intializes the chess lib.
 #[wasm_bindgen(start)]
-pub fn _start() {
+pub fn init() {
     chess::init();
 }   

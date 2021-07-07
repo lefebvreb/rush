@@ -1,9 +1,5 @@
-// temporary
-#![allow(dead_code, unused_variables, unused_macros)]
-
 // Utilitary modules.
 pub mod errors;
-pub mod list;
 
 // Primitive types.
 pub mod bitboard;
@@ -25,6 +21,7 @@ pub mod movegen;
 
 pub mod prelude {
     pub use crate::board::Board; 
+    pub use crate::moves::Move;
     pub use crate::movegen;
 }
 

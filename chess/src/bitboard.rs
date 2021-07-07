@@ -202,13 +202,6 @@ impl BitBoard {
     }
 }
 
-/// A convenient macro to construct a BitBoard from a collection of Squares.
-macro_rules! squares {
-    ($($sq: ident),*) => {
-        BitBoard::EMPTY $(| $sq.into())*
-    };
-}
-
 // ================================ pub(crate) impl
 
 impl BitBoard {

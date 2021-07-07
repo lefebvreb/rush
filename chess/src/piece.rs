@@ -34,12 +34,6 @@ impl Piece {
 // ================================ pub(crate) impl
 
 impl Piece {
-    // Returns true if self is a slider.
-    #[inline]
-    pub(crate) fn is_slider(self) -> bool {
-        matches!(self, Piece::Rook | Piece::Bishop | Piece::Queen)
-    }
-
     // Returns the piece as an index.
     #[inline]
     pub(crate) fn idx(self) -> usize {

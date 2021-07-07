@@ -9,7 +9,6 @@ use crate::color::Color;
 use crate::cuckoo;
 use crate::en_passant::EnPassantSquare;
 use crate::errors::ParseFenError;
-use crate::list::List;
 use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
@@ -85,7 +84,7 @@ pub struct Board {
     occ: Occupancy,
 
     state: StateInfo,
-    prev_states: List<StateInfo, 20>,
+    prev_states: Vec<StateInfo>,
 }
 
 // ================================ pub impl
@@ -411,7 +410,7 @@ impl Board {
         let them = self.get_side_to_move();
 
         // Restore the previous state and decrement the fullmove counter.
-        self.state = self.prev_states.pop();
+        self.state = self.prev_states.pop().unwrap();
         if self.get_side_to_move() == Color::Black {
             self.fullmove -= 1;
         }
@@ -526,7 +525,7 @@ impl Board {
                     'n' => Piece::Knight,
                     'b' => Piece::Bishop,
                     'q' => Piece::Queen,
-                    c => return Err(ParseFenError::new("unrecognized promotion")),
+                    _ => return Err(ParseFenError::new("unrecognized promotion")),
                 };
     
                 if let Some((_, capture)) = self.get_piece(to) {
@@ -786,7 +785,7 @@ impl<'a> FromStr for Board {
                 ep_square,
                 zobrist: Zobrist::default(),
             },
-            prev_states: List::new(),
+            prev_states: Vec::new(),
         };
 
         let mut y = 0;

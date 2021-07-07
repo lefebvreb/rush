@@ -8,5 +8,8 @@ package-lock.json
 www/public/build
 www/public/wasm
 
+# Profiling data.
+perf.data
+
 # Temporary directory.
 /tmp

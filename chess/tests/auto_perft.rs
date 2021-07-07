@@ -158,8 +158,8 @@ const FENS: [(&'static str, u64); 127] = [
 #[test]
 fn auto_perft() {
     chess::init();
+
     for &(fen, res) in &FENS {
-        dbg!(fen);
         let mut board = Board::from_fen(fen).unwrap();
         assert_eq!(perft(&mut board, 4), res, "Error at {:?}.", fen);
     }
