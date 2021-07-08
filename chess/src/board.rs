@@ -91,7 +91,7 @@ pub struct Board {
 
 impl Board {
     /// Tries to parse the fen string into a board.
-    pub fn from_fen(fen: &str) -> Result<Board, ParseFenError> {
+    pub fn new(fen: &str) -> Result<Board, ParseFenError> {
         Board::from_str(fen)
     }
 
@@ -674,13 +674,6 @@ impl Board {
 }
 
 // ================================ traits impl
-
-impl Default for Board {
-    /// Returns the default position of chess.
-    fn default() -> Board {
-        Board::from_str("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
-    }
-}
 
 impl fmt::Display for Board {
     /// Formats the board to it's fen representation: println!("{}", board);

@@ -204,7 +204,7 @@ impl AtomicMove {
         self.0.store(0, Ordering::Release);
     }
 
-    /// Loads the move stored in the atomic with the given memory ordering.
+    /// Loads the move stored in the atomic.
     #[inline]
     pub fn load(&self) -> Option<Move> {
         // Since a valid move's raw value is never 0, it is acceptable 
@@ -215,7 +215,7 @@ impl AtomicMove {
         }
     }
 
-    /// Stores the move into the atomic, with the given ordering.
+    /// Stores the move into the atomic.
     #[inline]
     pub fn store(&self, mv: Move) {
         self.0.store(mv.0, Ordering::Release);

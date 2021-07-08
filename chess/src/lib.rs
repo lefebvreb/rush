@@ -29,17 +29,14 @@ pub mod prelude {
 /// Must be called before using the methods of the chess lib.
 #[cold]
 pub fn init() {
-    static mut DONE: bool = false;
+    use std::sync::Once;
 
-    unsafe {
-        if DONE {
-            return;
-        }
+    static INIT: Once = Once::new();
 
-        DONE = true;
+    INIT.call_once(|| unsafe {
         bitboard::init();
         zobrist::init();
         attacks::init();
         cuckoo::init();
-    }
+    });
 }

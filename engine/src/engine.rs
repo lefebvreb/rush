@@ -17,15 +17,15 @@ use crate::table::TranspositionTable;
 // The shared info between threads.
 #[derive(Debug)]
 pub(crate) struct GlobalInfo {
-    table: TranspositionTable,
     barrier: Barrier,
-    stop: AtomicBool,
-
     searching: AtomicBool,
+    stop: AtomicBool,
+    
+    table: TranspositionTable,
     search_depth: AtomicU8,
     search_id: AtomicU8,
+    best_move: AtomicMove,
 
-    best_mv: AtomicMove,
     board: RwLock<Board>,
 }
 
@@ -94,7 +94,7 @@ impl GlobalInfo {
                 if depth <= cur_depth {
                     None
                 } else {
-                    self.best_mv.store(mv);
+                    self.best_move.store(mv);
                     Some(depth)
                 }
             }
@@ -108,20 +108,20 @@ impl GlobalInfo {
 //
 //#################################################################################################
 
-// The function that all worker threads will run forever.
+// The function that all worker threads run until told to exit.
 fn worker_thread_main(info: Arc<GlobalInfo>) {
     // TODO: Initialize here
 
     loop {
         info.wait();
-    
+
         // The stop flag is set, return from this function, the thread will be joined.
         if info.should_stop() {
             return;
         }
-    
+
         // TODO: Search here while !info.searching()
-    
+
         info.wait();
     }
 }
@@ -146,15 +146,15 @@ impl Engine {
     pub fn new(board: Board) -> Engine {
         Engine {
             info: Arc::new(GlobalInfo {
-                table: TranspositionTable::new(),
                 barrier: Barrier::new(params::NUM_SEARCH_THREAD + 1),
-                stop: AtomicBool::new(false),
-    
                 searching: AtomicBool::new(false),
+                stop: AtomicBool::new(false),
+                
+                table: TranspositionTable::new(),
                 search_depth: AtomicU8::new(0),
                 search_id: AtomicU8::new(0),
+                best_move: AtomicMove::new(),
     
-                best_mv: AtomicMove::new(),
                 board: RwLock::new(board),
             }),
             handles: Vec::new(),
@@ -201,7 +201,7 @@ impl Engine {
 
     /// Returns the current best move.
     pub fn get_best_move(&self) -> Option<Move> {
-        self.info.best_mv.load()
+        self.info.best_move.load()
     }
 
     /// Returns a read lock to the board.
@@ -216,7 +216,7 @@ impl Engine {
 
         self.info.search_depth.store(0, Ordering::Release);
         self.info.search_id.store(0, Ordering::Release);
-        self.info.best_mv.reset();
+        self.info.best_move.reset();
 
         self.info.board.write().unwrap()
     }

@@ -160,7 +160,7 @@ fn auto_perft() {
     chess::init();
 
     for &(fen, res) in &FENS {
-        let mut board = Board::from_fen(fen).unwrap();
+        let mut board = Board::new(fen).unwrap();
         assert_eq!(perft(&mut board, 4), res, "Error at {:?}.", fen);
     }
 }
