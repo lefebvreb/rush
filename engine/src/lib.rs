@@ -6,6 +6,7 @@ extern crate chess;
 mod params;
 mod engine;
 mod errors;
+mod eval;
 mod search;
 mod table;
 

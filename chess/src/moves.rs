@@ -1,4 +1,6 @@
 use std::fmt;
+use std::sync::atomic::AtomicU32;
+use std::sync::atomic::Ordering;
 
 use crate::piece::Piece;
 use crate::square::Square;
@@ -15,10 +17,12 @@ const fn base(flags: u32, from: Square, to: Square) -> u32 {
 //
 //#################################################################################################
 
-/// A move, encoded in a compact 32 bits representation:
-/// `mmmmmffffffttttttcccppp` where `m` is the type of the move, 
-/// `f` is the from square, `t` is the to square, `c` is the capture piece
-/// and `p` is the promoted piece.
+/// A move, encoded in a compact 32 bits representation. 
+/// In big endian, the encoding is done like that:
+/// pppcccttttttffffffmmmmm, where m is the type of the move, 
+/// f is the from square, t is the to square, c is the captured piece
+/// and p is the promote piece.
+#[repr(transparent)]
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct Move(u32);
 
@@ -67,31 +71,37 @@ impl Move {
         Move(base(Move::CASTLE, from, to))
     }
 
+    /// Returns true if the move is quiet.
     #[inline]
     pub const fn is_quiet(self) -> bool {
         self.0 & 0b11111 == 0
     }
 
+    /// Returns true if the move is a capture.
     #[inline]
     pub const fn is_capture(self) -> bool {
         self.0 & Move::CAPTURE != 0
     }
 
+    /// Returns true if the move is a promotion.
     #[inline]
     pub const fn is_promote(self) -> bool {
         self.0 & Move::PROMOTE != 0
     }
 
+    /// Returns true if the move is castling.
     #[inline]
     pub const fn is_castle(self) -> bool {
         self.0 & Move::CASTLE != 0
     }
 
+    /// Returns true if the move is en passant.
     #[inline]
     pub const fn is_en_passant(self) -> bool {
         self.0 & Move::EN_PASSANT != 0
     }
 
+    /// Returns true if the move is a double pawn push.
     #[inline]
     pub const fn is_double_push(self) -> bool {
         self.0 & Move::DOUBLE_PUSH != 0
@@ -165,5 +175,49 @@ impl fmt::Debug for Move {
             .field("is_en_passant", &self.is_en_passant())
             .field("is_double_push", &self.is_double_push())
             .finish()
+    }
+}
+
+//#################################################################################################
+//
+//                                    struct AtomicMove
+//
+//#################################################################################################
+
+/// An atomic type containing a move, providing load and store methods.
+#[repr(transparent)]
+#[derive(Debug)]
+pub struct AtomicMove(AtomicU32);
+
+// ================================ pub impl
+
+impl AtomicMove {
+    /// Upgrades a move into an atomic move.
+    #[inline]
+    pub fn new() -> AtomicMove {
+        AtomicMove(AtomicU32::new(0))
+    }
+
+    /// Atomically resets the move contained in the atomic.
+    #[inline]
+    pub fn reset(&self) {
+        self.0.store(0, Ordering::Release);
+    }
+
+    /// Loads the move stored in the atomic with the given memory ordering.
+    #[inline]
+    pub fn load(&self) -> Option<Move> {
+        // Since a valid move's raw value is never 0, it is acceptable 
+        // to use the 0 value as representing None.
+        match self.0.load(Ordering::Acquire) {
+            0 => None,
+            raw => Some(Move(raw)),
+        }
+    }
+
+    /// Stores the move into the atomic, with the given ordering.
+    #[inline]
+    pub fn store(&self, mv: Move) {
+        self.0.store(mv.0, Ordering::Release);
     }
 }

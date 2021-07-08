@@ -34,12 +34,12 @@ pub fn init() {
     unsafe {
         if DONE {
             return;
-        } else {
-            DONE = true;
-            bitboard::init();
-            zobrist::init();
-            attacks::init();
-            cuckoo::init();
         }
+
+        DONE = true;
+        bitboard::init();
+        zobrist::init();
+        attacks::init();
+        cuckoo::init();
     }
 }
