@@ -21,7 +21,7 @@ use crate::zobrist::Zobrist;
 //#################################################################################################
 
 // The state of the board at a given turn.
-#[derive(Clone, Debug)]
+#[derive(Clone, Default, Debug)]
 pub(crate) struct StateInfo {
     side_to_move: Color,
     halfmove: u8,
@@ -156,6 +156,13 @@ impl Board {
     #[inline]
     pub fn clear_history(&mut self) {
         self.prev_states.clear()
+    }
+
+    /// Returns the type of the piece present at the given square.
+    /// Panics if there are no pieces there.
+    #[inline]
+    pub fn get_piece_unchecked(&self, sq: Square) -> Piece {
+        self.mailbox[sq.idx()].unwrap().1
     }
 
     // ================================ Methods
@@ -567,12 +574,6 @@ impl Board {
         (BitBoard::between(from, to) & self.occ.all).empty()
     }
 
-    // Returns the type of the piece present at the given square.
-    #[inline]
-    pub(crate) fn piece_unchecked(&self, sq: Square) -> Piece {
-        self.mailbox[sq.idx()].unwrap().1
-    }
-
     // Returns the bitboard of all the attackers to that square. Does not take
     // en passant into account.
     #[inline]
@@ -675,6 +676,21 @@ impl Board {
 
 // ================================ traits impl
 
+impl Default for Board {
+    fn default() -> Board {
+        Board {
+            fullmove: 0,
+
+            bitboards: Default::default(),
+            mailbox: [None; 64],
+            occ: Occupancy::default(),
+        
+            state: StateInfo::default(),
+            prev_states: Vec::new(),
+        }
+    }
+}
+
 impl fmt::Display for Board {
     /// Formats the board to it's fen representation: println!("{}", board);
     /// Use the # modifier to pretty-print the board: println!("{:#}", board);
@@ -754,32 +770,16 @@ impl<'a> FromStr for Board {
 
         let ranks = next_arg()?;
 
-        let side_to_move = Color::from_str(next_arg()?)?;
-        let castle_rights = CastleRights::from_str(next_arg()?)?;
-        let ep_square = EnPassantSquare::from_str(next_arg()?)?;
-        let halfmove = u8::from_str(next_arg()?)?;
-        let fullmove = u16::from_str(next_arg()?)?;
+        let mut board = Board::default();
+        board.state.side_to_move = Color::from_str(next_arg()?)?;
+        board.state.castle_rights = CastleRights::from_str(next_arg()?)?;
+        board.state.ep_square = EnPassantSquare::from_str(next_arg()?)?;
+        board.state.halfmove = u8::from_str(next_arg()?)?;
+        board.fullmove = u16::from_str(next_arg()?)?;
 
         if split.next().is_some() {
             return Err(ParseFenError::new("too many arguments in fen string"));
         }
-
-        let mut board = Board {
-            fullmove,
-            bitboards: [[BitBoard::EMPTY; 6]; 2],
-            mailbox: [None; 64],
-            occ: Occupancy::default(),
-            state: StateInfo {
-                side_to_move,
-                halfmove,
-                checkers: BitBoard::EMPTY,
-                pinned: BitBoard::EMPTY,
-                castle_rights,
-                ep_square,
-                zobrist: Zobrist::default(),
-            },
-            prev_states: Vec::new(),
-        };
 
         let mut y = 0;
         let ranks = ranks.split('/');

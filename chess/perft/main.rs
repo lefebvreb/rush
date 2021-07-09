@@ -11,31 +11,28 @@
 //               Needs to be a single arguments, use quotes
 //
 // Ex:
-//   $ ./target/release/perft -- 3 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+//   $ cargo run --bin perft -- 3 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 //
 // For profiling with perf:
 //   $ cargo build --bin perft --release
 //   $ perf record --call-graph dwarf target/release/perft 3 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 //   $ perf report
 
-use std::env::args;
+use std::env;
 use std::str::FromStr;
+use std::thread;
 
 use chess::prelude::*;
 
 // The perft algorithm, counting the number of leaf nodes.
 fn perft(board: &mut Board, depth: usize) -> u64 {
-    if depth == 0 {
-        return 1;
-    }
-    
-    let mut list = movegen::MoveList::new();
+    let mut list = Vec::new();
     movegen::legals(&board, &mut list);
     
     if depth == 1 {
         return list.len() as u64;
     }
-    
+
     let mut nodes = 0;
     
     for &mv in list.iter() {
@@ -51,14 +48,16 @@ fn main() {
     // Initialize the chess library.
     chess::init();
 
-    let mut args = args();
+    // Get the arguments.
+    let mut args = env::args();
     
     // Executable path.
     args.next().unwrap();
 
     // Perft depth.
     let depth = usize::from_str(&args.next().expect("Cannot find depth argument")).expect("Cannot parse depth");
-    assert!(depth <= 10, "Exceeded maximum depth of 10");
+    assert!(depth > 0, "Depth should be at least one");
+    assert!(depth <= 12, "Exceeded maximum depth of twelve");
 
     // fen position.
     let fen = args.next().expect("Cannot find fen argument");
@@ -72,20 +71,38 @@ fn main() {
         }
     }
 
-    // Total number of nodes found.
-    let mut total = 0;
-
     // Compute the legal moves of the starting position.
-    let mut list = movegen::MoveList::new();
+    let mut list = Vec::new();
     movegen::legals(&board, &mut list);
 
-    // Do perft and count nodes.
-    for &mv in list.iter() {
-        board.do_move(mv);
-        let count = perft(&mut board, depth - 1);
-        board.undo_move(mv);
-        println!("{} {}", mv, count);
-        total += count;
+    // The total number of nodes.
+    let mut total = 0;
+    
+    if depth == 1 {
+        // Special case if depth is only one.
+        for &mv in list.iter() {
+            println!("{} 1", mv);
+        }
+
+        total = list.len() as u64;
+    } else {
+        // Launch a thread for each move.
+        let mut handles = Vec::new();
+
+        for &mv in list.iter() {
+            let mut board = board.clone();
+
+            handles.push(thread::spawn(move || {
+                board.do_move(mv);
+                perft(&mut board, depth - 1)
+            }));
+        }
+
+        for (handle, mv) in handles.into_iter().zip(list) {
+            let count = handle.join().unwrap();
+            println!("{} {}", mv, count);
+            total += count;
+        }
     }
 
     // Print the total after an empty line.

@@ -20,6 +20,7 @@ enum NodeFlag {
 // A struct representing an entry of the table.
 #[derive(Copy, Clone, Debug)]
 pub(crate) struct Entry {
+    zobrist: Zobrist,
     mv: Move,
     score: f32,
     age: u16,
@@ -36,8 +37,9 @@ pub(crate) struct Entry {
 // The type of a bucket in the map.
 type Bucket = Option<Entry>;
 
-// The size in buckets of the table.
-const NUM_BUCKETS: usize = params::TABLE_SIZE / std::mem::size_of::<Bucket>();
+// The size in buckets of the table. It is a power of two for
+// faster indexing.
+const NUM_BUCKETS: usize = (params::TABLE_SIZE / std::mem::size_of::<Bucket>()).next_power_of_two();
 
 // The struct representing an access to a transposition table.
 // A transposition table is a lock-less memory-efficient concurrent hashmap.
@@ -55,20 +57,13 @@ impl TranspositionTable {
 
         TranspositionTable(ptr)
     }
-
-    // Gets the bucket corresponding to a key, or None if there is none.
-    #[inline]
-    pub(crate) unsafe fn get(&self, zobrist: Zobrist) -> Bucket {
-        let i = zobrist.idx::<NUM_BUCKETS>();
-        *self.0.offset(i)  
-    }
     
     // Inserts into the hashtable, or not depending on the replacement strategy.
     #[inline]
-    pub(crate) unsafe fn insert(&mut self, zobrist: Zobrist, entry: Entry) {
+    pub(crate) fn insert(&mut self, zobrist: Zobrist, entry: Entry) {
         let i = zobrist.idx::<NUM_BUCKETS>();
 
-        if let Some(prev) = *self.0.offset(i) {
+        if let Some(prev) = unsafe {*self.0.offset(i)} {
             let replace_score = 
                 entry.depth as i32 - prev.depth as i32 + 
                 entry.age   as i32 - prev.age   as i32 +
@@ -79,23 +74,29 @@ impl TranspositionTable {
             }
         }
 
-        *self.0.offset(i) = Some(entry)
+        unsafe {*self.0.offset(i) = Some(entry)};
     }
 
     // Probes the hashmap and gets any pertinent information available.
     #[inline]
-    pub(crate) unsafe fn probe(&self, zobrist: Zobrist, alpha: f32, beta: f32, depth: u8) -> Option<(Entry, f32)> {
-        self.get(zobrist)
-            .filter(|entry| entry.depth >= depth)
-            .and_then(|entry| {
+    pub(crate) fn probe(&self, zobrist: Zobrist, alpha: f32, beta: f32, depth: u8) -> Option<(Move, f32)> {
+        let i = zobrist.idx::<NUM_BUCKETS>();
+        
+        if let Some(entry) = unsafe {*self.0.offset(i)} {
+            if entry.zobrist == zobrist && entry.depth >= depth {
+                let mv = entry.mv;
                 let score = entry.score;
-                match entry.flag {
-                    NodeFlag::Exact => Some((entry, score)),
-                    NodeFlag::Alpha if score <= alpha => Some((entry, alpha)),
-                    NodeFlag::Beta  if score >= beta  => Some((entry, beta)),
+
+                return match entry.flag {
+                    NodeFlag::Exact => Some((mv, score)),
+                    NodeFlag::Alpha if score <= alpha => Some((mv, alpha)),
+                    NodeFlag::Beta if score >= beta => Some((mv, beta)),
                     _ => None,
-                }
-            })
+                };
+            }
+        }
+
+        None
     }
 }
 

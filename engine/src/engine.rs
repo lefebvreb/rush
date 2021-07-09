@@ -6,6 +6,7 @@ use chess::board::Board;
 use chess::moves::{AtomicMove, Move};
 
 use crate::params;
+use crate::search::Search;
 use crate::table::TranspositionTable;
 
 //#################################################################################################
@@ -36,6 +37,12 @@ impl GlobalInfo {
     #[inline]
     pub(crate) fn get_table(&self) -> &TranspositionTable {
         &self.table
+    }
+
+    // Returns a clone of the current board, the root of the tree to explore.
+    #[inline]
+    pub(crate) fn board(&self) -> Board {
+        self.board.read().unwrap().clone()
     }
 
     // Returns true if the engine is currently searching.
@@ -80,7 +87,7 @@ impl GlobalInfo {
             |id| Some((id + 1) % params::NUM_SEARCH_THREAD as u8)
         ).unwrap();
 
-        1 + depth + id.trailing_zeros() as u8 
+        1 + depth + (id + 1).trailing_zeros() as u8 
     }
 
     // Report back a move, stores if it was searched at a deeper depth
@@ -99,30 +106,6 @@ impl GlobalInfo {
                 }
             }
         ).ok();
-    }
-}
-
-//#################################################################################################
-//
-//                                      fn worker_thread_main
-//
-//#################################################################################################
-
-// The function that all worker threads run until told to exit.
-fn worker_thread_main(info: Arc<GlobalInfo>) {
-    // TODO: Initialize here
-
-    loop {
-        info.wait();
-
-        // The stop flag is set, return from this function, the thread will be joined.
-        if info.should_stop() {
-            return;
-        }
-
-        // TODO: Search here while !info.searching()
-
-        info.wait();
     }
 }
 
@@ -175,7 +158,8 @@ impl Engine {
                 let info = self.info.clone();
     
                 self.handles.push(thread::spawn(move || {
-                    worker_thread_main(info);
+                    let mut search = Search::new(info);
+                    search.thread_main();
                 }));
             }
         }
@@ -233,7 +217,7 @@ impl Drop for Engine {
         self.info.wait();
 
         for handle in self.handles.drain(..) {
-            handle.join().unwrap();
+            handle.join().ok();
         }
     }
 }

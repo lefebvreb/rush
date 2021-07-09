@@ -8,9 +8,6 @@ use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
 
-/// A type alias representing a movelist, of a fixed maximum capacity.
-pub type MoveList = Vec<Move>;
-
 //#################################################################################################
 //
 //                                      Generation Primitives
@@ -30,7 +27,7 @@ pub fn gen_promote_captures(board: &Board, mut gen: impl FnMut(Square, Square, P
 
     for from in (board.get_bitboard(us, Piece::Pawn) & BitBoard::promote_rank(us)).iter_squares() {
         for to in (attacks::pawn(us, from) & board.get_occupancy().colored(them)).iter_squares() {
-            gen(from, to, board.piece_unchecked(to));
+            gen(from, to, board.get_piece_unchecked(to));
         }
     }
 }
@@ -79,7 +76,7 @@ pub fn gen_pawn_captures(board: &Board, mut gen: impl FnMut(Square, Square, Piec
     
     for from in (board.get_bitboard(us, Piece::Pawn) & !BitBoard::promote_rank(us)).iter_squares() {
         for to in (attacks::pawn(us, from) & them_occ).iter_squares() {
-            gen(from, to, board.piece_unchecked(to));
+            gen(from, to, board.get_piece_unchecked(to));
         }
     }
 }
@@ -118,7 +115,7 @@ pub fn gen_king_captures(board: &Board, mut gen: impl FnMut(Square, Square, Piec
 
     let from = board.king_sq();
     for to in (attacks::king(from) & them_occ).iter_squares() {
-        gen(from, to, board.piece_unchecked(to));
+        gen(from, to, board.get_piece_unchecked(to));
     }
 }
 
@@ -135,7 +132,7 @@ pub fn gen_king_quiets(board: &Board, mut gen: impl FnMut(Square, Square)) {
     }
 }
 
-// Generates all pseudo-legals castling moves for the position.
+/// Generates all pseudo-legals castling moves for the position.
 /// The provided closure takes two arguments: from square and to square.
 /// It is called for each pseudo-legal castling.
 #[inline]
@@ -179,22 +176,22 @@ pub fn gen_captures(board: &Board, mut gen: impl FnMut(Square, Square, Piece)) {
 
     for from in board.get_bitboard(us, Piece::Knight).iter_squares() {
         for to in (attacks::knight(from) & them_occ).iter_squares() {
-            gen(from, to, board.piece_unchecked(to));
+            gen(from, to, board.get_piece_unchecked(to));
         }
     }
     for from in board.get_bitboard(us, Piece::Bishop).iter_squares() {
         for to in (attacks::bishop(from, occ) & them_occ).iter_squares() {
-            gen(from, to, board.piece_unchecked(to));
+            gen(from, to, board.get_piece_unchecked(to));
         }
     }
     for from in board.get_bitboard(us, Piece::Rook).iter_squares() {
         for to in (attacks::rook(from, occ) & them_occ).iter_squares() {
-            gen(from, to, board.piece_unchecked(to));
+            gen(from, to, board.get_piece_unchecked(to));
         }
     }
     for from in board.get_bitboard(us, Piece::Queen).iter_squares() {
         for to in (attacks::queen(from, occ) & them_occ).iter_squares() {
-            gen(from, to, board.piece_unchecked(to));
+            gen(from, to, board.get_piece_unchecked(to));
         }
     }
 }
@@ -240,12 +237,7 @@ pub fn gen_quiets(board: &Board, mut gen: impl FnMut(Square, Square)) {
 /// Generates all legal moves for the current position.
 /// This function is rather slow. Use the other movegen functions
 /// for more control over generation and better performance.
-pub fn legals(board: &Board, list: &mut MoveList) {
-    // The pieces a pawn promotes to, in order from most to least interesting.
-    const PROMOTES: [Piece; 4] = [
-        Piece::Queen, Piece::Rook, Piece::Bishop, Piece::Knight,
-    ];
-
+pub fn legals(board: &Board, list: &mut Vec<Move>) {
     // Bitboard of the checkers.
     let checkers = board.get_checkers();
     
@@ -262,14 +254,14 @@ pub fn legals(board: &Board, list: &mut MoveList) {
 
             // Pawn moves.
             gen_promote_captures(board, |from, to, capture| {
-                for promote in PROMOTES {
+                for promote in Piece::PROMOTES {
                     push(Move::promote_capture(from, to, capture, promote));
                 }
             });
             gen_en_passant(board, |from, to| push(Move::en_passant(from, to)));
             gen_pawn_captures(board, |from, to, capture| push(Move::capture(from, to, capture)));
             gen_promotes(board, |from, to| {
-                for promote in PROMOTES {
+                for promote in Piece::PROMOTES {
                     push(Move::promote(from, to, promote));
                 }
             });
@@ -298,14 +290,14 @@ pub fn legals(board: &Board, list: &mut MoveList) {
 
             // Pawn moves.
             gen_promote_captures(board, |from, to, capture| {
-                for promote in PROMOTES {
+                for promote in Piece::PROMOTES {
                     push(Move::promote_capture(from, to, capture, promote));
                 }
             });
             gen_en_passant(board, |from, to| push(Move::en_passant(from, to)));
             gen_pawn_captures(board, |from, to, capture| push(Move::capture(from, to, capture)));
             gen_promotes(board, |from, to| {
-                for promote in PROMOTES {
+                for promote in Piece::PROMOTES {
                     push(Move::promote(from, to, promote));
                 }
             });

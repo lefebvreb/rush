@@ -29,6 +29,11 @@ impl Piece {
         Piece::Pawn, Piece::Rook, Piece::Knight, 
         Piece::Bishop, Piece::Queen, Piece::King,
     ];
+
+    /// The pieces a pawn promotes to, in order from most to least interesting.
+    pub const PROMOTES: [Piece; 4] = [
+        Piece::Queen, Piece::Rook, Piece::Bishop, Piece::Knight,
+    ];
 }
 
 // ================================ pub(crate) impl

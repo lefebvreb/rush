@@ -5,11 +5,10 @@ extern crate chess;
 
 mod params;
 mod engine;
-mod errors;
 mod eval;
+mod movepick;
 mod search;
 mod table;
 
-mod prelude {
-    pub use crate::engine::Engine;
-}
+// Export the Engine struct.
+pub use self::engine::Engine;

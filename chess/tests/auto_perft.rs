@@ -1,12 +1,8 @@
 use chess::prelude::*;
 
 // The perft algorithm, counting the number of leaf nodes.
-fn perft(board: &mut Board, depth: usize) -> u64 {
-    if depth == 0 {
-        return 1;
-    }
-    
-    let mut list = movegen::MoveList::new();
+fn perft(board: &mut Board, depth: usize) -> u64 {    
+    let mut list = Vec::new();
     movegen::legals(&board, &mut list);
     
     if depth == 1 {

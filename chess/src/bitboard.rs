@@ -135,6 +135,12 @@ impl BitBoard {
             Square::from(lsb as i8)
         })
     }
+
+    // Returns the first square of the bitboard, with no checks.
+    #[inline]
+    pub fn as_square_unchecked(self) -> Square {
+        Square::from(self.0.trailing_zeros() as i8)
+    }
     
     /// Counts the bits of self that are 1.
     #[inline]
@@ -205,12 +211,6 @@ impl BitBoard {
 // ================================ pub(crate) impl
 
 impl BitBoard {
-    // Returns the first square of the bitboard, with no checks.
-    #[inline]
-    pub(crate) fn as_square_unchecked(self) -> Square {
-        Square::from(self.0.trailing_zeros() as i8)
-    }
-
     // Performs a parallel bits extract (pext) using the intrinsic (fast).
     #[cfg(target_feature = "bmi2")]
     #[inline]
