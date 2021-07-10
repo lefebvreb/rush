@@ -11,7 +11,7 @@ use crate::params;
 
 // An enum representing the type of a node.
 #[derive(Copy, Clone, Debug)]
-enum NodeFlag {
+pub(crate) enum TableEntryFlag {
     Alpha = 0,
     Beta  = 1,
     Exact = 2,
@@ -19,13 +19,13 @@ enum NodeFlag {
 
 // A struct representing an entry of the table.
 #[derive(Copy, Clone, Debug)]
-pub(crate) struct Entry {
-    zobrist: Zobrist,
-    mv: Move,
-    score: f32,
-    age: u16,
-    depth: u8,
-    flag: NodeFlag,
+pub(crate) struct TableEntry {
+    pub(crate) zobrist: Zobrist,
+    pub(crate) mv: Move,
+    pub(crate) score: f32,
+    pub(crate) age: u16,
+    pub(crate) depth: u8,
+    pub(crate) flag: TableEntryFlag,
 }
 
 //#################################################################################################
@@ -35,7 +35,7 @@ pub(crate) struct Entry {
 //#################################################################################################
 
 // The type of a bucket in the map.
-type Bucket = Option<Entry>;
+type Bucket = Option<TableEntry>;
 
 // The size in buckets of the table. It is a power of two for
 // faster indexing.
@@ -60,8 +60,8 @@ impl TranspositionTable {
     
     // Inserts into the hashtable, or not depending on the replacement strategy.
     #[inline]
-    pub(crate) fn insert(&mut self, zobrist: Zobrist, entry: Entry) {
-        let i = zobrist.idx::<NUM_BUCKETS>();
+    pub(crate) fn insert(&self, entry: TableEntry) {
+        let i = entry.zobrist.idx::<NUM_BUCKETS>();
 
         if let Some(prev) = unsafe {*self.0.offset(i)} {
             let replace_score = 
@@ -88,9 +88,9 @@ impl TranspositionTable {
                 let score = entry.score;
 
                 return match entry.flag {
-                    NodeFlag::Exact => Some((mv, score)),
-                    NodeFlag::Alpha if score <= alpha => Some((mv, alpha)),
-                    NodeFlag::Beta if score >= beta => Some((mv, beta)),
+                    TableEntryFlag::Exact => Some((mv, score)),
+                    TableEntryFlag::Alpha if score <= alpha => Some((mv, alpha)),
+                    TableEntryFlag::Beta if score >= beta => Some((mv, beta)),
                     _ => None,
                 };
             }

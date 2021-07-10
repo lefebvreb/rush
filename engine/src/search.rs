@@ -1,17 +1,24 @@
 use std::sync::Arc;
 
+use chess::bitboard::BitBoard;
 use chess::board::Board;
 use chess::moves::Move;
+use chess::piece::Piece;
 
 use crate::engine::GlobalInfo;
+use crate::eval;
+use crate::movepick::MovePicker;
 use crate::params;
+use crate::table::{TableEntry, TableEntryFlag};
 
 // A struct holding all the necessary information for a search thread.
+#[derive(Debug)]
 pub(crate) struct Search {
     info: Arc<GlobalInfo>,
     best_move: Option<Move>,
     depth: u8,
     board: Board,
+    buffer: Vec<Move>,
 }
 
 // ================================ pub(crate) impl
@@ -24,6 +31,7 @@ impl Search {
             best_move: None,
             depth: 0,
             board: Board::default(),
+            buffer: Vec::new(),
         }
     }
 
@@ -97,132 +105,123 @@ impl Search {
     }
     
     // The alpha-beta negamax algorithm, with a few more heuristics in it.
-    pub(crate) fn alpha_beta(&mut self, alpha: f32, beta: f32, do_null: bool, depth: u8, search_depth: u8) -> f32 {        
-        /*if depth == 0 {
-            return self.quiescence(game, alpha, beta);
+    pub(crate) fn alpha_beta(&mut self, mut alpha: f32, beta: f32, do_null: bool, mut depth: u8, search_depth: u8) -> f32 {        
+        if depth == 0 {
+            return self.quiescence(alpha, beta);
         }
         
-        if self.is_pseudodraw(game) {
+        if self.board.get_halfmove() == 100 || self.board.test_upcoming_repetition() {
             return 0.0;
         }
         
         if self.depth >= params::MAX_DEPTH {
-            return eval(&game);
+            return eval::eval(&self.board);
         }
         
-        if let Some((entry, score)) = shared::table_probe(game.get_zobrist(), alpha, beta, depth) {
+        if let Some((mv, score)) = self.info.get_table().probe(self.board.get_zobrist(), alpha, beta, depth) {
             if score >= alpha && self.depth == 0 {
-                self.best_move = Some(entry.mv);
+                self.best_move = Some(mv);
             }
             return score;
         }
         
         let old_alpha = alpha;
-        let in_check = game.in_check();
+        let in_check = self.board.get_checkers().not_empty();
         
         if in_check {
             depth += 1;
         } else if do_null && self.depth > 0 && depth >= 4 {
-            // Null-move pruning
-            if !(game.in_check() || game.is_endgame()) {
-                self.next(&game);
-                let null_score = -self.alpha_beta(&game.do_null_move(), -beta, -beta + params::value_of(Piece::Pawn), false, depth - 4, search_depth);
-                self.prev();
-                
-                if null_score >= beta {
-                    return beta;
-                }
-            }
-        }
-        
-        if let Some(entry) = shared::table_get(game.get_zobrist()) {
-            // TODO: if entry.move is valid, do it first
+            // TODO: Null move heuristic
         }
     
         let mut best_score = f32::NEG_INFINITY;
-        let mut legals = game.legals();
         let mut best_move = None;
-        let mut moves = 0u8;
+        let mut picker = MovePicker::new(&self.board, &self.buffer);
+        let mut move_count = 0;
     
-        while let Some(mv) = legals.next() {
-            self.next(&game);
-            let score = -self.alpha_beta(&game.do_move(mv), -beta, -alpha, do_null, depth-1, search_depth);
-            self.prev();
-    
-            if shared::should_stop() || shared::search_depth() >= search_depth {
-                return 0.0;
-            }
-    
-            if score > best_score {
-                best_score = score;
-                best_move = Some(mv);
-                
-                if score > alpha {
-                    if score >= beta {
-                        if mv.get_capture().is_none() {
-                            // TODO: killer heuristic
-                        }
-                        
-                        shared::table_insert(game.get_zobrist(), Entry {
-                            mv, 
-                            score: beta, 
-                            age: game.get_clock().ply(), 
-                            depth, 
-                            flag: NodeFlag::Beta, 
-                        });
-                        
-                        return beta;
-                    }
-    
-                    alpha = score;
+        while let Some(range) = picker.next(&self.board, &mut self.buffer) {
+            for i in range {
+                let mv = self.buffer[i];
+                self.board.do_move(mv);
+                let score = -self.alpha_beta(-beta, -alpha, do_null, depth-1, search_depth);
+                self.board.undo_move(mv);
+        
+                if self.info.search_depth() >= search_depth || !self.info.is_searching() {
+                    return 0.0;
                 }
+        
+                if score > best_score {
+                    best_score = score;
+                    best_move = Some(mv);
+                    
+                    if score > alpha {
+                        if score >= beta {
+                            if !mv.is_capture() {
+                                // TODO: killer heuristic
+                            }
+
+                            self.info.get_table().insert(TableEntry {
+                                zobrist: self.board.get_zobrist(),
+                                mv,
+                                score: beta,
+                                age: self.board.get_ply(),
+                                depth,
+                                flag: TableEntryFlag::Beta,
+                            });
+                            
+                            return beta;
+                        }
+        
+                        alpha = score;
+                    }
+                }
+                
+                move_count += 1;
             }
-            
-            moves += 1;
         }
         
-        if moves == 0 {
+        if move_count == 0 {
             return if in_check {
-                -params::value_of(Piece::King) + self.depth as PawnValue
+                -params::value_of(Piece::King) + self.depth as f32
             } else {
                 0.0
             };
         }
         
         if alpha != old_alpha {
-            shared::table_insert(game.get_zobrist(), Entry {
-                mv: best_move.unwrap(), 
-                score: best_score, 
-                age: game.get_clock().ply(), 
-                depth, 
-                flag: NodeFlag::Exact, 
+            self.info.get_table().insert(TableEntry {
+                zobrist: self.board.get_zobrist(),
+                mv: best_move.unwrap(),
+                score: best_score,
+                age: self.board.get_ply(),
+                depth,
+                flag: TableEntryFlag::Exact,
             });
             
             if self.depth == 0 {
                 self.best_move = best_move;
             }
         } else {
-            shared::table_insert(game.get_zobrist(), Entry {
-                mv: best_move.unwrap(), 
-                score: alpha, 
-                age: game.get_clock().ply(), 
-                depth, 
-                flag: NodeFlag::Alpha, 
+            self.info.get_table().insert(TableEntry {
+                zobrist: self.board.get_zobrist(),
+                mv: best_move.unwrap(),
+                score: alpha,
+                age: self.board.get_ply(),
+                depth,
+                flag: TableEntryFlag::Alpha,
             });
         }
         
-        alpha*/
-    
-        todo!()
+        alpha
     }
 
     // Return the value of the position, computed with a quiescent search (only considering captures).
-    fn quiescence(&mut self, alpha: f32, beta: f32) -> f32 {
-        /*if self.is_pseudodraw(game) {
+    fn quiescence(&mut self, mut alpha: f32, beta: f32) -> f32 {
+        if self.board.get_halfmove() == 100 || self.board.test_upcoming_repetition() {
             return 0.0;
         }
         
-        let stand_pat = eval(&game);
+        let stand_pat = eval::eval(&self.board);
     
         if self.depth >= params::MAX_DEPTH {
             return stand_pat;
@@ -232,9 +231,10 @@ impl Search {
             return beta;
         }
     
-        // Big delta pruning
         let mut big_delta = params::value_of(Piece::Queen);
-        if game.may_promote() {
+        let us = self.board.get_side_to_move();
+        let may_promote = (self.board.get_bitboard(us, Piece::Pawn) & BitBoard::promote_rank(us)).not_empty();
+        if may_promote {
             big_delta += params::value_of(Piece::Queen) - params::value_of(Piece::Pawn);
         }
     
@@ -244,36 +244,41 @@ impl Search {
     
         alpha = alpha.max(stand_pat);
     
-        let mut legals = game.legals();
+        let mut picker = MovePicker::new(&self.board, &self.buffer);
     
-        while let Some(mv) = legals.next() {
-            if let Some(capture) = mv.get_capture() {
-                // Delta pruning
-                if params::value_of(capture) + params::DELTA < alpha {
+        'search: while let Some(range) = picker.next(&self.board, &mut self.buffer) {
+            for i in range {
+                let mv = self.buffer[i];
+
+                if mv.is_quiet() {
+                    break 'search;
+                }
+
+                if !mv.is_capture() {
                     continue;
                 }
-            } else {
-                break;
-            }
-    
-            self.next(&game);
-            let score = -self.quiescence(&game.do_move(mv), -beta, -alpha);
-            self.prev();
-    
-            if shared::should_stop() {
-                return 0.0;
-            }
-    
-            if score > alpha {
-                if score >= beta {
-                    return beta;
+
+                if params::value_of(mv.get_capture()) + params::DELTA < alpha {
+                    continue;
                 }
-                alpha = score;
+        
+                self.board.do_move(mv);
+                let score = -self.quiescence(-beta, -alpha);
+                self.board.undo_move(mv);
+        
+                if !self.info.is_searching() {
+                    return 0.0;
+                }
+        
+                if score > alpha {
+                    if score >= beta {
+                        return beta;
+                    }
+                    alpha = score;
+                }
             }
         }
         
-        alpha*/
-
-        todo!()
+        alpha
     }
 }

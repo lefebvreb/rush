@@ -77,7 +77,7 @@ impl Occupancy {
 /// methods to manipulate it.
 #[derive(Clone, Debug)]
 pub struct Board {
-    fullmove: u16,
+    ply: u16,
 
     bitboards: [[BitBoard; 6]; 2],
     mailbox: [Option<(Color, Piece)>; 64],
@@ -129,8 +129,8 @@ impl Board {
 
     /// Returns the halfmove counter.
     #[inline]
-    pub fn get_fullmove(&self) -> u16 {
-        self.fullmove
+    pub fn get_ply(&self) -> u16 {
+        self.ply
     }
 
     /// Gets the bitboard corresponding to that color and piece type.
@@ -149,6 +149,12 @@ impl Board {
     #[inline]
     pub fn get_occupancy(&self) -> &Occupancy {
         &self.occ
+    }
+
+    /// The zobrist hash of the current board.
+    #[inline]
+    pub fn get_zobrist(&self) -> Zobrist {
+        self.state.zobrist
     }
 
     /// Clears the history of the board, making it impossible to 
@@ -345,9 +351,7 @@ impl Board {
     pub fn do_move(&mut self, mv: Move) -> bool {
         // Store previous state and increment fullmove counter.
         self.prev_states.push(self.state.clone());
-        if self.get_side_to_move() == Color::Black {
-            self.fullmove += 1;
-        }
+        self.ply += 1;
 
         // Invert the side to move.
         self.state.side_to_move = self.get_other_side();
@@ -418,9 +422,7 @@ impl Board {
 
         // Restore the previous state and decrement the fullmove counter.
         self.state = self.prev_states.pop().unwrap();
-        if self.get_side_to_move() == Color::Black {
-            self.fullmove -= 1;
-        }
+        self.ply += 1;
 
         // Extract basic move info and remove the piece from it's destination.
         let (from, to) = mv.squares();
@@ -679,7 +681,7 @@ impl Board {
 impl Default for Board {
     fn default() -> Board {
         Board {
-            fullmove: 0,
+            ply: 0,
 
             bitboards: Default::default(),
             mailbox: [None; 64],
@@ -751,7 +753,7 @@ impl fmt::Display for Board {
                 self.get_castle_rights(),
                 self.get_ep_square(),
                 self.get_halfmove(),
-                self.get_fullmove(),
+                1 + self.get_ply() / 2,
             )?;
         }
 
@@ -766,7 +768,7 @@ impl<'a> FromStr for Board {
     fn from_str(s: &str) -> Result<Board, ParseFenError> {
         let mut split = s.split(' ');
 
-        let mut next_arg = || split.next().ok_or(ParseFenError::new("not enough arguments in fen string"));
+        let mut next_arg = || split.next().ok_or_else(|| ParseFenError::new("not enough arguments in fen string"));
 
         let ranks = next_arg()?;
 
@@ -775,7 +777,7 @@ impl<'a> FromStr for Board {
         board.state.castle_rights = CastleRights::from_str(next_arg()?)?;
         board.state.ep_square = EnPassantSquare::from_str(next_arg()?)?;
         board.state.halfmove = u8::from_str(next_arg()?)?;
-        board.fullmove = u16::from_str(next_arg()?)?;
+        board.ply = u16::from_str(next_arg()?)?;
 
         if split.next().is_some() {
             return Err(ParseFenError::new("too many arguments in fen string"));

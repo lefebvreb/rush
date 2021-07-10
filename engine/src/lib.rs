@@ -1,6 +1,3 @@
-// temporary
-#![allow(dead_code, unused_variables, unused_macros)]
-
 extern crate chess;
 
 mod params;

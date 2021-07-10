@@ -186,18 +186,12 @@ impl fmt::Debug for Move {
 
 /// An atomic type containing a move, providing load and store methods.
 #[repr(transparent)]
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct AtomicMove(AtomicU32);
 
 // ================================ pub impl
 
 impl AtomicMove {
-    /// Upgrades a move into an atomic move.
-    #[inline]
-    pub fn new() -> AtomicMove {
-        AtomicMove(AtomicU32::new(0))
-    }
-
     /// Atomically resets the move contained in the atomic.
     #[inline]
     pub fn reset(&self) {

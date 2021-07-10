@@ -24,10 +24,7 @@ impl EnPassantSquare {
     // Returns true if the square is some.
     #[inline]
     pub(crate) fn is_some(self) -> bool {
-        match self {
-            EnPassantSquare::Some(_) => true,
-            _ => false,
-        }
+        matches!(self, EnPassantSquare::Some(_))
     }
 
     // Unwraps the en passant square, panics if there is none.

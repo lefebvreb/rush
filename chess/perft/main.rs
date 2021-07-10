@@ -4,14 +4,14 @@
 //
 // Usage: 
 //   $ ./perft <depth> <fen> <moves>
-//     <depth> : The depth at which the perft needs to be carried
-//     <fen>   : the fen string to be used, put it into quotes
+//     <depth> : The depth at which the perft needs to be carried.
+//     <fen>   : the fen string to be used, put it into quotes.
 //     <moves> : (optional) a list of space seperated moves, in pure algebraic
 //               coordinates notation, to be performed before node counting.
-//               Needs to be a single arguments, use quotes
+//               Needs to be a single arguments, use quotes.
 //
 // Ex:
-//   $ cargo run --bin perft -- 3 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+//   $ ./perft -- 3 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 //
 // For profiling with perf:
 //   $ cargo build --bin perft --release
@@ -27,7 +27,7 @@ use chess::prelude::*;
 // The perft algorithm, counting the number of leaf nodes.
 fn perft(board: &mut Board, depth: usize) -> u64 {
     let mut list = Vec::new();
-    movegen::legals(&board, &mut list);
+    movegen::legals(board, &mut list);
     
     if depth == 1 {
         return list.len() as u64;
@@ -61,12 +61,12 @@ fn main() {
 
     // fen position.
     let fen = args.next().expect("Cannot find fen argument");
-    let mut board = Board::from_str(&fen).expect("Cannot parse fen");
+    let mut board = Board::new(&fen).expect("Cannot parse fen");
 
     // Moves to apply
     if args.len() != 0 {
-        for s in args.next().unwrap().split(" ") {
-            let mv = board.parse_move(&s).expect("Could not parse move");
+        for s in args.next().unwrap().split(' ') {
+            let mv = board.parse_move(s).expect("Could not parse move");
             board.do_move(mv);
         }
     }

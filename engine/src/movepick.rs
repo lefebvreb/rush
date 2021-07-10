@@ -47,7 +47,7 @@ pub(crate) struct MovePicker {
 impl MovePicker {
     // Creates a new MovePicker, for the current board and given buffer.
     #[inline]
-    pub(crate) fn new(board: &Board, buffer: &Vec<Move>) -> MovePicker {
+    pub(crate) fn new(board: &Board, buffer: &[Move]) -> MovePicker {
         let zero_index = buffer.len();
         
         let checkers = board.get_checkers();
@@ -105,7 +105,7 @@ impl MovePicker {
                         buffer.push(Move::capture(from, to, capture));
                     });
                     movegen::gen_captures(board, |from, to, capture| {
-                        buffer.push(Move::quiet(from, to));
+                        buffer.push(Move::capture(from, to, capture));
                     });
                     movegen::gen_king_captures(board, |from, to, capture| {
                         buffer.push(Move::capture(from, to, capture));
@@ -180,7 +180,7 @@ impl MovePicker {
                     });
                     movegen::gen_captures(board, |from, to, capture| {
                         if self.check_mask.contains(to) {
-                            buffer.push(Move::quiet(from, to));
+                            buffer.push(Move::capture(from, to, capture));
                         }
                     });
                     movegen::gen_king_captures(board, |from, to, capture| {

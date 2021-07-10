@@ -136,7 +136,7 @@ impl Engine {
                 table: TranspositionTable::new(),
                 search_depth: AtomicU8::new(0),
                 search_id: AtomicU8::new(0),
-                best_move: AtomicMove::new(),
+                best_move: AtomicMove::default(),
     
                 board: RwLock::new(board),
             }),
@@ -211,6 +211,10 @@ impl Engine {
 impl Drop for Engine {
     // On dropping the engine, make sure that all threads are joined.
     fn drop(&mut self) {
+        if self.handles.is_empty() {
+            return;
+        }
+
         self.stop();
 
         self.info.stop.store(true, Ordering::Release);
