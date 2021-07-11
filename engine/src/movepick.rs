@@ -65,7 +65,8 @@ impl MovePicker {
                 check_mask: BitBoard::default(),
             }     
         } else {
-            let check_mask = BitBoard::between(board.king_sq(), checkers.as_square_unchecked()) | checkers;
+            let checker = unsafe {checkers.as_square_unchecked()};
+            let check_mask = BitBoard::between(board.king_sq(), checker) | checkers;
             MovePicker {
                 state: GenState::CheckQueenPromotes, 
                 zero_index, 

@@ -39,12 +39,6 @@ impl Piece {
 // ================================ pub(crate) impl
 
 impl Piece {
-    // Returns the piece as an index.
-    #[inline]
-    pub(crate) fn idx(self) -> usize {
-        self as usize
-    }
-
     // Tries to parse a piece from a single char.
     pub(crate) fn from_char(c: char) -> Result<(Color, Piece), ParseFenError> {
         match c {
@@ -98,5 +92,13 @@ impl From<u8> for Piece {
     #[inline]
     fn from(i: u8) -> Piece {
         Piece::PIECES[i as usize]
+    }
+}
+
+impl From<Piece> for usize {
+    /// Use the piece as an index.
+    #[inline]
+    fn from(piece: Piece) -> usize {
+        piece as usize
     }
 }

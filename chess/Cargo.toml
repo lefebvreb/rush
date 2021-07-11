@@ -5,4 +5,4 @@ edition = "2018"
 
 [[bin]]
 name = "perft"
-path = "perft/main.rs"
+path = "src/perft.rs"

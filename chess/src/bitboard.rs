@@ -1,4 +1,5 @@
 use std::fmt;
+use std::num::NonZeroU64;
 use std::ops;
 
 use crate::color::Color;
@@ -57,8 +58,8 @@ pub(crate) unsafe fn init() {
                 continue;
             }
 
-            let i = sq1.idx();
-            let j = sq2.idx();
+            let i = usize::from(sq1);
+            let j = usize::from(sq2);
 
             let mut sq = sq1;
             loop {
@@ -129,8 +130,10 @@ impl BitBoard {
     /// Returns an iterator over the bits of the BitBoard self.
     #[inline]
     pub fn iter_squares(mut self) -> impl Iterator<Item = Square> {
+
         (0..self.0.count_ones()).map(move |_| {
-            let lsb = self.0.trailing_zeros();
+            let non_zero_self = unsafe {NonZeroU64::new_unchecked(self.0)};
+            let lsb = non_zero_self.trailing_zeros();
             self &= self - BitBoard(1);
             Square::from(lsb as i8)
         })
@@ -138,8 +141,9 @@ impl BitBoard {
 
     // Returns the first square of the bitboard, with no checks.
     #[inline]
-    pub fn as_square_unchecked(self) -> Square {
-        Square::from(self.0.trailing_zeros() as i8)
+    pub unsafe fn as_square_unchecked(self) -> Square {
+        let non_zero_self = NonZeroU64::new_unchecked(self.0);
+        Square::from(non_zero_self.trailing_zeros() as i8)
     }
     
     /// Counts the bits of self that are 1.
@@ -168,7 +172,7 @@ impl BitBoard {
     #[inline]
     pub fn between_straight(from: Square, to: Square) -> BitBoard {
         unsafe {
-            SQUARES_BETWEEN_STRAIGHT[from.idx()][to.idx()]
+            SQUARES_BETWEEN_STRAIGHT[usize::from(from)][usize::from(to)]
         }
     }
 
@@ -177,7 +181,7 @@ impl BitBoard {
     #[inline]
     pub fn between_diagonal(from: Square, to: Square) -> BitBoard {
         unsafe {
-            SQUARES_BETWEEN_DIAGNOAL[from.idx()][to.idx()]
+            SQUARES_BETWEEN_DIAGNOAL[usize::from(from)][usize::from(to)]
         }
     }
 
@@ -186,7 +190,7 @@ impl BitBoard {
     #[inline]
     pub fn between(from: Square, to: Square) -> BitBoard {
         unsafe {
-            SQUARES_BETWEEN[from.idx()][to.idx()]
+            SQUARES_BETWEEN[usize::from(from)][usize::from(to)]
         }
     }
 
@@ -196,7 +200,7 @@ impl BitBoard {
     #[inline]
     pub fn ray_mask(from: Square, to: Square) -> BitBoard {
         unsafe {
-            SQUARES_RAY_MASK[from.idx()][to.idx()]
+            SQUARES_RAY_MASK[usize::from(from)][usize::from(to)]
         }
     }
 
@@ -297,7 +301,7 @@ impl From<Square> for BitBoard {
     #[inline]
     fn from(sq: Square) -> BitBoard {
         unsafe {
-            SHIFTS[sq.idx()]
+            SHIFTS[usize::from(sq)]
         }
     }
 }

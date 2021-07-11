@@ -91,16 +91,6 @@ impl Square {
     }
 }
 
-// ================================ pub(crate) impl
-
-impl Square {
-    /// Returns the square as an index for an array.
-    #[inline]
-    pub(crate) fn idx(self) -> usize {
-        self as usize
-    }
-}
-
 // ================================ traits impl
 
 impl fmt::Display for Square {
@@ -126,6 +116,14 @@ impl From<(i8, i8)> for Square {
     #[inline]
     fn from(xy: (i8, i8)) -> Square {
         Square::from(xy.0 + 8*xy.1)
+    }
+}
+
+impl From<Square> for usize {
+    /// Use the square as an index.
+    #[inline]
+    fn from(square: Square) -> usize {
+        square as usize
     }
 }
 

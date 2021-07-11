@@ -33,8 +33,8 @@ pub(crate) unsafe fn init() {
 
     for sq in Square::SQUARES {
         for piece in Piece::PIECES {
-            KEYS[sq.idx()][piece.idx()][Color::White.idx()] = xorshift(&mut seed);
-            KEYS[sq.idx()][piece.idx()][Color::Black.idx()] = xorshift(&mut seed);
+            KEYS[usize::from(sq)][usize::from(piece)][usize::from(Color::White)] = xorshift(&mut seed);
+            KEYS[usize::from(sq)][usize::from(piece)][usize::from(Color::Black)] = xorshift(&mut seed);
         }
     }
 }
@@ -81,7 +81,7 @@ impl From<(Color, Piece, Square)> for Zobrist {
     #[inline]
     fn from((color, piece, sq): (Color, Piece, Square)) -> Zobrist {
         unsafe {
-            KEYS[sq.idx()][piece.idx()][color.idx()]
+            KEYS[usize::from(sq)][usize::from(piece)][usize::from(color)]
         }
     }
 }

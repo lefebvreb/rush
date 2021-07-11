@@ -285,7 +285,8 @@ pub fn legals(board: &Board, list: &mut Vec<Move>) {
             // If there is a single checker, we must also check that the move is either blocking
             // (in between the king and the checker) or that it is capturing the checker.
             // Or that the king itself is moving.
-            let mask = BitBoard::between(board.king_sq(), checkers.as_square_unchecked()) | checkers;
+            let checker = unsafe {checkers.as_square_unchecked()};
+            let mask = BitBoard::between(board.king_sq(), checker) | checkers;
             let mut push = |mv: Move| if mask.contains(mv.to()) && board.is_legal(mv) {list.push(mv)};
 
             // Pawn moves.

@@ -57,7 +57,7 @@ impl Occupancy {
     /// The colored occupancy bitboards.
     #[inline]
     pub fn colored(&self, color: Color) -> BitBoard {
-        self.colored[color.idx()]
+        self.colored[usize::from(color)]
     }
 
     /// The free squares of the board.
@@ -136,13 +136,13 @@ impl Board {
     /// Gets the bitboard corresponding to that color and piece type.
     #[inline]
     pub fn get_bitboard(&self, color: Color, piece: Piece) -> BitBoard {
-        self.bitboards[color.idx()][piece.idx()]
+        self.bitboards[usize::from(color)][usize::from(piece)]
     }
 
     /// Gets the (maybe) piece and it's color at that square.
     #[inline]
     pub fn get_piece(&self, sq: Square) -> Option<(Color, Piece)> {
-        self.mailbox[sq.idx()]
+        self.mailbox[usize::from(sq)]
     }
 
     /// Returns the occupancy object associated to that board.
@@ -168,7 +168,7 @@ impl Board {
     /// Panics if there are no pieces there.
     #[inline]
     pub fn get_piece_unchecked(&self, sq: Square) -> Piece {
-        self.mailbox[sq.idx()].unwrap().1
+        self.mailbox[usize::from(sq)].unwrap().1
     }
 
     // ================================ Methods
@@ -176,7 +176,8 @@ impl Board {
     // Returns the square the king of the side to move is occupying. 
     #[inline]
     pub fn king_sq(&self) -> Square {
-        self.get_bitboard(self.get_side_to_move(), Piece::King).as_square_unchecked()
+        let king_bb = self.get_bitboard(self.get_side_to_move(), Piece::King);
+        unsafe {king_bb.as_square_unchecked()}
     }
 
     /// Returns true if that pseudo-legal move is legal.
@@ -291,7 +292,8 @@ impl Board {
                 match checkers.count() {
                     // One checker, the piece moving must either block or capture the enemy piece.
                     1 => {
-                        let blocking_zone = BitBoard::between(self.king_sq(), checkers.as_square_unchecked());
+                        let checker = unsafe {checkers.as_square_unchecked()};
+                        let blocking_zone = BitBoard::between(self.king_sq(), checker);
                         verify!((blocking_zone | checkers).contains(to));
                     },
                     // Two checkers, the piece moving must be the king.
@@ -422,7 +424,7 @@ impl Board {
 
         // Restore the previous state and decrement the fullmove counter.
         self.state = self.prev_states.pop().unwrap();
-        self.ply += 1;
+        self.ply -= 1;
 
         // Extract basic move info and remove the piece from it's destination.
         let (from, to) = mv.squares();
@@ -600,12 +602,12 @@ impl Board {
     // updates the zobrist key accordingly.
     #[inline]
     fn place_piece<const ZOBRIST: bool>(&mut self, color: Color, piece: Piece, sq: Square) {
-        self.mailbox[sq.idx()] = Some((color, piece));
+        self.mailbox[usize::from(sq)] = Some((color, piece));
         
         let mask = sq.into();
-        self.bitboards[color.idx()][piece.idx()] ^= mask;
+        self.bitboards[usize::from(color)][usize::from(piece)] ^= mask;
         self.occ.all ^= mask;
-        self.occ.colored[color.idx()] ^= mask;
+        self.occ.colored[usize::from(color)] ^= mask;
 
         if ZOBRIST {
             self.state.zobrist ^= Zobrist::from((color, piece, sq));
@@ -616,13 +618,13 @@ impl Board {
     // zobrist key accordingly.
     #[inline]
     fn remove_piece<const ZOBRIST: bool>(&mut self, sq: Square) -> (Color, Piece) {
-        let (color, piece) = self.mailbox[sq.idx()].unwrap();
-        self.mailbox[sq.idx()] = None;
+        let (color, piece) = self.mailbox[usize::from(sq)].unwrap();
+        self.mailbox[usize::from(sq)] = None;
         
         let mask = sq.into();
-        self.bitboards[color.idx()][piece.idx()] ^= mask;
+        self.bitboards[usize::from(color)][usize::from(piece)] ^= mask;
         self.occ.all ^= mask;
-        self.occ.colored[color.idx()] ^= mask;
+        self.occ.colored[usize::from(color)] ^= mask;
 
         if ZOBRIST {
             self.state.zobrist ^= Zobrist::from((color, piece, sq));
@@ -708,7 +710,7 @@ impl fmt::Display for Board {
                 write!(f, "{}", y+1)?;
                 for x in 0..8 {
                     if let Some((color, piece)) = self.get_piece(Square::from((x, y))) {
-                        write!(f, " {}", CHARS[color.idx()][piece.idx()])?;
+                        write!(f, " {}", CHARS[usize::from(color)][usize::from(piece)])?;
                     } else {
                         write!(f, "  ")?;
                     }

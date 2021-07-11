@@ -6,7 +6,7 @@ use chess::moves::Move;
 use chess::piece::Piece;
 
 use crate::engine::GlobalInfo;
-use crate::eval;
+use crate::{eval, utils};
 use crate::movepick::MovePicker;
 use crate::params;
 use crate::table::{TableEntry, TableEntryFlag};
@@ -110,7 +110,7 @@ impl Search {
             return self.quiescence(alpha, beta);
         }
         
-        if self.board.get_halfmove() == 100 || self.board.test_upcoming_repetition() {
+        if utils::is_pseudo_draw(&self.board) {
             return 0.0;
         }
         
@@ -142,9 +142,16 @@ impl Search {
         while let Some(range) = picker.next(&self.board, &mut self.buffer) {
             for i in range {
                 let mv = self.buffer[i];
+
+                if !self.board.is_legal(mv) {
+                    continue;
+                }
+
+                self.depth += 1;
                 self.board.do_move(mv);
                 let score = -self.alpha_beta(-beta, -alpha, do_null, depth-1, search_depth);
                 self.board.undo_move(mv);
+                self.depth -= 1;
         
                 if self.info.search_depth() >= search_depth || !self.info.is_searching() {
                     return 0.0;
@@ -217,7 +224,7 @@ impl Search {
 
     // Return the value of the position, computed with a quiescent search (only considering captures).
     fn quiescence(&mut self, mut alpha: f32, beta: f32) -> f32 {
-        if self.board.get_halfmove() == 100 || self.board.test_upcoming_repetition() {
+        if utils::is_pseudo_draw(&self.board) {
             return 0.0;
         }
         
@@ -254,17 +261,15 @@ impl Search {
                     break 'search;
                 }
 
-                if !mv.is_capture() {
-                    continue;
-                }
-
-                if params::value_of(mv.get_capture()) + params::DELTA < alpha {
+                if !mv.is_capture() || params::value_of(mv.get_capture()) + params::DELTA < alpha || self.board.is_legal(mv) {
                     continue;
                 }
         
+                self.depth += 1;
                 self.board.do_move(mv);
                 let score = -self.quiescence(-beta, -alpha);
                 self.board.undo_move(mv);
+                self.depth -= 1;
         
                 if !self.info.is_searching() {
                     return 0.0;

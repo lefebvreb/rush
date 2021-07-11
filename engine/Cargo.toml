@@ -5,7 +5,7 @@ edition = "2018"
 
 [[bin]]
 name = "cli"
-path = "cli/main.rs"
+path = "src/cli.rs"
 
 [dependencies.chess]
 path = "../chess"

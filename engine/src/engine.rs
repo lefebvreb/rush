@@ -48,7 +48,7 @@ impl GlobalInfo {
     // Returns true if the engine is currently searching.
     #[inline]
     pub(crate) fn is_searching(&self) -> bool {
-        self.searching.load(Ordering::Acquire)
+        self.searching.load(Ordering::Relaxed)
     }
 
     // Atomically looks for the stop signal.
@@ -66,7 +66,7 @@ impl GlobalInfo {
     // Returns the current search depth.
     #[inline]
     pub(crate) fn search_depth(&self) -> u8 {
-        self.search_depth.load(Ordering::Acquire)
+        self.search_depth.load(Ordering::Relaxed)
     }
 
     // Returns the search depth a thread should search to next.
@@ -186,6 +186,11 @@ impl Engine {
     /// Returns the current best move.
     pub fn get_best_move(&self) -> Option<Move> {
         self.info.best_move.load()
+    }
+
+    /// Returns the current best depth searched.
+    pub fn get_current_depth(&self) -> u8 {
+        self.info.search_depth()
     }
 
     /// Returns a read lock to the board.

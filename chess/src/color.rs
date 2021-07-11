@@ -33,12 +33,6 @@ impl Color {
             Color::Black => Color::White,
         }
     }
-
-    /// Returns the color used as an index.
-    #[inline]
-    pub fn idx(self) -> usize {
-        self as usize
-    }
 }
 
 // ================================ traits impl
@@ -70,5 +64,13 @@ impl<'a> FromStr for Color {
             "b" => Ok(Color::Black),
             _ => Err(ParseFenError::new("invalid color litteral")),
         }
+    }
+}
+
+impl From<Color> for usize {
+    /// Use the color as an index.
+    #[inline]
+    fn from(color: Color) -> usize {
+        color as usize
     }
 }

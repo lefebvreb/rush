@@ -158,7 +158,7 @@ pub(crate) unsafe fn init() {
             (1, 1), (1, 0), (1, -1), (0, -1),
             (-1, -1), (-1, 0), (-1, 1), (0, 1),
         ] {
-            KING_ATTACKS[sq.idx()] |= to_bitboard(sq.displace(dir));
+            KING_ATTACKS[usize::from(sq)] |= to_bitboard(sq.displace(dir));
         }
 
         // Knights attacks
@@ -166,21 +166,21 @@ pub(crate) unsafe fn init() {
             (1, 2), (2, 1), (2, -1), (1, -2),
             (-1, -2), (-2, -1), (-2, 1), (-1, 2),
         ] {
-            KNIGHT_ATTACKS[sq.idx()] |= to_bitboard(sq.displace(dir));
+            KNIGHT_ATTACKS[usize::from(sq)] |= to_bitboard(sq.displace(dir));
         }
 
         // Pawns attacks
-        WHITE_PAWN_ATTACKS[sq.idx()] = to_bitboard(sq.displace((1, 1)))  | to_bitboard(sq.displace((-1, 1)));
-        BLACK_PAWN_ATTACKS[sq.idx()] = to_bitboard(sq.displace((1, -1))) | to_bitboard(sq.displace((-1, -1)));
+        WHITE_PAWN_ATTACKS[usize::from(sq)] = to_bitboard(sq.displace((1, 1)))  | to_bitboard(sq.displace((-1, 1)));
+        BLACK_PAWN_ATTACKS[usize::from(sq)] = to_bitboard(sq.displace((1, -1))) | to_bitboard(sq.displace((-1, -1)));
 
         // Pawn pushes
-        WHITE_PAWN_PUSHES[sq.idx()] = sq.displace((0,  1));
-        BLACK_PAWN_PUSHES[sq.idx()] = sq.displace((0, -1));
+        WHITE_PAWN_PUSHES[usize::from(sq)] = sq.displace((0,  1));
+        BLACK_PAWN_PUSHES[usize::from(sq)] = sq.displace((0, -1));
 
         // Pawn double pushes
         match sq.y() {
-            1 => WHITE_PAWN_DOUBLE_PUSHES[sq.idx()] = sq.displace((0,  2)),
-            6 => BLACK_PAWN_DOUBLE_PUSHES[sq.idx()] = sq.displace((0, -2)),
+            1 => WHITE_PAWN_DOUBLE_PUSHES[usize::from(sq)] = sq.displace((0,  2)),
+            6 => BLACK_PAWN_DOUBLE_PUSHES[usize::from(sq)] = sq.displace((0, -2)),
             _ => (),
         }
     }
@@ -197,8 +197,8 @@ pub(crate) unsafe fn init() {
 pub(crate) fn pawn(color: Color, sq: Square) -> BitBoard {
     unsafe {
         match color {
-            Color::White => WHITE_PAWN_ATTACKS[sq.idx()],
-            Color::Black => BLACK_PAWN_ATTACKS[sq.idx()],
+            Color::White => WHITE_PAWN_ATTACKS[usize::from(sq)],
+            Color::Black => BLACK_PAWN_ATTACKS[usize::from(sq)],
         }
     }
 }
@@ -209,8 +209,8 @@ pub(crate) fn pawn(color: Color, sq: Square) -> BitBoard {
 pub(crate) fn pawn_push(color: Color, sq: Square) -> Option<Square> {
     unsafe {
         match color {
-            Color::White => WHITE_PAWN_PUSHES[sq.idx()],
-            Color::Black => BLACK_PAWN_PUSHES[sq.idx()],
+            Color::White => WHITE_PAWN_PUSHES[usize::from(sq)],
+            Color::Black => BLACK_PAWN_PUSHES[usize::from(sq)],
         }
     }
 }
@@ -221,8 +221,8 @@ pub(crate) fn pawn_push(color: Color, sq: Square) -> Option<Square> {
 pub(crate) fn pawn_double_push(color: Color, sq: Square) -> Option<Square> {
     unsafe {
         match color {
-            Color::White => WHITE_PAWN_DOUBLE_PUSHES[sq.idx()],
-            Color::Black => BLACK_PAWN_DOUBLE_PUSHES[sq.idx()],
+            Color::White => WHITE_PAWN_DOUBLE_PUSHES[usize::from(sq)],
+            Color::Black => BLACK_PAWN_DOUBLE_PUSHES[usize::from(sq)],
         }
     }
 }
@@ -231,7 +231,7 @@ pub(crate) fn pawn_double_push(color: Color, sq: Square) -> Option<Square> {
 #[inline]
 pub(crate) fn rook(sq: Square, occ: BitBoard) -> BitBoard {
     unsafe {
-        let info = &ROOK_BMI2[sq.idx()];
+        let info = &ROOK_BMI2[usize::from(sq)];
         let mask = SLIDER_ATTACKS[info.offset + occ.pext(info.mask1).0 as usize];
         BitBoard(mask as u64).pdep(info.mask2)
     }
@@ -241,7 +241,7 @@ pub(crate) fn rook(sq: Square, occ: BitBoard) -> BitBoard {
 #[inline]
 pub(crate) fn knight(sq: Square) -> BitBoard {
     unsafe {
-        KNIGHT_ATTACKS[sq.idx()]
+        KNIGHT_ATTACKS[usize::from(sq)]
     }
 }
 
@@ -249,7 +249,7 @@ pub(crate) fn knight(sq: Square) -> BitBoard {
 #[inline]
 pub(crate) fn bishop(sq: Square, occ: BitBoard) -> BitBoard {
     unsafe {
-        let info = &BISHOP_BMI2[sq.idx()];
+        let info = &BISHOP_BMI2[usize::from(sq)];
         let mask = SLIDER_ATTACKS[info.offset + occ.pext(info.mask1).0 as usize];
         BitBoard(mask as u64).pdep(info.mask2)
     }
@@ -265,6 +265,6 @@ pub(crate) fn queen(sq: Square, occ: BitBoard) -> BitBoard {
 #[inline]
 pub(crate) fn king(sq: Square) -> BitBoard {
     unsafe {
-        KING_ATTACKS[sq.idx()]
+        KING_ATTACKS[usize::from(sq)]
     }
 }

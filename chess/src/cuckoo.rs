@@ -66,7 +66,7 @@ pub(crate) unsafe fn init() {
     for color in Color::COLORS {
         for &piece in &Piece::PIECES[1..] {
             for from in Square::SQUARES {
-                for &to in &Square::SQUARES[from.idx()+1..] {
+                for &to in &Square::SQUARES[usize::from(from)+1..] {
                     insert(color, piece, from, to);
                 }
             }
