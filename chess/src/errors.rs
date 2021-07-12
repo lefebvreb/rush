@@ -27,7 +27,7 @@ impl ParseFenError {
 impl fmt::Display for ParseFenError {
     /// Formats the error message.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Error while parsing fen, {}.", self.msg)
+        write!(f, "Error while parsing, {}.", self.msg)
     }
 }
 

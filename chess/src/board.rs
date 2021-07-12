@@ -413,7 +413,7 @@ impl Board {
 
         // Invert the zobrist key, as we change color.
         self.state.zobrist = !self.state.zobrist;
-
+    
         reversible
     }
 

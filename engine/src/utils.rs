@@ -1,3 +1,4 @@
+use chess::bitboard::BitBoard;
 use chess::board::Board;
 use chess::color::Color;
 use chess::piece::Piece;
@@ -26,4 +27,11 @@ pub(crate) fn is_endgame(board: &Board) -> bool {
 #[inline]
 pub(crate) fn king_sq_color(board: &Board, color: Color) -> Square {
     unsafe {board.get_bitboard(color, Piece::King).as_square_unchecked()}
+}
+
+// Returns true if any of our pawn may promote this turn.
+#[inline]
+pub(crate) fn may_promote(board: &Board) -> bool {
+    let us = board.get_side_to_move();
+    (board.get_bitboard(us, Piece::Pawn) & BitBoard::promote_rank(us)).not_empty()
 }

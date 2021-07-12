@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use chess::bitboard::BitBoard;
 use chess::board::Board;
 use chess::moves::Move;
 use chess::piece::Piece;
@@ -72,7 +71,7 @@ impl Search {
             let search_depth = self.info.thread_search_depth();
             
             let mut alpha = best_score - params::ASPIRATION_WINDOW[0];
-            let mut beta  = best_score + params::ASPIRATION_WINDOW[0];
+            let mut beta = best_score + params::ASPIRATION_WINDOW[0];
             
             let (mut alpha_idx, mut beta_idx) = (0, 0);
             
@@ -239,9 +238,7 @@ impl Search {
         }
     
         let mut big_delta = params::value_of(Piece::Queen);
-        let us = self.board.get_side_to_move();
-        let may_promote = (self.board.get_bitboard(us, Piece::Pawn) & BitBoard::promote_rank(us)).not_empty();
-        if may_promote {
+        if utils::may_promote(&self.board) {
             big_delta += params::value_of(Piece::Queen) - params::value_of(Piece::Pawn);
         }
     
@@ -261,7 +258,7 @@ impl Search {
                     break 'search;
                 }
 
-                if !mv.is_capture() || params::value_of(mv.get_capture()) + params::DELTA < alpha || self.board.is_legal(mv) {
+                if !mv.is_capture() || params::value_of(mv.get_capture()) + params::DELTA < alpha || !self.board.is_legal(mv) {
                     continue;
                 }
         

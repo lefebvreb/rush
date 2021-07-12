@@ -25,25 +25,110 @@ Available commands:
   exit            : exits the cli.
 "#;
 
-fn autoplay(engine: &mut Engine, duration: Duration) {
-    loop {
+// The global state of the cli.
+struct State {
+    engine: Engine,
+    buffer: String,
+}
+
+// ================================ Utils
+
+impl State {
+    // Print the board and it's fen representation.
+    fn print_board(&self) {
         // Clear the screen.
         print!("\x1B[2J\x1B[1;1H");
+        
+        let board = self.engine.read_board();
+        println!("{b}\n{b:#}", b=board);
+    }
 
-        { // Print the board.
-            let board = engine.read_board();
-            println!("{b}\n{b:#}", b=board);
+    // Print what the engine think is best.
+    fn print_engine(&self) {
+        if let Some(mv) = self.engine.get_best_move() {
+            println!("Engine's preferred move: {}.\nFurthest depth searched: {}.", mv, self.engine.get_current_depth());
+        } else {
+            println!("Engine hasn't had time to think yet.")
         }
+    }
 
-        // Think for the given duration.
-        println!("Engine is thinking...");
-        engine.start();
+    // Read a line from the terminal.
+    fn read_tokens(&mut self) -> Vec<String> {
+        // The prompt.
+        print!(">>> ");
+
+        io::stdout().flush().ok();
+        self.buffer.clear();
+        io::stdin().read_line(&mut self.buffer).expect("Cannot read line");
+
+        // Tokenize.
+        self.buffer.split_ascii_whitespace().map(|s| s.to_string()).collect()
+    }
+
+    // Ask the user to press enter before continuing.
+    fn ask_ok(&mut self) {
+        println!("Press enter to continue...");
+        io::stdin().read_line(&mut self.buffer).expect("Cannot read line");
+    }
+
+    // Makes the engine think for duration seconds.
+    fn think_for(&mut self, duration: Duration) {
+        self.engine.start();
         thread::sleep(duration);
-        engine.stop();
+        self.engine.stop();
+    }
+}
 
-        { // Perform the move the engine think is best.
-            let mut board = engine.write_board();
-            board.do_move(engine.get_best_move().unwrap());
+// ================================ Commands
+
+impl State {
+    fn play(&mut self, args: &mut impl Iterator<Item = String>) {
+        match args.next().map(|s| self.engine.read_board().parse_move(&s)) {
+            Some(Ok(mv)) => {
+                let mut board = self.engine.write_board();
+                if board.do_move(mv) {
+                    //board.clear_history();
+                }
+            },
+            Some(Err(msg)) => {
+                println!("{}", msg);
+                self.ask_ok();
+            },
+            None => println!("Invalid usage of the \"play\" command, type \"help\" to get correct usage."),
+        }
+    }
+
+    fn think(&mut self, args: &mut impl Iterator<Item = String>) {
+        match args.next().map(|s| f64::from_str(&s).map(|n| Duration::from_secs_f64(n))) {
+            Some(Ok(duration)) => {
+                self.think_for(duration);
+            },
+            Some(Err(msg)) => {
+                println!("Could not parse duration: {}.", msg);
+                self.ask_ok();
+            },
+            None => println!("Invalid usage of the \"think\" command, type \"help\" to get correct usage."),
+        }
+    }
+
+    fn auto(&mut self, args: &mut impl Iterator<Item = String>) {
+        match args.next().map(|s| f64::from_str(&s).map(|n| Duration::from_secs_f64(n))) {
+            Some(Ok(duration)) => {
+                loop {
+                    self.print_board();
+                    self.think_for(duration);
+                    let mv = self.engine.get_best_move().expect("Engine found nothing");
+                    let mut board = self.engine.write_board();
+                    if board.do_move(mv) {
+                        //board.clear_history();
+                    }
+                }
+            },
+            Some(Err(msg)) => {
+                println!("Could not parse duration: {}.", msg);
+                self.ask_ok();
+            },
+            None => println!("Invalid usage of the \"auto\" command, type \"help\" to get correct usage."),
         }
     }
 }
@@ -52,92 +137,55 @@ fn main() {
     // Initializes the chess library.
     chess::init();
 
-    // Get the arguments.
-    let mut args = env::args();
+    let mut state = {
+        // Get the arguments.
+        let mut args = env::args();
 
-    // Executable path.
-    args.next().unwrap();
+        // Executable path.
+        args.next().expect("Can't get executable path.");
 
-    // Get and parse fen.
-    let fen = match args.next() {
-        Some(s) => s,
-        _ => {
-            println!("{}", USAGE);
-            return;
-        },
+        // Get and parse fen.
+        let board = match args.next().map(|fen| Board::new(&fen)) {
+            Some(Ok(board)) => board,
+            Some(Err(msg)) => {
+                println!("{}", msg);
+                return;
+            },
+            None => {
+                println!("{}", USAGE);
+                return;
+            }
+        };
+
+        // Construct the state.
+        State {
+            engine: Engine::new(board),
+            buffer: String::new(),
+        }
     };
-    let board = Board::new(&fen).expect("Cannot parse fen");
-
-    // Create the engine.
-    let mut engine = Engine::new(board);
-
-    // The read buffer.
-    let mut buffer = String::new();
 
     loop {
-        // Clear the screen.
-        print!("\x1B[2J\x1B[1;1H");
+        // Print the state of the board and of the engine.
+        state.print_board();
+        state.print_engine();
 
-        { // Print the board.
-            let board = engine.read_board();
-            println!("{b}\n{b:#}", b=board);
-        }
+        let mut args = state.read_tokens().into_iter();
 
-        // Get infos about the engine's state.
-        let best_move = engine.get_best_move().map(|mv| format!("{}", mv)).unwrap_or("-".to_string());
-        let depth = engine.get_current_depth();
-
-        // Print the prompt.
-        print!("Engine's preferred move: {}.\nFurthest depth searched: {}\nType \"help\" for a list of all commands.\n>>> ", best_move, depth);
-
-        // Read a line from the terminal.
-        io::stdout().flush().ok();
-        buffer.clear();
-        io::stdin().read_line(&mut buffer).expect("Cannot read line");
-
-        // Get the user input.
-        let mut input = buffer.trim_end().split(' ');
-
-        match input.next() {
-            Some(command) => match command {
-                "help" => println!("{}", HELP),
-                "play" => {
-                    let mut board = engine.write_board();
-                    match input.next().map(|s| board.parse_move(s)) {
-                        Some(Ok(mv)) => {
-                            board.do_move(mv);
-                            continue;
-                        }
-                        Some(Err(_)) => println!("Invalid move litteral, make sure that you used pure algebraic coordinate notation and that the move is legal in this position."),
-                        None => println!("Invalid usage of the \"play\" command, type \"help\" to get the correct usage."),
-                    }
+        if let Some(command) = args.next() {
+            match command.as_str() {
+                "help" => {
+                    println!("{}", HELP);
+                    state.ask_ok();
                 },
-                "think" | "auto" => {
-                    match input.next().map(|s| u64::from_str(s).map(|seconds| Duration::from_secs(seconds))) {
-                        Some(Ok(duration)) => {
-                            if command == "think" {
-                                println!("Engine is thinking...");
-                                engine.start();
-                                thread::sleep(duration);
-                                engine.stop();
-                                continue;
-                            } else {
-                                autoplay(&mut engine, duration);
-                                return;
-                            }
-                        },
-                        Some(Err(_)) => println!("Could not parse thinking duration, it must be a positive integer."),
-                        None => println!("Invalid usage of the \"{}\" command, type \"help\" to get the correct usage.", command),
-                    }
-                },
+                "play" => state.play(&mut args),
+                "think" => state.think(&mut args),
+                "auto" => state.auto(&mut args),
                 "exit" => return,
-                "" => continue,
-                unknown => println!("Unknown command: \"{}\"", unknown),
+                unknown => {
+                    println!("Unknown command: \"{}\". Type \"help\" to get a list of available commands.", unknown);
+                    state.ask_ok();
+                },
             }
-            _ => (),
         }
-
-        println!("Press enter to continue...");
-        io::stdin().read_line(&mut buffer).expect("Cannot read line");
     }
 }
