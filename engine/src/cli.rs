@@ -114,11 +114,26 @@ impl State {
     fn auto(&mut self, args: &mut impl Iterator<Item = String>) {
         match args.next().map(|s| f64::from_str(&s).map(|n| Duration::from_secs_f64(n))) {
             Some(Ok(duration)) => {
+                let mut history = String::new();
+
                 loop {
+                    // Print the board.
                     self.print_board();
+                    println!("{}", history);
+
+                    // Get the engine's preferred move.
                     self.think_for(duration);
                     let mv = self.engine.get_best_move().expect("Engine found nothing");
+                    
+                    // Update history
+                    if !history.is_empty() {
+                        history.extend(", ".chars());
+                    }
+                    history.extend(format!("{}", mv).chars());
+                    
                     let mut board = self.engine.write_board();
+                    assert!(board.is_pseudo_legal(mv) && board.is_legal(mv), "Illegal move: {}", mv);
+
                     if board.do_move(mv) {
                         //board.clear_history();
                     }
@@ -154,7 +169,7 @@ fn main() {
             None => {
                 println!("{}", USAGE);
                 return;
-            }
+            },
         };
 
         // Construct the state.

@@ -130,7 +130,6 @@ impl BitBoard {
     /// Returns an iterator over the bits of the BitBoard self.
     #[inline]
     pub fn iter_squares(mut self) -> impl Iterator<Item = Square> {
-
         (0..self.0.count_ones()).map(move |_| {
             let non_zero_self = unsafe {NonZeroU64::new_unchecked(self.0)};
             let lsb = non_zero_self.trailing_zeros();
@@ -146,7 +145,7 @@ impl BitBoard {
         Square::from(non_zero_self.trailing_zeros() as i8)
     }
     
-    /// Counts the bits of self that are 1.
+    /// Counts the bits of self that are one.
     #[inline]
     pub fn count(self) -> u8 {
         self.0.count_ones() as u8

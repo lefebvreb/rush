@@ -460,10 +460,6 @@ impl Board {
     /// Efficiently tests for an upcoming repetition on the line,
     /// using cuckoo hashing.
     pub fn test_upcoming_repetition(&self) -> bool {
-        if self.get_halfmove() < 3 {
-            return false;
-        }
-
         let cur_zobrist = self.state.zobrist;
         let nth_zobrist = |n: u8| {
             self.prev_states[self.prev_states.len() - usize::from(n)].zobrist

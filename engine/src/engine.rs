@@ -1,6 +1,7 @@
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::{Arc, Barrier, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 use chess::board::Board;
 use chess::moves::{AtomicMove, Move};
@@ -175,6 +176,10 @@ impl Engine {
     pub fn stop(&self) {
         if !self.info.is_searching() {
             return;
+        }
+
+        while self.get_best_move().is_none() {
+            thread::sleep(Duration::from_millis(50));
         }
 
         // Unset the searching flag and wait at the barrier for

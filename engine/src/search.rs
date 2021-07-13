@@ -18,6 +18,7 @@ pub(crate) struct Search {
     depth: u8,
     board: Board,
     buffer: Vec<Move>,
+    seed: u32,
 }
 
 // ================================ pub(crate) impl
@@ -31,6 +32,7 @@ impl Search {
             depth: 0,
             board: Board::default(),
             buffer: Vec::new(),
+            seed: 0,
         }
     }
 
@@ -63,13 +65,23 @@ impl Search {
         // Clone global board and get search depth.
         const MAX_IDX: usize = params::ASPIRATION_WINDOW.len() - 1;
         
-        self.board = self.info.board();
+        { // Update the board.
+            let ply = self.board.get_ply();
+            self.board = self.info.board();
+            if self.board.get_ply() != ply {
+                // New board, reset some fields.
+                self.best_move = None;
+            }
+        }
         
+        // Compute first reference score.
         let best_score = self.quiescence(f32::NEG_INFINITY, f32::INFINITY);
         
-        'search: loop {
+        'main: loop {
+            // Get the depth this thread needs to search to.
             let search_depth = self.info.thread_search_depth();
             
+            // Get the first values of alpha and beta in the aspiration window.
             let mut alpha = best_score - params::ASPIRATION_WINDOW[0];
             let mut beta = best_score + params::ASPIRATION_WINDOW[0];
             
@@ -79,7 +91,7 @@ impl Search {
                 let best_score = self.alpha_beta(alpha, beta, true, search_depth, search_depth);
                 
                 if !self.info.is_searching() {
-                    break 'search;
+                    break 'main;
                 }
                 
                 if self.info.search_depth() >= search_depth {
@@ -109,8 +121,10 @@ impl Search {
             return self.quiescence(alpha, beta);
         }
         
-        if utils::is_pseudo_draw(&self.board) {
-            return 0.0;
+        if utils::is_pseudo_draw(&self.board, alpha, self.depth == 0) {
+            if alpha >= beta {
+                return utils::prng_draw_value(&mut self.seed);
+            }
         }
         
         if self.depth >= params::MAX_DEPTH {
@@ -118,10 +132,12 @@ impl Search {
         }
         
         if let Some((mv, score)) = self.info.get_table().probe(self.board.get_zobrist(), alpha, beta, depth) {
-            if score >= alpha && self.depth == 0 {
-                self.best_move = Some(mv);
+            if self.board.is_pseudo_legal(mv) && self.board.is_legal(mv) {
+                if score >= alpha && self.depth == 0 {
+                    self.best_move = Some(mv);
+                }
+                return score;
             }
-            return score;
         }
         
         let old_alpha = alpha;
@@ -223,8 +239,10 @@ impl Search {
 
     // Return the value of the position, computed with a quiescent search (only considering captures).
     fn quiescence(&mut self, mut alpha: f32, beta: f32) -> f32 {
-        if utils::is_pseudo_draw(&self.board) {
-            return 0.0;
+        if utils::is_pseudo_draw(&self.board, alpha, self.depth == 0) {
+            if alpha >= beta {
+                return utils::prng_draw_value(&mut self.seed);
+            }
         }
         
         let stand_pat = eval::eval(&self.board);

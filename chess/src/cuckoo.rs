@@ -13,7 +13,7 @@ use crate::zobrist::Zobrist;
 
 // The cuckoo tables.
 static mut CUCKOO: [Zobrist; 8192] = [Zobrist::ZERO; 8192];
-static mut SQUARES: [(Square, Square); 8192] = [(Square::A1, Square::A1); 8192];
+static mut SQUARES: [Option<(Square, Square)>; 8192] = [None; 8192];
 
 // Returns true if the move is valid on an empty board.
 // Pawn moves are never reversible so we don't take them into account.
@@ -34,29 +34,29 @@ unsafe fn is_valid(piece: Piece, from: Square, to: Square) -> bool {
 // Inserts into the cuckoo table, only if the move is valid.
 #[cold]
 unsafe fn insert(color: Color, piece: Piece, from: Square, to: Square) {
-    if !is_valid(piece, from, to) {             
+    if !is_valid(piece, from, to) {
         return;
     }
     
     let mut zobrist = !(Zobrist::from((color, piece, from)) ^ Zobrist::from((color, piece, to)));
     let mut i = zobrist.h1();
-    let mut squares = (from, to);
+    let mut squares = Some((from, to));
 
     loop {
-        // Take that spot
+        // Take that spot.
         std::mem::swap(&mut CUCKOO[i], &mut zobrist);
         std::mem::swap(&mut SQUARES[i], &mut squares);
 
-        // The spot was empty, we are done
+        // The spot was empty, we are done.
         if zobrist == Zobrist::ZERO {
             break;
         }
 
-        // Find a new spot for the old bucket we displaced
-        i = match zobrist.h1() {
-            j if i == j => zobrist.h2(),
-            j => j,
-        };
+        if i == zobrist.h1() {
+            i = zobrist.h2();
+        } else {
+            i = zobrist.h1();
+        }
     }
 }
 
@@ -94,7 +94,7 @@ pub(crate) fn is_hash_of_legal_move(board: &Board, diff: Zobrist) -> bool {
             }
         }
 
-        let (from, to) = SQUARES[i];
+        let (from, to) = SQUARES[i].unwrap();
         board.is_path_clear(from, to)
     }
 }

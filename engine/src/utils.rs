@@ -7,8 +7,8 @@ use chess::square::Square;
 // Returns true if the board is in pseudo-draw because of either the
 // 50 move rule or an incoming threefold repetition.
 #[inline]
-pub(crate) fn is_pseudo_draw(board: &Board) -> bool {
-    board.get_halfmove() == 100 || board.test_upcoming_repetition()
+pub(crate) fn is_pseudo_draw(board: &Board, alpha: f32, root: bool) -> bool {
+    board.get_halfmove() >= 100 || (!root && alpha < 0.0 &&  board.get_halfmove() >= 3 && board.test_upcoming_repetition())
 }
 
 // Returns true if the board can be considered in endgame.
@@ -34,4 +34,11 @@ pub(crate) fn king_sq_color(board: &Board, color: Color) -> Square {
 pub(crate) fn may_promote(board: &Board) -> bool {
     let us = board.get_side_to_move();
     (board.get_bitboard(us, Piece::Pawn) & BitBoard::promote_rank(us)).not_empty()
+}
+
+// Returns a pseudo-random draw value, to avoid threefold repetitions.
+#[inline]
+pub(crate) fn prng_draw_value(seed: &mut u32) -> f32 {
+    *seed += 1;
+    0.02 * (*seed & 1) as f32 - 0.01
 }

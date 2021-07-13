@@ -185,9 +185,7 @@ impl MovePicker {
                         }
                     });
                     movegen::gen_king_captures(board, |from, to, capture| {
-                        if self.check_mask.contains(to) {
-                            buffer.push(Move::capture(from, to, capture));
-                        }
+                        buffer.push(Move::capture(from, to, capture));
                     });
                     GenState::CheckOthers
                 },
@@ -223,9 +221,7 @@ impl MovePicker {
                         }
                     });
                     movegen::gen_king_quiets(board, |from, to| {
-                        if self.check_mask.contains(to) {
-                            buffer.push(Move::quiet(from, to));
-                        }
+                        buffer.push(Move::quiet(from, to));
                     });
                     GenState::End
                 },

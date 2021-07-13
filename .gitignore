@@ -9,7 +9,8 @@ www/public/build
 www/public/wasm
 
 # Profiling data.
-perf.data
+perf.data*
 
-# Temporary directory.
+# Temporary files.
 /tmp
+log.txt
