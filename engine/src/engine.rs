@@ -178,6 +178,7 @@ impl Engine {
             return;
         }
 
+        // Get more time if the engine has found nothing.
         while self.get_best_move().is_none() {
             thread::sleep(Duration::from_millis(50));
         }

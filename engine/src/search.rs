@@ -167,7 +167,7 @@ impl Search {
                 let score = -self.alpha_beta(-beta, -alpha, do_null, depth-1, search_depth);
                 self.board.undo_move(mv);
                 self.depth -= 1;
-        
+
                 if self.info.search_depth() >= search_depth || !self.info.is_searching() {
                     return 0.0;
                 }
@@ -273,7 +273,7 @@ impl Search {
                 let mv = self.buffer[i];
 
                 if mv.is_quiet() {
-                    break 'search;
+                    break 'search; // TODO: Better movepicker
                 }
 
                 if !mv.is_capture() || params::value_of(mv.get_capture()) + params::DELTA < alpha || !self.board.is_legal(mv) {

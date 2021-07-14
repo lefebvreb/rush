@@ -211,13 +211,17 @@ impl Board {
             // If the king is on the same rank as the ep square (very rare).
             if rank.contains(king_sq) {
                 let them = self.get_other_side();
-                // For every rook on that very same rank.
-                for rook_sq in (self.get_bitboard(them, Piece::Rook) & rank).iter_squares() {
-                    let between = BitBoard::between(king_sq, rook_sq);
+                let sliders = self.get_bitboard(them, Piece::Rook) | self.get_bitboard(them, Piece::Queen);
+
+                // For every rook or queen on that very same rank.
+                for slider_sq in (sliders & rank).iter_squares() {
+                    let between = BitBoard::between(king_sq, slider_sq);
+                    let occ = self.get_occupancy().all();
+                    
                     // If the ep square is exactly between the king and the rook, 
                     // and there is nothing else than the two pawns, then it is an
                     // (incredibly rare) double pin.
-                    if between.contains(ep_square) && between.count() == 2 {
+                    if between.contains(ep_square) && (between & occ).count() == 2 {
                         return false;
                     }
                 }
@@ -289,16 +293,14 @@ impl Board {
                 verify!(!mv.is_castle());
 
                 // If there are any checkers.
-                match checkers.count() {
-                    // One checker, the piece moving must either block or capture the enemy piece.
-                    1 => {
-                        let checker = unsafe {checkers.as_square_unchecked()};
-                        let blocking_zone = BitBoard::between(self.king_sq(), checker);
-                        verify!((blocking_zone | checkers).contains(to));
-                    },
+                if checkers.not_empty() {
                     // Two checkers, the piece moving must be the king.
-                    2 => return false,
-                    _ => (),
+                    verify!(!checkers.more_than_one());
+
+                    // One checker, the piece moving must either block or capture the enemy piece.
+                    let checker = unsafe {checkers.as_square_unchecked()};
+                    let blocking_zone = BitBoard::between(self.king_sq(), checker);
+                    verify!((blocking_zone | checkers).contains(to));
                 }
             }
 
@@ -696,6 +698,9 @@ impl fmt::Display for Board {
     /// Use the # modifier to pretty-print the board: println!("{:#}", board);
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if f.alternate() {
+            // Pretty-print
+            const RESET: &str = "\x1b[0m";
+            const BLACK: &str = "\x1b[40;1m";
             const CHARS: [[char; 6]; 2] = [
                 ['♙', '♖', '♘', '♗', '♕', '♔'],
                 ['♟', '♜', '♞', '♝', '♛', '♚'],
@@ -704,18 +709,31 @@ impl fmt::Display for Board {
             writeln!(f, "  a b c d e f g h")?;
             for y in (0..8).rev() {
                 write!(f, "{}", y+1)?;
+
                 for x in 0..8 {
-                    if let Some((color, piece)) = self.get_piece(Square::from((x, y))) {
-                        write!(f, " {}", CHARS[usize::from(color)][usize::from(piece)])?;
+                    write!(f, " ")?;
+
+                    let sq = Square::from((x, y));
+                    let ch = match self.get_piece(sq) {
+                        Some((color, piece)) => CHARS[usize::from(color)][usize::from(piece)],
+                        None => ' ',
+                    };
+
+                    if sq.parity() == Color::Black {
+                        write!(f, "{}{}{}", BLACK, ch, RESET)?;
                     } else {
-                        write!(f, "  ")?;
+                        write!(f, "{}", ch)?;
                     }
                 }
+
+                write!(f, " {}", y+1)?;
                 if y != 0 {
                     writeln!(f)?;
                 }
             }
+            write!(f, "\n  a b c d e f g h")?;
         } else {
+            // fen string
             macro_rules! write_if_not_zero {
                 ($i: expr) => {
                     if $i != 0 {

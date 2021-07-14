@@ -1,4 +1,3 @@
-
 use crate::bitboard::BitBoard;
 use crate::color::Color;
 use crate::square::Square;

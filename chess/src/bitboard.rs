@@ -207,7 +207,7 @@ impl BitBoard {
     /// one bit set to 1.
     #[inline]
     pub fn more_than_one(self) -> bool {
-        (self & (self - BitBoard(1))).0 != 0
+        (self.0 & (self.0.wrapping_sub(1))) != 0
     }
 }
 

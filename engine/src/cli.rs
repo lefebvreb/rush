@@ -6,18 +6,15 @@ use std::str::FromStr;
 use chess::prelude::*;
 use engine::Engine;
 
-const USAGE: &str = r#"
-A cli to the engine and chess library, providing an interactive interface for testing and playing the engine.
+const USAGE: &str = r#"A cli to the engine and chess library, providing an interactive interface for testing and playing the engine.
 
 Usage:
   $ ./cli <fen>
     <fen> : the fen string to be parsed, put into quotes.
 
-The default positon's fen string is: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".
-"#;
+The default position's fen string is: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1""#;
 
-const HELP: &str = r#"
-Available commands:
+const HELP: &str = r#"Available commands:
   help            : prints this message.
   play <move>     : plays the given <move>, encoded in pure algebraic coordinate notation.
   think <seconds> : starts the engine for <seconds> seconds.
@@ -29,6 +26,7 @@ Available commands:
 struct State {
     engine: Engine,
     buffer: String,
+    history: Vec<Move>,
 }
 
 // ================================ Utils
@@ -40,7 +38,8 @@ impl State {
         print!("\x1B[2J\x1B[1;1H");
         
         let board = self.engine.read_board();
-        println!("{b}\n{b:#}", b=board);
+        let history_string = self.history.iter().map(|mv| format!("{}", mv)).collect::<Vec<_>>().join(", ");
+        println!("fen string: \"{b}\"\nMove history: {h}\n{b:#}", b=board, h=history_string);
     }
 
     // Print what the engine think is best.
@@ -77,6 +76,17 @@ impl State {
         thread::sleep(duration);
         self.engine.stop();
     }
+
+    // Plays the given move.
+    fn play_move(&mut self, mv: Move) {
+        let mut board = self.engine.write_board();
+
+        assert!(board.is_pseudo_legal(mv) && board.is_legal(mv), "Tried to play illegal move");
+
+        self.history.push(mv);
+
+        board.do_move(mv);
+    }
 }
 
 // ================================ Commands
@@ -84,18 +94,28 @@ impl State {
 impl State {
     fn play(&mut self, args: &mut impl Iterator<Item = String>) {
         match args.next().map(|s| self.engine.read_board().parse_move(&s)) {
-            Some(Ok(mv)) => {
-                let mut board = self.engine.write_board();
-                if board.do_move(mv) {
-                    //board.clear_history();
-                }
-            },
+            Some(Ok(mv)) => self.play_move(mv),
             Some(Err(msg)) => {
                 println!("{}", msg);
                 self.ask_ok();
             },
-            None => println!("Invalid usage of the \"play\" command, type \"help\" to get correct usage."),
+            None => {
+                println!("Invalid usage of the \"play\" command, type \"help\" to get correct usage.");
+                self.ask_ok();
+            },
         }
+    }
+
+    fn back(&mut self) {
+        if self.history.is_empty() {
+            println!("No move to undo.");
+            self.ask_ok();
+            return;
+        }
+
+        let mv = self.history.pop().unwrap();
+        let mut board = self.engine.write_board();
+        board.undo_move(mv);
     }
 
     fn think(&mut self, args: &mut impl Iterator<Item = String>) {
@@ -107,43 +127,36 @@ impl State {
                 println!("Could not parse duration: {}.", msg);
                 self.ask_ok();
             },
-            None => println!("Invalid usage of the \"think\" command, type \"help\" to get correct usage."),
+            None => {
+                println!("Invalid usage of the \"think\" command, type \"help\" to get correct usage.");
+                self.ask_ok();
+            }
         }
     }
 
     fn auto(&mut self, args: &mut impl Iterator<Item = String>) {
         match args.next().map(|s| f64::from_str(&s).map(|n| Duration::from_secs_f64(n))) {
             Some(Ok(duration)) => {
-                let mut history = String::new();
-
                 loop {
                     // Print the board.
                     self.print_board();
-                    println!("{}", history);
 
                     // Get the engine's preferred move.
                     self.think_for(duration);
                     let mv = self.engine.get_best_move().expect("Engine found nothing");
                     
-                    // Update history
-                    if !history.is_empty() {
-                        history.extend(", ".chars());
-                    }
-                    history.extend(format!("{}", mv).chars());
-                    
-                    let mut board = self.engine.write_board();
-                    assert!(board.is_pseudo_legal(mv) && board.is_legal(mv), "Illegal move: {}", mv);
-
-                    if board.do_move(mv) {
-                        //board.clear_history();
-                    }
+                    // Play the move.
+                    self.play_move(mv);
                 }
             },
             Some(Err(msg)) => {
                 println!("Could not parse duration: {}.", msg);
                 self.ask_ok();
             },
-            None => println!("Invalid usage of the \"auto\" command, type \"help\" to get correct usage."),
+            None => {
+                println!("Invalid usage of the \"auto\" command, type \"help\" to get correct usage.");
+                self.ask_ok();
+            }
         }
     }
 }
@@ -176,6 +189,7 @@ fn main() {
         State {
             engine: Engine::new(board),
             buffer: String::new(),
+            history: Vec::new(),
         }
     };
 
@@ -193,6 +207,7 @@ fn main() {
                     state.ask_ok();
                 },
                 "play" => state.play(&mut args),
+                "back" => state.back(),
                 "think" => state.think(&mut args),
                 "auto" => state.auto(&mut args),
                 "exit" => return,
