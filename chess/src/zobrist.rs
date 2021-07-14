@@ -68,9 +68,17 @@ impl Zobrist {
         (self.0.wrapping_shr(48) & 0x1FFF) as usize
     }
 
+    /// Returns the index corresponding to this zobrist hash, for a table
+    /// of size MAX.
     #[inline]
     pub fn idx<const MAX: usize>(self) -> isize {
         (self.0 % MAX as u64) as isize
+    }
+
+    /// Returns the raw value of this zobrist.
+    #[inline]
+    pub fn get_raw(self) -> u64 {
+        self.0
     }
 }
 

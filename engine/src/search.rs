@@ -182,14 +182,13 @@ impl Search {
                                 // TODO: killer heuristic
                             }
 
-                            self.info.get_table().insert(TableEntry {
-                                zobrist: self.board.get_zobrist(),
-                                mv,
-                                score: beta,
-                                age: self.board.get_ply(),
-                                depth,
-                                flag: TableEntryFlag::Beta,
-                            });
+                            self.info.get_table().insert(TableEntry::new(
+                                &self.board,
+                                mv, 
+                                beta,
+                                depth, 
+                                TableEntryFlag::Beta
+                            ));
                             
                             return beta;
                         }
@@ -211,27 +210,25 @@ impl Search {
         }
         
         if alpha != old_alpha {
-            self.info.get_table().insert(TableEntry {
-                zobrist: self.board.get_zobrist(),
-                mv: best_move.unwrap(),
-                score: best_score,
-                age: self.board.get_ply(),
-                depth,
-                flag: TableEntryFlag::Exact,
-            });
+            self.info.get_table().insert(TableEntry::new(
+                &self.board,
+                best_move.unwrap(), 
+                best_score, 
+                depth, 
+                TableEntryFlag::Exact
+            ));
             
             if self.depth == 0 {
                 self.best_move = best_move;
             }
         } else {
-            self.info.get_table().insert(TableEntry {
-                zobrist: self.board.get_zobrist(),
-                mv: best_move.unwrap(),
-                score: alpha,
-                age: self.board.get_ply(),
-                depth,
-                flag: TableEntryFlag::Alpha,
-            });
+            self.info.get_table().insert(TableEntry::new(
+                &self.board,
+                best_move.unwrap(), 
+                best_score, 
+                depth, 
+                TableEntryFlag::Alpha
+            ));
         }
         
         alpha

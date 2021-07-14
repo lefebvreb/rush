@@ -1,6 +1,6 @@
 # chess-engine
 
-This project is (or will soon be):
+This project is:
 + A fast chess game featuring bitboards, pext lookup state of the art move generation.
 + A parallel tree search AI using the lazy-SMP algorithm and a shared hashtable.
 + A web server backend.
@@ -12,6 +12,24 @@ Since pext lookup requires the pext asm instruction (introduced in the bmi2 inst
 
 Don't worry, you don't need to possess a cpu with the pext instruction to build the project, a (slower) software replacement is provided.
 
-## Build instructions
+## Instructions
 
 Coming soon.
+
+## TODO list
+
+### Engine:
++ Better `chess::movepick` module: make a trait implemeted by two structs, one for standard alpha-beta search, one for quiescient search.
++ Hash moves.
++ Move sorting.
++ Recapture.
++ Null move heuristic.
++ Recapture.
++ Better evealuation.
++ Repair `Board::test_upcoming_repetition()`
+
+### Web server:
++ everything.
+
+### Web client:
++ everything.

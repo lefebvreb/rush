@@ -40,5 +40,5 @@ pub(crate) fn may_promote(board: &Board) -> bool {
 #[inline]
 pub(crate) fn prng_draw_value(seed: &mut u32) -> f32 {
     *seed += 1;
-    0.02 * (*seed & 1) as f32 - 0.01
+    2.0 * (*seed & 1) as f32 - 1.0
 }

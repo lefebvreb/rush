@@ -9,10 +9,34 @@ use crate::color::Color;
 use crate::cuckoo;
 use crate::en_passant::EnPassantSquare;
 use crate::errors::ParseFenError;
+use crate::movegen;
 use crate::moves::Move;
 use crate::piece::Piece;
 use crate::square::Square;
 use crate::zobrist::Zobrist;
+
+//#################################################################################################
+//
+//                                    struct StateInfo
+//
+//#################################################################################################
+
+/// An enum representing the status of a game.
+#[derive(Debug)]
+pub enum Status {
+    Playing,
+    Draw,
+    Win(Color),
+}
+
+// ================================ pub impl
+
+impl Status {
+    /// Returns true if the status is Status::Playing.
+    pub fn is_playing(&self) -> bool {
+        matches!(self, Status::Playing)
+    }
+}
 
 //#################################################################################################
 //
@@ -187,6 +211,35 @@ impl Board {
     pub fn king_sq(&self) -> Square {
         let king_bb = self.get_bitboard(self.get_side_to_move(), Piece::King);
         unsafe {king_bb.as_square_unchecked()}
+    }
+
+    /// Returns the status of the current game. Must be called every turn to be accurate.
+    pub fn status(&self) -> Status {
+        let halfmoves = self.get_halfmove();
+
+        if halfmoves >= 50 {
+            return Status::Draw;
+        } else if halfmoves >= 3 {
+            let repetitions = self.prev_states.iter()
+                .filter(|state| state.zobrist == self.state.zobrist)
+                .count();
+
+            if repetitions >= 3 {
+                return Status::Draw;
+            }
+        }
+
+        let mut legals = Vec::new();
+        movegen::legals(self, &mut legals);
+        if legals.len() == 0 {
+            if self.get_checkers().empty() {
+                return Status::Draw;
+            } else {
+                return Status::Win(self.get_other_side());
+            }
+        }
+
+        Status::Playing
     }
 
     /// Returns true if that pseudo-legal move is legal.

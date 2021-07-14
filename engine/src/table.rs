@@ -1,3 +1,4 @@
+use chess::board::Board;
 use chess::moves::Move;
 use chess::zobrist::Zobrist;
 
@@ -20,12 +21,29 @@ pub(crate) enum TableEntryFlag {
 // A struct representing an entry of the table.
 #[derive(Copy, Clone, Debug)]
 pub(crate) struct TableEntry {
-    pub(crate) zobrist: Zobrist,
+    zobrist: Zobrist,
+    age: u16,
     pub(crate) mv: Move,
     pub(crate) score: f32,
-    pub(crate) age: u16,
-    pub(crate) depth: u8,
-    pub(crate) flag: TableEntryFlag,
+    depth: u8,
+    flag: TableEntryFlag,
+}
+
+// ================================ pub(crate) impl
+
+impl TableEntry {
+    // Creates a new table entry based with the given values.
+    #[inline]
+    pub(crate) fn new(board: &Board, mv: Move, score: f32, depth: u8, flag: TableEntryFlag) -> TableEntry {
+        TableEntry {
+            zobrist: board.get_zobrist(), 
+            age: board.get_ply(), 
+            mv, 
+            score, 
+            depth,
+            flag,
+        }
+    }
 }
 
 //#################################################################################################
@@ -47,6 +65,8 @@ const NUM_BUCKETS: usize = (params::TABLE_SIZE / std::mem::size_of::<Bucket>()).
 #[repr(transparent)]
 #[derive(Clone, Debug)]
 pub(crate) struct TranspositionTable(*mut Bucket);
+
+// ================================ pub(crate) impl
 
 impl TranspositionTable {
     // Creates a new transposition table, from leaking a vector.

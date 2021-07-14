@@ -147,6 +147,12 @@ impl Move {
             Piece::from_unchecked((self.0 >> 20 & 0x7) as u8)
         }
     }
+
+    /// Returns the raw value of the move.
+    #[inline]
+    pub fn get_raw(self) -> u32 {
+        self.0
+    }
 }
 
 // ================================ impl

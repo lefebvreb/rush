@@ -20,7 +20,8 @@ pub mod board;
 pub mod movegen;
 
 pub mod prelude {
-    pub use crate::board::Board; 
+    pub use crate::board::{Board, Status}; 
+    pub use crate::color::Color;
     pub use crate::moves::Move;
     pub use crate::movegen;
 }
