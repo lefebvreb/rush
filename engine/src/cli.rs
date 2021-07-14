@@ -18,9 +18,9 @@ const HELP: &str = r#"Available commands:
   help            : prints this message.
   play <move>     : plays the given <move>, encoded in pure algebraic coordinate notation.
   think <seconds> : starts the engine for <seconds> seconds.
+  do              : plays the engine's preferred move.
   auto <seconds>  : plays the engine against itself, with <seconds> seconds to think for each move.
-  exit            : exits the cli.
-"#;
+  exit            : exits the cli."#;
 
 // The global state of the cli.
 struct State {
@@ -39,7 +39,7 @@ impl State {
         
         let board = self.engine.read_board();
         let history_string = self.history.iter().map(|mv| format!("{}", mv)).collect::<Vec<_>>().join(", ");
-        println!("fen string: \"{b}\"\nMove history: {h}\n{b:#}", b=board, h=history_string);
+        println!("Fen string: \"{b}\"\nMove history: {h}\n{b:#}", b=board, h=history_string);
     }
 
     // Print what the engine think is best.
@@ -134,6 +134,15 @@ impl State {
         }
     }
 
+    fn do_engine(&mut self) {
+        if let Some(mv) = self.engine.get_best_move() {
+            self.play_move(mv);
+        } else {
+            println!("Engine has no preferred move, let it \"think\" before using this command.");
+            self.ask_ok();
+        }
+    }
+
     fn auto(&mut self, args: &mut impl Iterator<Item = String>) {
         match args.next().map(|s| f64::from_str(&s).map(|n| Duration::from_secs_f64(n))) {
             Some(Ok(duration)) => {
@@ -209,6 +218,7 @@ fn main() {
                 "play" => state.play(&mut args),
                 "back" => state.back(),
                 "think" => state.think(&mut args),
+                "do" => state.do_engine(),
                 "auto" => state.auto(&mut args),
                 "exit" => return,
                 unknown => {

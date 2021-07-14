@@ -84,17 +84,18 @@ pub(crate) unsafe fn init() {
 // Uses cuckoo hashing to reduce the memory footprint of the hash table.
 #[inline]
 pub(crate) fn is_hash_of_legal_move(board: &Board, diff: Zobrist) -> bool {
+    // SAFETY: h1 and h2 always yield numbers that are < 8192
     unsafe {
         let mut i = diff.h1();
 
-        if CUCKOO[i] != diff {
+        if *CUCKOO.get_unchecked(i) != diff {
             i = diff.h2();
-            if CUCKOO[i] != diff {
+            if *CUCKOO.get_unchecked(i) != diff {
                 return false;
             }
         }
 
-        let (from, to) = SQUARES[i].unwrap();
+        let (from, to) = SQUARES.get_unchecked(i).unwrap();
         board.is_path_clear(from, to)
     }
 }

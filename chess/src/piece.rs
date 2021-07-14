@@ -39,6 +39,11 @@ impl Piece {
 // ================================ pub(crate) impl
 
 impl Piece {
+    // Returns the piece corresponding to that number, assumes 0 <= i < 6
+    pub(crate) unsafe fn from_unchecked(i: u8) -> Piece {
+        *Piece::PIECES.get_unchecked(i as usize)
+    }
+    
     // Tries to parse a piece from a single char.
     pub(crate) fn from_char(c: char) -> Result<(Color, Piece), ParseFenError> {
         match c {

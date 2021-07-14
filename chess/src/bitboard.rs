@@ -130,19 +130,21 @@ impl BitBoard {
     /// Returns an iterator over the bits of the BitBoard self.
     #[inline]
     pub fn iter_squares(mut self) -> impl Iterator<Item = Square> {
-        (0..self.0.count_ones()).map(move |_| {
-            let non_zero_self = unsafe {NonZeroU64::new_unchecked(self.0)};
+        // SAFE: self is not null at that point. Plus a bit's position is always < 64.
+        (0..self.0.count_ones()).map(move |_| unsafe {
+            let non_zero_self = NonZeroU64::new_unchecked(self.0);
             let lsb = non_zero_self.trailing_zeros();
             self &= self - BitBoard(1);
-            Square::from(lsb as i8)
+            Square::from_unchecked(lsb as i8)
         })
     }
 
     // Returns the first square of the bitboard, with no checks.
+    // Assumes the bitboard is not empty.
     #[inline]
     pub unsafe fn as_square_unchecked(self) -> Square {
         let non_zero_self = NonZeroU64::new_unchecked(self.0);
-        Square::from(non_zero_self.trailing_zeros() as i8)
+        Square::from_unchecked(non_zero_self.trailing_zeros() as i8)
     }
     
     /// Counts the bits of self that are one.
@@ -170,8 +172,9 @@ impl BitBoard {
     /// from and to are aligned horizontally or vertically. Returns an empty bitboard if they are not.
     #[inline]
     pub fn between_straight(from: Square, to: Square) -> BitBoard {
+        // SAFE: 0 <= usize::from(from) < 64 and 0 <= usize::from(to) < 64
         unsafe {
-            SQUARES_BETWEEN_STRAIGHT[usize::from(from)][usize::from(to)]
+            *SQUARES_BETWEEN_STRAIGHT.get_unchecked(usize::from(from)).get_unchecked(usize::from(to))
         }
     }
 
@@ -179,8 +182,9 @@ impl BitBoard {
     /// from and to are aligned diagonally. Returns an empty bitboard if they are not.
     #[inline]
     pub fn between_diagonal(from: Square, to: Square) -> BitBoard {
+        // SAFE: 0 <= usize::from(from) < 64 and 0 <= usize::from(to) < 64
         unsafe {
-            SQUARES_BETWEEN_DIAGNOAL[usize::from(from)][usize::from(to)]
+            *SQUARES_BETWEEN_DIAGNOAL.get_unchecked(usize::from(from)).get_unchecked(usize::from(to))
         }
     }
 
@@ -188,8 +192,9 @@ impl BitBoard {
     /// if they are aligned. Returns an empty bitboard if they are not.
     #[inline]
     pub fn between(from: Square, to: Square) -> BitBoard {
+        // SAFE: 0 <= usize::from(from) < 64 and 0 <= usize::from(to) < 64
         unsafe {
-            SQUARES_BETWEEN[usize::from(from)][usize::from(to)]
+            *SQUARES_BETWEEN.get_unchecked(usize::from(from)).get_unchecked(usize::from(to))
         }
     }
 
@@ -198,8 +203,9 @@ impl BitBoard {
     /// Returns an empty bitboard if they are not.
     #[inline]
     pub fn ray_mask(from: Square, to: Square) -> BitBoard {
+        // SAFE: 0 <= usize::from(from) < 64 and 0 <= usize::from(to) < 64
         unsafe {
-            SQUARES_RAY_MASK[usize::from(from)][usize::from(to)]
+            *SQUARES_RAY_MASK.get_unchecked(usize::from(from)).get_unchecked(usize::from(to))
         }
     }
 
@@ -215,16 +221,17 @@ impl BitBoard {
 
 impl BitBoard {
     // Performs a parallel bits extract (pext) using the intrinsic (fast).
-    #[cfg(target_feature = "bmi2")]
+    #[cfg(all(target_arch = "x86_64", target_feature = "bmi2"))]
     #[inline]
     pub(crate) fn pext(self, mask: BitBoard) -> BitBoard {
+        // SAFE: arch and flags checked
         BitBoard(unsafe {
             std::arch::x86_64::_pext_u64(self.0, mask.0)
         })
     }
 
     // Performs a parallel bits extract (pext) without the intrinsic (slow).
-    #[cfg(not(target_feature = "bmi2"))]
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "bmi2")))]
     #[inline]
     pub(crate) fn pext(self, mut mask: BitBoard) -> BitBoard {
         let (mut i, mut res) = (0, 0);
@@ -242,16 +249,17 @@ impl BitBoard {
     }
 
     // Performs a parallel bits deposit (pdep) using the intrinsic (fast).
-    #[cfg(target_feature = "bmi2")]
+    #[cfg(all(target_arch = "x86_64", target_feature = "bmi2"))]
     #[inline]
     pub(crate) fn pdep(self, mask: BitBoard) -> BitBoard {
+        // SAFE: arch and flags checked
         BitBoard(unsafe {
             std::arch::x86_64::_pdep_u64(self.0, mask.0)
         })
     }
 
     // Performs a parallel bits deposit (pdep) without the intrinsic (slow).
-    #[cfg(not(target_feature = "bmi2"))]
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "bmi2")))]
     #[inline]
     pub(crate) fn pdep(self, mut mask: BitBoard) -> BitBoard {
         let (mut i, mut res) = (0, 0);
@@ -299,8 +307,9 @@ impl From<Square> for BitBoard {
     /// Returns the bitboard containing only that square.
     #[inline]
     fn from(sq: Square) -> BitBoard {
+        // SAFE: 0 <= usize::from(sq) < 64
         unsafe {
-            SHIFTS[usize::from(sq)]
+            *SHIFTS.get_unchecked(usize::from(sq))
         }
     }
 }

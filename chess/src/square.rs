@@ -91,6 +91,19 @@ impl Square {
     }
 }
 
+impl Square {
+    /// Creates a square from a number in 0..64. Assumes i is in that range.
+    pub(crate) unsafe fn from_unchecked(i: i8) -> Square {
+        *Square::SQUARES.get_unchecked(i as usize)
+    }
+
+    /// Creates a square from a pair of coordinates, each in 0..8.
+    // Assumes x and y are in that range
+    pub(crate) unsafe fn from_xy_unchecked(x: i8, y: i8) -> Square {
+        *Square::SQUARES.get_unchecked((x + 8*y) as usize)
+    }
+}
+
 // ================================ traits impl
 
 impl fmt::Display for Square {

@@ -110,13 +110,19 @@ impl Move {
     /// Returns the from square of the move.
     #[inline]
     pub fn from(self) -> Square {
-        Square::from((self.0 >> 5 & 0x3F) as i8)
+        // SAFE: 0 <= argument < 64
+        unsafe {
+            Square::from_unchecked((self.0 >> 5 & 0x3F) as i8)
+        }
     }
 
     /// Returns the to square of the move.
     #[inline]
     pub fn to(self) -> Square {
-        Square::from((self.0 >> 11 & 0x3F) as i8)
+        // SAFE: 0 <= argument < 64
+        unsafe {
+            Square::from_unchecked((self.0 >> 11 & 0x3F) as i8)
+        }
     }
 
     #[inline]
@@ -127,13 +133,19 @@ impl Move {
     /// Returns the capture piece of the move.
     #[inline]
     pub fn get_capture(self) -> Piece {
-        Piece::from((self.0 >> 17 & 0x7) as u8)
+        // SAFE: 0 <= argument < 6
+        unsafe {
+            Piece::from_unchecked((self.0 >> 17 & 0x7) as u8)
+        }
     }
 
     /// Returns the promote piece of the move.
     #[inline]
     pub fn get_promote(self) -> Piece {
-        Piece::from((self.0 >> 20 & 0x7) as u8)
+        // SAFE: 0 <= argument < 6
+        unsafe {
+            Piece::from_unchecked((self.0 >> 20 & 0x7) as u8)
+        }
     }
 }
 

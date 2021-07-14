@@ -81,7 +81,7 @@ impl From<(Color, Piece, Square)> for Zobrist {
     #[inline]
     fn from((color, piece, sq): (Color, Piece, Square)) -> Zobrist {
         unsafe {
-            KEYS[usize::from(sq)][usize::from(piece)][usize::from(color)]
+            *KEYS.get_unchecked(usize::from(sq)).get_unchecked(usize::from(piece)).get_unchecked(usize::from(color))
         }
     }
 }

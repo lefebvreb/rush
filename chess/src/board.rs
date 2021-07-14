@@ -57,7 +57,10 @@ impl Occupancy {
     /// The colored occupancy bitboards.
     #[inline]
     pub fn colored(&self, color: Color) -> BitBoard {
-        self.colored[usize::from(color)]
+        // SAFE: 0 <= usize::from(color) < 2
+        unsafe {
+            *self.colored.get_unchecked(usize::from(color))
+        }
     }
 
     /// The free squares of the board.
@@ -136,13 +139,19 @@ impl Board {
     /// Gets the bitboard corresponding to that color and piece type.
     #[inline]
     pub fn get_bitboard(&self, color: Color, piece: Piece) -> BitBoard {
-        self.bitboards[usize::from(color)][usize::from(piece)]
+        // SAFE: 0 <= usize::from(color) < 2 and 0 <= usize::from(piece) < 6
+        unsafe {
+            *self.bitboards.get_unchecked(usize::from(color)).get_unchecked(usize::from(piece))
+        }
     }
 
     /// Gets the (maybe) piece and it's color at that square.
     #[inline]
     pub fn get_piece(&self, sq: Square) -> Option<(Color, Piece)> {
-        self.mailbox[usize::from(sq)]
+        // SAFE: 0 <= usize::from(sq) < 64
+        unsafe {
+            *self.mailbox.get_unchecked(usize::from(sq))
+        }
     }
 
     /// Returns the occupancy object associated to that board.
@@ -312,8 +321,11 @@ impl Board {
                     let ep_square = self.get_ep_square().unwrap();
 
                     // The ep square must be between the move's squares.
-                    return ep_square == Square::from((to.x(), from.y())) &&
-                        attacks::pawn(color, from).contains(to);
+                    // SAFE: 0 <= to.x() < 8 and 0 <= from.y() < 8
+                    verify!(ep_square == unsafe {Square::from_xy_unchecked(to.x(), from.y())});
+
+                    // It is a valid pawn attack too.
+                    return attacks::pawn(color, from).contains(to);
                 } else {
                     // If the move is a promotion, it must go to the first or last rank.
                     verify!(to.y() == 0 || to.y() == 7 || !mv.is_promote());
