@@ -220,7 +220,8 @@ impl Board {
         if halfmoves >= 50 {
             return Status::Draw;
         } else if halfmoves >= 3 {
-            let repetitions = self.prev_states.iter()
+            let repetitions = self.prev_states.iter().rev()
+                .take(usize::from(self.get_halfmove()))
                 .filter(|state| state.zobrist == self.state.zobrist)
                 .count();
 
@@ -527,6 +528,10 @@ impl Board {
     /// Efficiently tests for an upcoming repetition on the line,
     /// using cuckoo hashing.
     pub fn test_upcoming_repetition(&self) -> bool {
+        if self.get_halfmove() < 4 {
+            return false;
+        }
+
         let cur_zobrist = self.state.zobrist;
         let nth_zobrist = |n: u8| {
             self.prev_states[self.prev_states.len() - usize::from(n)].zobrist
@@ -534,7 +539,8 @@ impl Board {
 
         let mut other = !(cur_zobrist ^ nth_zobrist(1));
 
-        for d in (3..=self.get_halfmove()).step_by(2) {
+        let n = 1 + usize::from(self.get_halfmove()).min(self.prev_states.len()) as u8;
+        for d in (3..n).step_by(2) {
             other ^= !(nth_zobrist(d-1) ^ nth_zobrist(d));
 
             if other != Zobrist::ZERO {

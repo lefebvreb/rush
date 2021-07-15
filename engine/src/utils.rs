@@ -8,7 +8,7 @@ use chess::square::Square;
 // 50 move rule or an incoming threefold repetition.
 #[inline]
 pub(crate) fn is_pseudo_draw(board: &Board, alpha: f32, root: bool) -> bool {
-    board.get_halfmove() >= 100 || (!root && alpha < 0.0 &&  board.get_halfmove() >= 3 && board.test_upcoming_repetition())
+    board.get_halfmove() >= 100 || (!root && alpha < 0.0 && board.test_upcoming_repetition())
 }
 
 // Returns true if the board can be considered in endgame.

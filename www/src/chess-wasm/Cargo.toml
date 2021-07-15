@@ -12,9 +12,7 @@ wasm-opt = ['-Os']
 [dependencies.chess]
 path = "../../../chess"
 
-[dependencies.engine]
-path = "../../../engine"
-
 [dependencies]
+js-sys = "*"
 wasm-bindgen = "0.2.74"
 wee_alloc = "0.4.5"

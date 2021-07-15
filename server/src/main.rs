@@ -8,11 +8,11 @@ async fn main() {
     // Initialize the chess library.
     chess::init();
 
-    // for index.html
+    // For index.html.
     let index = warp::get()
         .and(warp::fs::dir("www/public"));
 
-    // for wasm files
+    // For wasm files.
     let assets = warp::path("assets")
         .and(warp::fs::dir("www/public/build/assets"));
 

@@ -17,7 +17,7 @@ export default {
 		name: 'chess_engine_client',
 		format: 'iife',
 		sourcemap: true,
-		file: 'public/build/bundle.js'
+		file: 'public/build/bundle.js',
 	},
 	// Plugins used.
 	plugins: [
@@ -30,26 +30,17 @@ export default {
 		}),
 		// Single css file, better performance.
 		css({ output: 'bundle.css' }),
+		// For the chess-wasm crate.
+		rust(),
 		// For npm external dependencies.
 		resolve({
 			browser: true,
 			dedupe: ['svelte']
 		}),
 		commonjs(),
-
-		// In dev mode, call `npm run start` once
-		// the bundle has been generated
-		//!production && serve(),
-
-		// Watch the `public` directory and refresh the
-		// browser on changes when not in production
+		// When in dev mode, watch src and live reload.
 		!production && livereload('public'),
-
-		// If we're building for production (npm run build
-		// instead of npm run dev), minify
+		// When in production, minify.
 		production && terser(),
-
-		// For the chess-wasm crate.
-		rust()
 	],
 };
