@@ -1,12 +1,3 @@
-<!-- Meta -->
-
-<svelte:head>
-    <title>Chess Engine Client</title>
-    <meta charset="UTF-8">
-    <meta name="description" content="Chess Engine Client">
-    <meta name="author" content="Benjamin Lefebvre">
-</svelte:head>
-
 <!-- Scripts -->
 
 <script>

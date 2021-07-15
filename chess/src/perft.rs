@@ -1,28 +1,28 @@
-// The goal of this binary is to be used by perftree (https://github.com/agausmann/perftree)
-// to help debug the move generator. 
-// It can also be used for profiling.
-//
-// Usage: 
-//   $ ./perft <depth> <fen> <moves>
-//     <depth> : The depth at which the perft needs to be carried.
-//     <fen>   : the fen string to be used, put it into quotes.
-//     <moves> : (optional) a list of space seperated moves, in pure algebraic
-//               coordinates notation, to be performed before node counting.
-//               Needs to be a single arguments, use quotes.
-//
-// Ex:
-//   $ ./perft -- 3 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-//
-// For profiling with perf:
-//   $ cargo build --bin perft --release
-//   $ perf record --call-graph dwarf target/release/perft 3 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-//   $ perf report
-
 use std::env;
 use std::str::FromStr;
 use std::thread;
 
 use chess::prelude::*;
+
+/// The usage/help of this binary.
+const USAGE: &str = r#"The goal of this binary is to be used by perftree (https://github.com/agausmann/perftree) and to help debug the move generator.
+It can also be used for profiling.
+
+Usage: 
+  ./target/release/perft <depth> <fen> <moves>
+    <depth> : The depth at which the perft needs to be carried.
+    <fen>   : the fen string to be used, put it into quotes.
+    <moves> : (optional) a list of space seperated moves, in pure algebraic
+               coordinates notation, to be performed before node counting.
+               Needs to be a single arguments, use quotes.
+
+Example:
+  ./target/release/perft 3 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+For profiling with perf:
+  cargo build --bin perft --release
+  perf record --call-graph dwarf target/release/perft 3 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  perf report"#;
 
 // The perft algorithm, counting the number of leaf nodes.
 fn perft(board: &mut Board, depth: usize) -> u64 {
@@ -52,22 +52,51 @@ fn main() {
     let mut args = env::args();
     
     // Executable path.
-    args.next().unwrap();
+    args.next().expect("Can't get executable path.");
 
-    // Perft depth.
-    let depth = usize::from_str(&args.next().expect("Cannot find depth argument")).expect("Cannot parse depth");
-    assert!(depth > 0, "Depth should be at least one");
-    assert!(depth <= 12, "Exceeded maximum depth of twelve");
+    // Parse depth.
+    let arg = args.next();
+    if arg.is_none() {
+        println!("{}", USAGE);
+        return;
+    }
+    let depth = match usize::from_str(arg.unwrap().as_str()) {
+        Ok(n) => n,
+        Err(err) => {
+            println!("{}", err);
+            return;
+        }
+    };
+    if !(1..12).contains(&depth) {
+        println!("<depth>, must be comprised between 1 and 12 inclusive.");
+        return;
+    }
 
     // fen position.
-    let fen = args.next().expect("Cannot find fen argument");
-    let mut board = Board::new(&fen).expect("Cannot parse fen");
+    let arg = args.next();
+    if arg.is_none() {
+        println!("{}", USAGE);
+        return;
+    }
+    let fen = arg.unwrap();
+    let mut board = match Board::new(&fen) {
+        Ok(board) => board,
+        Err(err) => {
+            println!("{}", err);
+            return;
+        }
+    };
 
-    // Moves to apply
-    if args.len() != 0 {
-        for s in args.next().unwrap().split(' ') {
-            let mv = board.parse_move(s).expect("Could not parse move");
-            board.do_move(mv);
+    // Moves to apply.
+    if let Some(arg) = args.next() {
+        for s in arg.split(' ') {
+            match board.parse_move(s) {
+                Ok(mv) => board.do_move(mv),
+                Err(err) => {
+                    println!("{}", err);
+                    return;
+                }
+            };
         }
     }
 
