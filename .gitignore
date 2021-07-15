@@ -6,7 +6,8 @@ Cargo.lock
 node_modules
 package-lock.json
 www/public/build
-www/public/wasm
+www/public/chess
+*.wasm
 
 # Profiling data.
 perf.data*
@@ -14,3 +15,4 @@ perf.data*
 # Temporary files.
 /tmp
 log.txt
+__www

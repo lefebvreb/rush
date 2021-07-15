@@ -3,7 +3,7 @@ members = [
 	"chess",
 	"engine",
 	"server",
-	"www/chess-wasm",
+	"www/src/chess-wasm",
 ]
 default-members = [
 	"chess",
