@@ -15,9 +15,10 @@
 	import {onMount} from "svelte";
 	
 	onMount(() => {
-        let {start} = chess;
-        start();
+        // Initialize the chess library.
+        chess.start();
 
+        console.log("ici");
         // TODO: everything else.
 	});
 </script>

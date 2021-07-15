@@ -1,13 +1,4 @@
-extern crate wasm_bindgen;
-extern crate wee_alloc;
-
-extern crate chess;
-extern crate engine;
-
 use wasm_bindgen::prelude::*;
-
-// The JsChess type.
-mod jschess;
 
 // Use the wee_alloc allocator instead of the std one to save space.
 #[global_allocator]

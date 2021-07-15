@@ -1,58 +1,36 @@
-import svelte from 'rollup-plugin-svelte';
 import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
-import livereload from 'rollup-plugin-livereload';
-import { terser } from 'rollup-plugin-terser';
-import css from 'rollup-plugin-css-only';
 import rust from "@wasm-tool/rollup-plugin-rust";
+import css from 'rollup-plugin-css-only';
+import livereload from 'rollup-plugin-livereload';
+import svelte from 'rollup-plugin-svelte';
+import {terser} from 'rollup-plugin-terser';
 
+// true when in production mode.
 const production = !process.env.ROLLUP_WATCH;
 
-function serve() {
-	let server;
-
-	function toExit() {
-		if (server) server.kill(0);
-	}
-
-	return {
-		writeBundle() {
-			if (server) return;
-			server = require('child_process').spawn('npm', ['run', 'start'], {
-				stdio: ['ignore', 'inherit', 'inherit'],
-				shell: true
-			});
-
-			process.on('SIGTERM', toExit);
-			process.on('exit', toExit);
-		}
-	};
-}
-
 export default {
+	// Name of the main file.
 	input: 'src/main.js',
+	// Output parameters.
 	output: {
 		name: 'chess_engine_client',
 		format: 'iife',
 		sourcemap: true,
 		file: 'public/build/bundle.js'
 	},
+	// Plugins used.
 	plugins: [
+		// Includes svelte files.
 		svelte({
 			compilerOptions: {
-				// enable run-time checks when not in production
+				// enable run-time checks when not in production.
 				dev: !production
 			}
 		}),
-		// we'll extract any component CSS out into
-		// a separate file - better for performance
+		// Single css file, better performance.
 		css({ output: 'bundle.css' }),
-
-		// If you have external dependencies installed from
-		// npm, you'll most likely need these plugins. In
-		// some cases you'll need additional configuration -
-		// consult the documentation for details:
-		// https://github.com/rollup/plugins/tree/master/packages/commonjs
+		// For npm external dependencies.
 		resolve({
 			browser: true,
 			dedupe: ['svelte']
@@ -61,7 +39,7 @@ export default {
 
 		// In dev mode, call `npm run start` once
 		// the bundle has been generated
-		!production && serve(),
+		//!production && serve(),
 
 		// Watch the `public` directory and refresh the
 		// browser on changes when not in production
@@ -71,9 +49,7 @@ export default {
 		// instead of npm run dev), minify
 		production && terser(),
 
+		// For the chess-wasm crate.
 		rust()
 	],
-	watch: {
-		clearScreen: false
-	}
 };

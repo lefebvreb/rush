@@ -4,7 +4,7 @@ import chess_wasm from "./chess-wasm/Cargo.toml"
 (async () => {
 	const chess = await chess_wasm();
 
-	const app = new App({
+	new App({
 		target: document.body,
 		props: {
 			chess: chess,
