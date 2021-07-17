@@ -133,14 +133,14 @@ impl BitBoard {
         // SAFE: self is not null at that point. Plus a bit's position is always < 64.
         (0..self.0.count_ones()).map(move |_| unsafe {
             let non_zero_self = NonZeroU64::new_unchecked(self.0);
-            let lsb = non_zero_self.trailing_zeros();
+            let lsb = non_zero_self.trailing_zeros() as i8;
             self &= self - BitBoard(1);
-            Square::from_unchecked(lsb as i8)
+            Square::from_unchecked(lsb)
         })
     }
 
-    // Returns the first square of the bitboard, with no checks.
-    // Assumes the bitboard is not empty.
+    /// Returns the first square of the bitboard, with no checks.
+    /// Assumes the bitboard is not empty.
     #[inline]
     pub unsafe fn as_square_unchecked(self) -> Square {
         let non_zero_self = NonZeroU64::new_unchecked(self.0);

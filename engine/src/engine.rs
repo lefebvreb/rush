@@ -128,47 +128,55 @@ pub struct Engine {
 impl Engine {
     /// Initializes a new chess engine, working on a board.
     pub fn new(board: Board) -> Engine {
+        // Construct the initial info object.
+        let info = Arc::new(GlobalInfo {
+            barrier: Barrier::new(params::NUM_SEARCH_THREAD + 1),
+            searching: AtomicBool::new(false),
+            stop: AtomicBool::new(false),
+            
+            table: TranspositionTable::new(),
+            search_depth: AtomicU8::new(0),
+            search_id: AtomicU8::new(0),
+            best_move: AtomicMove::default(),
+
+            board: RwLock::new(board),
+        });
+
+        // Initializes the thread pool.
+        let handles = (0..params::NUM_SEARCH_THREAD).map(|_| {
+            let info = info.clone();
+
+            thread::spawn(move || {
+                let mut search = Search::new(info);
+                search.thread_main();
+            })
+        }).collect();
+
         Engine {
-            info: Arc::new(GlobalInfo {
-                barrier: Barrier::new(params::NUM_SEARCH_THREAD + 1),
-                searching: AtomicBool::new(false),
-                stop: AtomicBool::new(false),
-                
-                table: TranspositionTable::new(),
-                search_depth: AtomicU8::new(0),
-                search_id: AtomicU8::new(0),
-                best_move: AtomicMove::default(),
-    
-                board: RwLock::new(board),
-            }),
-            handles: Vec::new(),
+            info,
+            handles,
         }
     }
 
+    /// Returns true if the engine is currently thinking.
+    pub fn is_thinking(&self) -> bool {
+        self.info.is_searching()
+    }
+
     /// Starts the engine and begins thinking for the next best move.
-    pub fn start(&mut self) {
+    /// Returns false if the engine was already thinking.
+    pub fn start(&self) -> bool {
         // If already searching, return.
         if self.info.is_searching() {
-            return;
-        }
-
-        // If not done already, spawn the threads.
-        // This make thread spawning the threads a lazy operation.
-        if self.handles.is_empty() {
-            for _ in 0..params::NUM_SEARCH_THREAD {
-                let info = self.info.clone();
-    
-                self.handles.push(thread::spawn(move || {
-                    let mut search = Search::new(info);
-                    search.thread_main();
-                }));
-            }
+            return false;
         }
 
         // Set the searching flag and wait at the barrier with 
         // the other threads that are already waiting.
         self.info.searching.store(true, Ordering::Release);
         self.info.wait();
+
+        true
     }
 
     /// Stops the engine if it is searching.

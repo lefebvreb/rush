@@ -1,11 +1,14 @@
+#![allow(dead_code, unused_variables)]
+
 use std::env::args;
-use std::num::ParseIntError;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use anyhow::Result;
 use warp::Filter;
 
 mod game;
+mod protocol;
 mod sockets;
 
 use crate::sockets::State;
@@ -14,16 +17,13 @@ use crate::sockets::State;
 const DEFAULT_PORT: u16 = 5050;
 
 // Tries to parse the port from the program's arguments.
-fn parse_port() -> Result<u16, ParseIntError> {
+fn parse_port() -> Result<u16> {
     // Get the program arguments.
     let mut args = args();
     // Extract the executable's path.
     args.next().expect("Cannot get executable's path.");
     // Get and parse port.
-    match args.next() {
-        Some(s) => u16::from_str(s.as_str()),
-        _ => Ok(DEFAULT_PORT),
-    }
+    args.next().map_or(Ok(DEFAULT_PORT), |s| Ok(u16::from_str(s.as_str())?))
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -40,7 +40,7 @@ async fn main() {
     // Initializes the chess library.
     chess::init();
 
-    // Creates our spckets object and converts it into a warp filter.
+    // Creates our state object and converts it into a warp filter.
     let state = Arc::new(State::new());
     let state = warp::any().map(move || state.clone());
 
