@@ -10,5 +10,7 @@ path = "../chess"
 path = "../engine"
 
 [dependencies]
+futures = "0.3.15"
+tokio = {version = "1.8.1", features = ["macros", "io-util", "rt-multi-thread"]}
+tokio-stream = "0.1.7"
 warp = "0.3.1"
-tokio = {version = "*", features = ["macros", "io-util", "rt-multi-thread"]}

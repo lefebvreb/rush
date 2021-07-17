@@ -290,7 +290,7 @@ impl Board {
                 }
             }
         } else if from == self.king_sq() {
-            let new_occ = self.get_occupancy().all() ^ (BitBoard::from(from) | BitBoard::from(to));
+            let new_occ = (self.get_occupancy().all() | BitBoard::from(to)) ^ BitBoard::from(from);
             // If the move is done by the king, check the square it is moving to is safe.
             return self.attackers_to(to, new_occ).empty();
         }
