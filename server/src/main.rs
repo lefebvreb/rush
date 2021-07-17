@@ -26,7 +26,7 @@ fn parse_port() -> Result<u16, ParseIntError> {
     }
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() {
     // Parse the port.
     let port = match parse_port() {
