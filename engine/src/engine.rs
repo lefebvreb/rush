@@ -164,19 +164,16 @@ impl Engine {
     }
 
     /// Starts the engine and begins thinking for the next best move.
-    /// Returns false if the engine was already thinking.
-    pub fn start(&self) -> bool {
+    pub fn start(&self) {
         // If already searching, return.
         if self.info.is_searching() {
-            return false;
+            return;
         }
 
         // Set the searching flag and wait at the barrier with 
         // the other threads that are already waiting.
         self.info.searching.store(true, Ordering::Release);
         self.info.wait();
-
-        true
     }
 
     /// Stops the engine if it is searching.
