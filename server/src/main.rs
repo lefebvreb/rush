@@ -8,10 +8,10 @@ use anyhow::{Error, Result};
 use warp::Filter;
 
 mod game;
-mod protocol;
+mod messages;
 mod sockets;
 
-use crate::sockets::State;
+use crate::sockets::Sockets;
 
 // The default port the server listens on.
 const DEFAULT_PORT: u16 = 5050;
@@ -41,35 +41,35 @@ async fn main() {
     chess::init();
 
     // Creates our state object and converts it into a warp filter.
-    let state = {
-        let state = State::new();
-        warp::any().map(move || state.clone())
+    let sockets = {
+        let sockets = Sockets::new();
+        warp::any().map(move || sockets.clone())
     };
 
     // Creates the routing of our app.
     let routes = {
-        // For getting the websocket.
-        let socket = warp::path("ws")
+        // For getting the websocket resource.
+        let ws = warp::path("ws")
         .and(warp::ws())
-        .and(state)
-        .map(|ws: warp::ws::Ws, state: Arc<State>| {
+        .and(sockets)
+        .map(|ws: warp::ws::Ws, state: Arc<Sockets>| {
             ws.on_upgrade(move |socket| {
                 state.handle_connection(socket)
             })
         });
 
         // For wasm files.
-        let assets = warp::path("assets")
+        let wasm = warp::path("assets")
             .and(warp::fs::dir("www/public/build/assets"));
 
         // For index.html.
         let index = warp::get()
             .and(warp::fs::dir("www/public"));
 
-        index.or(assets).or(socket)
+        index.or(wasm).or(ws)
     };
 
-    // Launches the server, printing the running port.
+    // Launches the server, printing the used port.
     println!("Launching server @ http://localhost:{}", port);
     warp::serve(routes)
         .run(([127, 0, 0, 1], port))

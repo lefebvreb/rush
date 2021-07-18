@@ -4,13 +4,14 @@ use warp::ws::Message;
 
 //#################################################################################################
 //
-//                                         struct ClientMessage
+//                                         enum Command
 //
 //#################################################################################################
 
 // A struct representing a parsed message from a client.
 #[derive(Debug)]
 pub enum Command {
+    Welcome(usize),
     Play(String),
     Think(f64),
     Stop,
@@ -49,5 +50,21 @@ impl Command {
             "redo" => Self::Redo,
             _ => return Err(Error::msg("Invalid message kind")),
         })
+    }
+}
+
+//#################################################################################################
+//
+//                                         enum Response
+//
+//#################################################################################################
+
+// An enum representing the possible responses of the game state.
+#[derive(Debug)]
+pub enum Response {
+    Broadcast(Message),
+    Send {
+        dest: usize,
+        msg: Message,
     }
 }

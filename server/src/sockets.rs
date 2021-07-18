@@ -10,7 +10,7 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::Message;
 
 use crate::game::Game;
-use crate::protocol::Command;
+use crate::messages::{Command, Response};
 
 //#################################################################################################
 //
@@ -20,7 +20,7 @@ use crate::protocol::Command;
 
 // Manages the different connections, as well as the state of the server.
 #[derive(Debug)]
-pub struct State {
+pub struct Sockets {
     // The atomic counter keeping trace of wich ids have been attributed already.
     next_uid: AtomicUsize,
     // The shared hashmap containing all of our sinks.
@@ -31,25 +31,32 @@ pub struct State {
 
 // ================================ pub impl
 
-impl State {
+impl Sockets {
     // Creates a new Socket object, managing all connections.
     pub fn new() -> Arc<Self> {
+        // Create channels to communicate with the game state.
         let (tx, mut game_rx) = mpsc::unbounded_channel();
         let game_tx = Game::new(tx);
 
+        // Construct the state object.
         let state = Arc::new(Self {
             next_uid: AtomicUsize::new(0),
             senders: RwLock::new(HashMap::new()),
             game_tx,
         });
 
+        // Copy a reference to this state object and create a task forwarding
+        // messages from the game state to the web.
         let state_cpy = state.clone();
         tokio::spawn(async move {
             let state = state_cpy;
 
+            // While receiving messages from the game state, forward them
+            // according to it's demands.
             while let Some(res) = game_rx.recv().await {
                 match res {
-                    Ok(msg) => state.broadcast(msg).await,
+                    Ok(Response::Broadcast(msg)) => state.broadcast(msg).await,
+                    Ok(Response::Send{dest, msg}) => state.send(dest, msg).await,
                     Err(e) => eprintln!("{}", e),
                 }
             }
@@ -82,6 +89,9 @@ impl State {
             }));
         }
 
+        // Request the game state to send the welcome message to the new client.
+        self.game_tx.send(Command::Welcome(uid)).ok();
+
         // Listen for incoming messages from the web.
         while let Some(res) = rx.next().await {
             match res {
@@ -109,13 +119,13 @@ impl State {
 
 // ================================ impl
 
-impl State {
-    /*// Sends a message to a specified client, if it is still connected.
+impl Sockets {
+    // Sends a message to a specified client, if it is still connected.
     async fn send(&self, uid: usize, msg: Message) {
         if let Some(tx) = self.senders.read().await.get(&uid) {
             tx.send(Ok(msg)).ok();
         }
-    }*/
+    }
 
     // Broadcasts a message to all connected clients.
     async fn broadcast(&self, msg: Message) {
@@ -124,49 +134,10 @@ impl State {
         }
     }
 
+    // Upon receiving a message from a client, parses it and forwards to the game state.
     fn on_message(&self, msg: Message) -> Result<()> {
         let command = Command::from_msg(msg)?;
         self.game_tx.send(command)?;
         Ok(())
     }
-
-    /*// Called when a new message is received.
-    async fn on_message(&self, uid: usize, msg: Message) -> Result<()> {
-        let msg = ClientMessage::from_msg(msg)?;
-
-        let mut game = self.game.lock().await;
-
-        match msg {
-            ClientMessage::All => {
-                self.send(uid, game.on_all()).await;
-            },
-            ClientMessage::Play(s) => {
-                self.broadcast(game.on_play(s.as_str())?).await;
-            },
-            ClientMessage::Think(seconds) => {
-                tokio::spawn(async move {
-                    tokio::time::sleep(Duration::from_secs_f32(seconds)).await;
-                    if let Ok(msg) = self.game.lock().await.on_stop() {
-                        self.broadcast(msg).await;
-                    }
-                });
-
-                self.broadcast(game.on_think()?).await;
-            },
-            ClientMessage::Stop => {
-                self.broadcast(self.game.lock().await.on_stop()?).await;
-            },
-            ClientMessage::Do => {
-                self.broadcast(self.game.lock().await.on_do()?).await;
-            },
-            ClientMessage::Undo => {
-                self.broadcast(self.game.lock().await.on_undo()?).await;
-            },
-            ClientMessage::Redo => {
-                self.broadcast(self.game.lock().await.on_redo()?).await;
-            },
-        }
-
-        Ok(())
-    }*/
 }

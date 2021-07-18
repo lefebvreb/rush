@@ -1,20 +1,23 @@
+use std::time::Duration;
+
 use anyhow::{Error, Result};
 use chess::prelude::*;
 use engine::Engine;
+use serde_json::{json, Value};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use warp::ws::Message;
 
-use crate::protocol::Command;
+use crate::messages::{Command, Response};
 
 // The fen used for the default position.
 const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 // Makes a warp::ws::Message from a serde_json::json! input.
-/*macro_rules! msg {
-    ($($json:tt)+) => {
-        Message::text(serde_json::json!($($json)+).to_string())
+macro_rules! msg {
+    {$($json:tt)*} => {
+        Message::text(json!({$($json)*}).to_string())
     }
-}*/
+}
 
 //#################################################################################################
 //
@@ -31,6 +34,8 @@ struct History {
     cursor: usize,
 }
 
+// ================================ impl
+
 impl History {
     // Creates a new empty move history.
     fn new() -> Self {
@@ -41,13 +46,22 @@ impl History {
         }
     }
 
-    // Pushes a new move to the history, losing all
-    // undoed moves.
+    // Pushes a new move to the history, losing all undoed moves.
     fn push(&mut self, mv: Move) {
+        // If we are not at the end of the timeline.
         if self.cursor != self.moves.len() {
+            // Turns out the move has already been done in the past future, redo it.
+            if mv == self.moves[self.cursor] {
+                self.redo().ok();
+                return;
+            }
+
+            // Throw out all future moves, we are changing timeline.
             self.moves.truncate(self.cursor);
             self.strings.truncate(self.cursor);
         }
+
+        // Push a new move.
         self.moves.push(mv);
         self.strings.push(mv.to_string());
         self.cursor += 1;
@@ -55,26 +69,37 @@ impl History {
 
     // Undo a move.
     fn undo(&mut self) -> Result<Move> {
+        // Check there is something to undo.
         if self.cursor == 0 {
             return Err(Error::msg("There is no move to undo"));
         }
+
+        // Decrement the cursor and return that move.
         self.cursor -= 1;
         Ok(self.moves[self.cursor])
     }
 
     // Redo a move.
     fn redo(&mut self) -> Result<Move> {
+        // Check that we are not at the end of the timeline.
         if self.cursor == self.moves.len() {
             return Err(Error::msg("There is no move to redo"));
         }
+
+        // Get the move to redo and increment the cursor.
         let mv = self.moves[self.cursor];
         self.cursor += 1;
         Ok(mv)
     }
+}
 
-    // Gives a slice containing an history of all currently played moves.
-    fn json(&self) -> &[String] {
-        &self.strings[..self.cursor]
+// ================================ traits impl
+
+impl From<&History> for Value {
+    // Converts the history into it's json representation: an array of the 
+    // moves currently played.
+    fn from(history: &History) -> Self {
+        Self::from(&history.strings[..history.cursor])
     }
 }
 
@@ -89,7 +114,7 @@ impl History {
 pub struct Game {
     engine: Engine,
     history: History,
-    self_tx: UnboundedSender<Command>,
+    tx: UnboundedSender<Command>,
 }
 
 // ================================ pub impl
@@ -99,7 +124,7 @@ impl Game {
     // Returns a channel used to pass messages to the game state.
     // Takes a channel in argument, used by the game state to respond
     // to incoming messages.
-    pub fn new(tx: UnboundedSender<Result<Message>>) -> UnboundedSender<Command> {
+    pub fn new(tx: UnboundedSender<Result<Response>>) -> UnboundedSender<Command> {
         // Creates the communication channels used to send messages to the game state.
         let (game_tx, mut game_rx) = mpsc::unbounded_channel();
         let self_tx = game_tx.clone();
@@ -110,7 +135,7 @@ impl Game {
             let mut game = Self {
                 engine: Engine::new(Board::new(DEFAULT_FEN).unwrap()),
                 history: History::new(),
-                self_tx,
+                tx: self_tx,
             };
 
             // While there are incoming messages, process them and respond
@@ -126,135 +151,102 @@ impl Game {
         game_tx
     }
 
-    // Reacts to a given command and return the response.
-    pub fn react(&mut self, command: Command) -> Result<Message> {
-        todo!()
-    }
+    // Reacts to a given command and returns the response.
+    pub fn react(&mut self, command: Command) -> Result<Response> {
+        match command {
+            // On welcoming a new connection, send him the welcome message.
+            Command::Welcome(dest) => {
+                Ok(Response::Send {
+                    dest,
+                    msg: msg!{
+                        "fen": self.engine.read_board().to_string(),
+                        "history": Value::from(&self.history),
+                        "thinking": self.engine.is_thinking(),
+                        "engineMove": self.engine.get_best_move().map_or(Value::Null, |mv| Value::from(mv.to_string())),
+                        "engineDepth": self.engine.get_current_depth(),
+                    },
+                })
+            }
+            // Request to play a move.
+            Command::Play(s) => {
+                // Parses and performs the move.
+                let mv = self.engine.read_board().parse_move(s.as_str()).map_err(|_| Error::msg("Unable to parse move."))?;
+                self.engine.write_board().do_move(mv);
+                self.history.push(mv);
 
-    /*// Returns a global message with all the relevant informations of a given state.
-    pub fn on_all(&self) -> Message {
-        if let Some(mv) = self.engine.get_best_move() {
-            msg!({
-                "fen": self.fen(),
-                "history": self.history(),
-                "draw": self.draw(),
-                "thinking": self.engine.is_thinking(),
-                "engineMove": mv.to_string(),
-                "engineDepth": self.engine.get_current_depth(),
-            })
-        } else {
-            msg!({
-                "fen": self.fen(),
-                "history": self.history(),
-                "draw": self.draw(),
-                "thinking": false,
-                "engineMove": null,
-                "engineDepth": 0,
-            })
+                Ok(Response::Broadcast(msg!{
+                    "doMove": mv.to_string(),
+                    "thinking": false,
+                    "engineMove": null,
+                    "engineDepth": 0,
+                }))
+            },
+            // Request to start the engine for a given amount of seconds.
+            Command::Think(seconds) => {
+                // Starts the engine.
+                if self.engine.is_thinking() {
+                    return Err(Error::msg("Engine is already thinking."));
+                }
+                self.engine.start();
+
+                // Starts a task that will stop the engine later.
+                let tx = self.tx.clone();
+                tokio::spawn(async move {
+                    tokio::time::sleep(Duration::from_secs_f64(seconds)).await;
+                    tx.send(Command::Stop).ok();
+                });
+
+                Ok(Response::Broadcast(msg!{
+                    "thinking": true,
+                }))
+            },
+            // Request to stop the engine.
+            Command::Stop => {
+                self.engine.stop();
+
+                Ok(Response::Broadcast(msg!{
+                    "thinking": false,
+                    "engineMove": self.engine.get_best_move().ok_or(Error::msg("Engine has no best move."))?.to_string(),
+                    "engineDepth": self.engine.get_current_depth(),
+                }))
+            },
+            // Request to perform the engine's preferred move.
+            Command::Do => {
+                let mv = self.engine.get_best_move().ok_or(Error::msg("Engine has no preferred move."))?;
+                self.engine.write_board().do_move(mv);
+                self.history.push(mv);
+
+                Ok(Response::Broadcast(msg!{
+                    "doMove": mv.to_string(),
+                    "thinking": false,
+                    "engineMove": null,
+                    "engineDepth": 0,
+                }))
+            },
+            // Request to undo move.
+            Command::Undo => {
+                let mv = self.history.undo()?;
+                self.engine.write_board().undo_move(mv);
+
+                Ok(Response::Broadcast(msg!{
+                    "undoMove": self.engine.read_board().to_string(),
+                    "thinking": false,
+                    "engineMove": null,
+                    "engineDepth": 0,
+                }))
+            },
+            // Request to redo the last undoed move.
+            Command::Redo => {
+                let mv = self.history.redo()?;
+                self.engine.write_board().do_move(mv);
+
+                Ok(Response::Broadcast(msg!{
+                    "doMove": mv.to_string(),
+                    "thinking": false,
+                    "engineMove": null,
+                    "engineDepth": 0,
+                }))
+            },
         }
     }
-
-    // Stops the engine.
-    pub fn on_stop(&self) -> Result<Message> {
-        if self.engine.is_thinking() {
-            self.engine.stop();
-            Ok(msg!({
-                "thinking": false,
-            }))
-        } else {
-            Err(Error::msg("Engine isn't thinking."))
-        }        
-    }
-
-    // Tries to parse and play the given move.
-    pub fn on_play(&mut self, s: &str) -> Result<Message> {
-        let mv = self.engine.read_board()
-            .parse_move(s)
-            .map_err(|e| Error::msg(format!("Failed to parse move: \"{}\"", s)))?;
-
-        Ok(self.do_move(mv))
-    }
-
-    // Starts the engine for the given amount of seconds.
-    pub fn on_think(&self) -> Result<Message> {
-        if self.engine.is_thinking() {
-            Err(Error::msg("Engine is already thinking."))
-        } else {
-            self.engine.start();
-            Ok(msg!({
-                "thinking": true,
-            }))
-        }
-    }
-
-    // Tries to get the engine's favorite move and play it.
-    pub fn on_do(&mut self) -> Result<Message> {
-        let mv = self.engine.get_best_move()
-            .ok_or(Error::msg("Engine has no best move yet"))?;
-        self.do_move(mv);
-
-        Ok(self.do_move(mv))
-    }
-
-    // Undo the last move.
-    pub fn on_undo(&mut self) -> Result<Message> {
-        if self.cursor == 0 {
-            return Err(Error::msg("There is nothing to undo."));
-        }
-
-        self.cursor -= 1;
-        let mv = self.history[self.cursor];
-
-        self.engine.write_board().undo_move(mv);
-
-        Ok(msg!({
-            "undoMove": self.fen(),
-        }))
-    }
-
-    // Redo the last move.
-    pub fn on_redo(&mut self) -> Result<Message> {
-        if self.cursor == self.history.len() {
-            return Err(Error::msg("There is nothing to redo."));
-        }
-
-        let mv = self.history[self.cursor];
-        self.cursor += 1;
-
-        self.engine.write_board().do_move(mv);
-
-        Ok(self.do_move(mv))
-    }*/
-}
-
-// ================================ impl
-
-impl Game {
-    /*// Performs the given move, assumed to be legal, and updates the state.
-    fn do_move(&mut self, mv: Move) -> Message {
-        if self.cursor != self.history.len() {
-            self.history.truncate(self.cursor);
-        }
-        self.history.push(mv);
-        self.cursor += 1;
-
-        let mut board = self.engine.write_board();
-        board.do_move(mv);
-
-        msg!({
-            "doMove": mv.to_string(),
-        })
-    }
-
-    fn fen(&self) -> String {
-        self.engine.read_board().to_string()
-    }
-
-    fn draw(&self) -> bool {
-        matches!(self.engine.read_board().status(), Status::Draw)
-    }
-
-    fn history(&self) -> Vec<String> {
-        self.history.iter().map(|mv| mv.to_string()).collect::<Vec<_>>()
-    }*/
 }
