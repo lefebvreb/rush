@@ -2,7 +2,6 @@ import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
 import rust from "@wasm-tool/rollup-plugin-rust";
 import css from 'rollup-plugin-css-only';
-import livereload from 'rollup-plugin-livereload';
 import svelte from 'rollup-plugin-svelte';
 import {terser} from 'rollup-plugin-terser';
 
@@ -24,22 +23,24 @@ export default {
 		// Includes svelte files.
 		svelte({
 			compilerOptions: {
-				// enable run-time checks when not in production.
+				// Enable run-time checks when not in production.
 				dev: !production
 			}
 		}),
 		// Single css file, better performance.
-		css({ output: 'bundle.css' }),
-		// For the chess-wasm crate.
-		rust(),
+		css({
+			output: 'bundle.css'
+		}),
+		// For the chess-wasm crate. Fetch the wasm module in the build directory.
+		rust({
+			serverPath: "/build/"
+		}),
 		// For npm external dependencies.
 		resolve({
 			browser: true,
 			dedupe: ['svelte']
 		}),
 		commonjs(),
-		// When in dev mode, watch src and live reload.
-		!production && livereload('public'),
 		// When in production, minify.
 		production && terser(),
 	],

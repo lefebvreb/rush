@@ -6,7 +6,7 @@ const wasm = chess_wasm();
 const app = new App({
 	target: document.body,
 	props: {
-		wasm: wasm,
+		wasm,
 	},
 });
 

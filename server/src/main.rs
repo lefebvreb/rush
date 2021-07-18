@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_variables)]
-
 use std::env::args;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -50,23 +48,19 @@ async fn main() {
     let routes = {
         // For getting the websocket resource.
         let ws = warp::path("ws")
-        .and(warp::ws())
-        .and(sockets)
-        .map(|ws: warp::ws::Ws, state: Arc<Sockets>| {
-            ws.on_upgrade(move |socket| {
-                state.handle_connection(socket)
-            })
-        });
+            .and(warp::ws())
+            .and(sockets)
+            .map(|ws: warp::ws::Ws, state: Arc<Sockets>| {
+                ws.on_upgrade(move |socket| {
+                    state.handle_connection(socket)
+                })
+            });
 
-        // For wasm files.
-        let wasm = warp::path("assets")
-            .and(warp::fs::dir("www/public/build/assets"));
-
-        // For index.html.
-        let index = warp::get()
+        // For files.
+        let public = warp::get()
             .and(warp::fs::dir("www/public"));
 
-        index.or(wasm).or(ws)
+        public.or(ws)
     };
 
     // Launches the server, printing the used port.

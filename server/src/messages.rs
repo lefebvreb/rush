@@ -25,7 +25,7 @@ pub enum Command {
 impl Command {
     // Tries to parse a command from a warp message.
     pub fn from_msg(msg: Message) -> Result<Self> {
-        let data = msg.to_str().map_err(|err| Error::msg("Incoming message is not text."))?;
+        let data = msg.to_str().map_err(|_| Error::msg("Incoming message is not text."))?;
         let json: Value = serde_json::from_str(data)?;
 
         let obj = json.as_object().ok_or(Error::msg("Json value is not an object."))?;

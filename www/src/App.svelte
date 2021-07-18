@@ -6,30 +6,21 @@
 	import {onMount} from "svelte";
 	
 	onMount(async () => {
-        let lib = await wasm;
-        // Initialize the chess library.
-        lib.start();
+        const lib = await wasm;
 
         console.log("Chess initialized");
 
         const chess = new lib.Chess("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-        console.log(chess.fen);
+        console.log(chess.getFen());
 
-        const legals = chess.getLegalMoves();
+        let legals = chess.getLegalMoves();
         console.log(legals);
 
-        let total = 0;
-        for (let move of legals) {
-            chess.play(move);
-            const count = chess.getLegalMoves().size;
-            console.log(`${move} ${count}`);
-            total += count;
-            chess.back();
-        }
-        console.log(`${total}`);
-
         chess.setFen("rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2");
-        console.log(chess.fen);
+        console.log(chess.getFen());
+
+        legals = chess.getLegalMoves();
+        console.log(legals);
 
         // TODO: everything else.
 	});

@@ -166,7 +166,7 @@ impl Game {
                         "engineDepth": self.engine.get_current_depth(),
                     },
                 })
-            }
+            },
             // Request to play a move.
             Command::Play(s) => {
                 // Parses and performs the move.
@@ -202,6 +202,9 @@ impl Game {
             },
             // Request to stop the engine.
             Command::Stop => {
+                if !self.engine.is_thinking() {
+                    return Err(Error::msg("Engine is already stopped."));
+                }
                 self.engine.stop();
 
                 Ok(Response::Broadcast(msg!{

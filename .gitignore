@@ -2,17 +2,12 @@
 target
 Cargo.lock
 
-# npm files.
+# JS files.
 node_modules
 package-lock.json
 www/public/build
-www/public/chess
-*.wasm
-
-# Profiling data.
-perf.data*
 
 # Temporary files.
 /tmp
 log.txt
-__www
+perf.data*
