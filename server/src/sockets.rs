@@ -1,17 +1,16 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::Duration;
 
 use anyhow::Result;
 use futures::{FutureExt, StreamExt};
 use tokio::sync::mpsc::UnboundedSender;
-use tokio::sync::{Mutex, RwLock, mpsc};
+use tokio::sync::{RwLock, mpsc};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::Message;
 
 use crate::game::Game;
-use crate::protocol::ClientMessage;
+use crate::protocol::Command;
 
 //#################################################################################################
 //
@@ -26,21 +25,37 @@ pub struct State {
     next_uid: AtomicUsize,
     // The shared hashmap containing all of our sinks.
     senders: RwLock<HashMap<usize, UnboundedSender<Result<Message, warp::Error>>>>,
-    // The game state. Could use an RwLock here as well but it would just 
-    // complexify things for no good reasons.
-    game: Mutex<Game>,
+    // The game state, which the state communcates with through this channel.
+    game_tx: UnboundedSender<Command>,
 }
 
 // ================================ pub impl
 
 impl State {
     // Creates a new Socket object, managing all connections.
-    pub fn new() -> Self {
-        Self {
+    pub fn new() -> Arc<Self> {
+        let (tx, mut game_rx) = mpsc::unbounded_channel();
+        let game_tx = Game::new(tx);
+
+        let state = Arc::new(Self {
             next_uid: AtomicUsize::new(0),
             senders: RwLock::new(HashMap::new()),
-            game: Mutex::new(Game::new()),
-        }
+            game_tx,
+        });
+
+        let state_cpy = state.clone();
+        tokio::spawn(async move {
+            let state = state_cpy;
+
+            while let Some(res) = game_rx.recv().await {
+                match res {
+                    Ok(msg) => state.broadcast(msg).await,
+                    Err(e) => eprintln!("{}", e),
+                }
+            }
+        });
+
+        state
     }
 
     // Handle a new connections through it's life cycle.
@@ -60,9 +75,9 @@ impl State {
             // React to a message coming from the program by
             // forwarding it through the socket.
             let mpsc_rx = UnboundedReceiverStream::new(mpsc_rx);
-            tokio::task::spawn(mpsc_rx.forward(tx).map(|res| {
-                if let Err(err) = res {
-                    eprintln!("WebSocket send error: {}", err);
+            tokio::spawn(mpsc_rx.forward(tx).map(|res| {
+                if let Err(e) = res {
+                    eprintln!("WebSocket send error: {}", e);
                 }
             }));
         }
@@ -74,14 +89,14 @@ impl State {
                 Ok(msg) => {
                     // If the message was incorrect, send all the state
                     // to the sender, so they can sync back with us.
-                    if let Err(err) = self.on_message(uid, msg).await {
-                        eprintln!("Erroneous order: {}", err);
-                        self.send(uid, self.game.lock().await.on_all()).await;
+                    if let Err(e) = self.on_message(msg) {
+                        eprintln!("Erroneous order: {}", e);
+                        //self.send(uid, self.game.lock().await.on_all()).await;
                     }
                 },
                 // On error, prints it and breaks out of the event loop.
-                Err(err) => {
-                    eprintln!("WebSocket receive error: {}", err);
+                Err(e) => {
+                    eprintln!("WebSocket receive error: {}", e);
                     break;
                 },
             }
@@ -95,12 +110,12 @@ impl State {
 // ================================ impl
 
 impl State {
-    // Sends a message to a specified client, if it is still connected.
+    /*// Sends a message to a specified client, if it is still connected.
     async fn send(&self, uid: usize, msg: Message) {
         if let Some(tx) = self.senders.read().await.get(&uid) {
             tx.send(Ok(msg)).ok();
         }
-    }
+    }*/
 
     // Broadcasts a message to all connected clients.
     async fn broadcast(&self, msg: Message) {
@@ -109,8 +124,14 @@ impl State {
         }
     }
 
-    // Called when a new message is received.
-    async fn on_message(self: &Arc<Self>, uid: usize, msg: Message) -> Result<()> {
+    fn on_message(&self, msg: Message) -> Result<()> {
+        let command = Command::from_msg(msg)?;
+        self.game_tx.send(command)?;
+        Ok(())
+    }
+
+    /*// Called when a new message is received.
+    async fn on_message(&self, uid: usize, msg: Message) -> Result<()> {
         let msg = ClientMessage::from_msg(msg)?;
 
         let mut game = self.game.lock().await;
@@ -123,15 +144,14 @@ impl State {
                 self.broadcast(game.on_play(s.as_str())?).await;
             },
             ClientMessage::Think(seconds) => {
-                self.broadcast(game.on_think()?).await;
-
-                let arc = self.clone();
                 tokio::spawn(async move {
                     tokio::time::sleep(Duration::from_secs_f32(seconds)).await;
-                    if let Ok(msg) = arc.game.lock().await.on_stop() {
-                        arc.broadcast(msg).await;
+                    if let Ok(msg) = self.game.lock().await.on_stop() {
+                        self.broadcast(msg).await;
                     }
                 });
+
+                self.broadcast(game.on_think()?).await;
             },
             ClientMessage::Stop => {
                 self.broadcast(self.game.lock().await.on_stop()?).await;
@@ -148,5 +168,5 @@ impl State {
         }
 
         Ok(())
-    }
+    }*/
 }

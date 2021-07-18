@@ -1,15 +1,80 @@
 use anyhow::{Error, Result};
 use chess::prelude::*;
 use engine::Engine;
+use tokio::sync::mpsc::{self, UnboundedSender};
 use warp::ws::Message;
+
+use crate::protocol::Command;
 
 // The fen used for the default position.
 const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 // Makes a warp::ws::Message from a serde_json::json! input.
-macro_rules! msg {
+/*macro_rules! msg {
     ($($json:tt)+) => {
         Message::text(serde_json::json!($($json)+).to_string())
+    }
+}*/
+
+//#################################################################################################
+//
+//                                       struct History
+//
+//#################################################################################################
+
+// A struct keeping a history of played and/or undoed moves, as well
+// as their textual representations.
+#[derive(Debug)]
+struct History {
+    moves: Vec<Move>,
+    strings: Vec<String>,
+    cursor: usize,
+}
+
+impl History {
+    // Creates a new empty move history.
+    fn new() -> Self {
+        Self {
+            moves: Vec::new(),
+            strings: Vec::new(),
+            cursor: 0,
+        }
+    }
+
+    // Pushes a new move to the history, losing all
+    // undoed moves.
+    fn push(&mut self, mv: Move) {
+        if self.cursor != self.moves.len() {
+            self.moves.truncate(self.cursor);
+            self.strings.truncate(self.cursor);
+        }
+        self.moves.push(mv);
+        self.strings.push(mv.to_string());
+        self.cursor += 1;
+    }
+
+    // Undo a move.
+    fn undo(&mut self) -> Result<Move> {
+        if self.cursor == 0 {
+            return Err(Error::msg("There is no move to undo"));
+        }
+        self.cursor -= 1;
+        Ok(self.moves[self.cursor])
+    }
+
+    // Redo a move.
+    fn redo(&mut self) -> Result<Move> {
+        if self.cursor == self.moves.len() {
+            return Err(Error::msg("There is no move to redo"));
+        }
+        let mv = self.moves[self.cursor];
+        self.cursor += 1;
+        Ok(mv)
+    }
+
+    // Gives a slice containing an history of all currently played moves.
+    fn json(&self) -> &[String] {
+        &self.strings[..self.cursor]
     }
 }
 
@@ -23,23 +88,50 @@ macro_rules! msg {
 #[derive(Debug)]
 pub struct Game {
     engine: Engine,
-    history: Vec<Move>,
-    cursor: usize,
+    history: History,
+    self_tx: UnboundedSender<Command>,
 }
 
 // ================================ pub impl
 
 impl Game {
     // Creates a new game with the default position.
-    pub fn new() -> Self {
-        Self {
-            engine: Engine::new(Board::new(DEFAULT_FEN).unwrap()),
-            history: Vec::new(),
-            cursor: 0,
-        }
+    // Returns a channel used to pass messages to the game state.
+    // Takes a channel in argument, used by the game state to respond
+    // to incoming messages.
+    pub fn new(tx: UnboundedSender<Result<Message>>) -> UnboundedSender<Command> {
+        // Creates the communication channels used to send messages to the game state.
+        let (game_tx, mut game_rx) = mpsc::unbounded_channel();
+        let self_tx = game_tx.clone();
+
+        // Spawn a new task, reacting to incoming client messages.
+        tokio::spawn(async move {
+            // The game state itself.
+            let mut game = Self {
+                engine: Engine::new(Board::new(DEFAULT_FEN).unwrap()),
+                history: History::new(),
+                self_tx,
+            };
+
+            // While there are incoming messages, process them and respond
+            // through the given tx channel.
+            while let Some(command) = game_rx.recv().await {
+                if let Err(e) = tx.send(game.react(command)) {
+                    eprintln!("{}", e);
+                    break;
+                }
+            }
+        });
+
+        game_tx
     }
 
-    // Returns a global message with all the relevant informations of a given state.
+    // Reacts to a given command and return the response.
+    pub fn react(&mut self, command: Command) -> Result<Message> {
+        todo!()
+    }
+
+    /*// Returns a global message with all the relevant informations of a given state.
     pub fn on_all(&self) -> Message {
         if let Some(mv) = self.engine.get_best_move() {
             msg!({
@@ -132,13 +224,13 @@ impl Game {
         self.engine.write_board().do_move(mv);
 
         Ok(self.do_move(mv))
-    }
+    }*/
 }
 
 // ================================ impl
 
 impl Game {
-    // Performs the given move, assumed to be legal, and updates the state.
+    /*// Performs the given move, assumed to be legal, and updates the state.
     fn do_move(&mut self, mv: Move) -> Message {
         if self.cursor != self.history.len() {
             self.history.truncate(self.cursor);
@@ -164,5 +256,5 @@ impl Game {
 
     fn history(&self) -> Vec<String> {
         self.history.iter().map(|mv| mv.to_string()).collect::<Vec<_>>()
-    }
+    }*/
 }

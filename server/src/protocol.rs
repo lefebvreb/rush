@@ -1,5 +1,5 @@
 use anyhow::{Error, Result};
-use serde::Deserialize;
+use serde_json::Value;
 use warp::ws::Message;
 
 //#################################################################################################
@@ -10,10 +10,9 @@ use warp::ws::Message;
 
 // A struct representing a parsed message from a client.
 #[derive(Debug)]
-pub enum ClientMessage {
-    All,
+pub enum Command {
     Play(String),
-    Think(f32),
+    Think(f64),
     Stop,
     Do,
     Undo,
@@ -22,38 +21,33 @@ pub enum ClientMessage {
 
 // ================================ pub impl
 
-impl ClientMessage {
-    // Tries to parse a message from a client. Since we don't really care about
-    // any error that might occur, the error type is simple the unit type.
-    // A return value of Err(()) means that either the message was not text,
-    // it wasn't json or that it doesn't follow the correct format.
+impl Command {
+    // Tries to parse a command from a warp message.
     pub fn from_msg(msg: Message) -> Result<Self> {
-        // The struct an incoming json message is supposed to conform to.
-        #[derive(Deserialize, Debug)]
-        struct ExpectedMessage {
-            kind: String,
-            #[serde(default)]
-            seconds: f32,
-            #[serde(default)]
-            mv: String,
-        }
-
-        // Extract text data from the message.
         let data = msg.to_str().map_err(|err| Error::msg("Incoming message is not text."))?;
+        let json: Value = serde_json::from_str(data)?;
 
-        // Parse the json message.
-        let msg: ExpectedMessage = serde_json::from_str(data)?;
+        let obj = json.as_object().ok_or(Error::msg("Json value is not an object."))?;
 
-        // Converts to the correct enum variant.
-        Ok(match msg.kind.as_str() {
-            "all"   => Self::All,
-            "play"  => Self::Play(msg.mv),
-            "think" => Self::Think(msg.seconds),
+        let kind = obj.get("kind").ok_or(Error::msg("No attribute kind in json value."))?
+            .as_str().ok_or(Error::msg("kind attribute is not a string."))?;
+
+        Ok(match kind {
+            "play" => {
+                let mv = obj.get("move").ok_or(Error::msg("No attribute move in json value."))?
+                    .as_str().ok_or(Error::msg("move attribute is not a string."))?.to_string();
+                Self::Play(mv)
+            },
+            "think" => {
+                let seconds = obj.get("seconds").ok_or(Error::msg("No attribute move in json value."))?
+                    .as_f64().ok_or(Error::msg("seconds attribute is not a string."))?;
+                Self::Think(seconds)
+            },
             "stop" => Self::Stop,
-            "do"    => Self::Do,
-            "undo"  => Self::Undo,
-            "redo"  => Self::Redo,
-            _ => return Err(Error::msg("Invalid incoming message kind.")),
+            "do" => Self::Do,
+            "undo" => Self::Undo,
+            "redo" => Self::Redo,
+            _ => return Err(Error::msg("Invalid message kind")),
         })
     }
 }
