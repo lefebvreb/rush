@@ -64,7 +64,7 @@ impl State {
         }
         
         // Board pretty-print.
-        println!("{:#}", board);
+        println!("{}", board.pretty_print());
 
         match board.status() {
             Status::Playing => return false,

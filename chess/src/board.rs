@@ -623,6 +623,48 @@ impl Board {
             Err(ParseFenError::new("move is illegal in this context"))
         }
     }
+
+    /// Pretty-prints the board into a terminal, with emojis for pieces and ansi colors for squares.
+    pub fn pretty_print(&self) -> String {
+        const RESET: &str = "\x1b[0m";
+        const BLACK: &str = "\x1b[40;1m";
+        const CHARS: [[char; 6]; 2] = [
+            ['♙', '♖', '♘', '♗', '♕', '♔'],
+            ['♟', '♜', '♞', '♝', '♛', '♚'],
+        ];
+
+        let mut res = String::new();
+
+        res.extend("  a b c d e f g h\n".chars());
+        for y in (0..8).rev() {
+            let rankc = char::from('1' as u8 + y);
+            res.push(rankc);
+
+            for x in 0..8 {
+                res.push(' ');
+
+                let sq = Square::from((x, y as i8));
+                let ch = match self.get_piece(sq) {
+                    Some((color, piece)) => CHARS[usize::from(color)][usize::from(piece)],
+                    None => ' ',
+                };
+
+                if sq.parity() == Color::Black {
+                    res.extend(format!("{}{}{}", BLACK, ch, RESET).chars());
+                } else {
+                    res.push(ch);
+                }
+            }
+
+            res.push(rankc);
+            if y != 0 {
+                res.push('\n');
+            }
+        }
+        res.extend("\n  a b c d e f g h".chars());
+
+        res
+    }
 }
 
 // ================================ pub(crate) impl
@@ -765,84 +807,43 @@ impl Default for Board {
 }
 
 impl fmt::Display for Board {
-    /// Formats the board to it's fen representation: println!("{}", board);
-    /// Use the # modifier to pretty-print the board: println!("{:#}", board);
+    /// Formats the board to it's fen representation.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if f.alternate() {
-            // Pretty-print
-            const RESET: &str = "\x1b[0m";
-            const BLACK: &str = "\x1b[40;1m";
-            const CHARS: [[char; 6]; 2] = [
-                ['♙', '♖', '♘', '♗', '♕', '♔'],
-                ['♟', '♜', '♞', '♝', '♛', '♚'],
-            ];
-
-            writeln!(f, "  a b c d e f g h")?;
-            for y in (0..8).rev() {
-                write!(f, "{}", y+1)?;
-
-                for x in 0..8 {
-                    write!(f, " ")?;
-
-                    let sq = Square::from((x, y));
-                    let ch = match self.get_piece(sq) {
-                        Some((color, piece)) => CHARS[usize::from(color)][usize::from(piece)],
-                        None => ' ',
-                    };
-
-                    if sq.parity() == Color::Black {
-                        write!(f, "{}{}{}", BLACK, ch, RESET)?;
-                    } else {
-                        write!(f, "{}", ch)?;
-                    }
+        // fen string
+        macro_rules! write_if_not_zero {
+            ($i: expr) => {
+                if $i != 0 {
+                    write!(f, "{}", ('0' as u8 + $i) as char)?;
                 }
-
-                write!(f, " {}", y+1)?;
-                if y != 0 {
-                    writeln!(f)?;
-                }
-            }
-            write!(f, "\n  a b c d e f g h")?;
-        } else {
-            // fen string
-            macro_rules! write_if_not_zero {
-                ($i: expr) => {
-                    if $i != 0 {
-                        write!(f, "{}", ('0' as u8 + $i) as char)?;
-                    }
-                };
-            }
-            
-            for y in (0..8).rev() {
-                let mut streak = 0;
-    
-                for x in 0..8 {
-                    if let Some((color, piece)) = self.get_piece(Square::from((x, y))) {
-                        write_if_not_zero!(streak);
-                        match color {
-                            Color::White => write!(f, "{:#}", piece),
-                            Color::Black => write!(f, "{}", piece),
-                        }?;
-                        streak = 0;
-                    } else {
-                        streak += 1;
-                    }
-                }
-    
-                write_if_not_zero!(streak);
-                if y != 0 {
-                    write!(f, "/")?;
-                }
-            }
-    
-            write!(f, " {} {} {} {} {}", 
-                self.get_side_to_move(),
-                self.get_castle_rights(),
-                self.get_ep_square(),
-                self.get_halfmove(),
-                1 + self.get_ply() / 2,
-            )?;
+            };
         }
+        
+        for y in (0..8).rev() {
+            let mut streak = 0;
+
+            for x in 0..8 {
+                if let Some((color, piece)) = self.get_piece(Square::from((x, y))) {
+                    write_if_not_zero!(streak);
+                    write!(f, "{}", piece.as_char(color))?;
+                    streak = 0;
+                } else {
+                    streak += 1;
+                }
+            }
+
+            write_if_not_zero!(streak);
+            if y != 0 {
+                write!(f, "/")?;
+            }
+        }
+
+        write!(f, " {} {} {} {} {}", 
+            self.get_side_to_move(),
+            self.get_castle_rights(),
+            self.get_ep_square(),
+            self.get_halfmove(),
+            1 + self.get_ply() / 2,
+        )?;
 
         Ok(())
     }

@@ -1,5 +1,3 @@
-use std::fmt;
-
 use crate::color::Color;
 use crate::errors::ParseFenError;
 
@@ -34,18 +32,9 @@ impl Piece {
     pub const PROMOTES: [Piece; 4] = [
         Piece::Queen, Piece::Rook, Piece::Bishop, Piece::Knight,
     ];
-}
 
-// ================================ pub(crate) impl
-
-impl Piece {
-    // Returns the piece corresponding to that number, assumes 0 <= i < 6
-    pub(crate) unsafe fn from_unchecked(i: u8) -> Piece {
-        *Piece::PIECES.get_unchecked(i as usize)
-    }
-    
-    // Tries to parse a piece from a single char.
-    pub(crate) fn from_char(c: char) -> Result<(Color, Piece), ParseFenError> {
+    /// Tries to parse a piece from a single char.
+    pub fn from_char(c: char) -> Result<(Color, Piece), ParseFenError> {
         match c {
             'P' => Ok((Color::White, Piece::Pawn)),
             'R' => Ok((Color::White, Piece::Rook)),
@@ -62,35 +51,37 @@ impl Piece {
             _ => Err(ParseFenError::new("unrecognized piece literal")),
         }
     }
+
+    /// Gives the char corresponding to a piece of this color:
+    /// Upper case for white, lower case for black.
+    pub fn as_char(self, color: Color) -> char {
+        match (color, self) {
+            (Color::White, Piece::Pawn)   => 'P',
+            (Color::White, Piece::Rook)   => 'R',
+            (Color::White, Piece::Knight) => 'N',
+            (Color::White, Piece::Bishop) => 'B',
+            (Color::White, Piece::Queen)  => 'Q',
+            (Color::White, Piece::King)   => 'K',
+            (Color::Black, Piece::Pawn)   => 'p',
+            (Color::Black, Piece::Rook)   => 'r',
+            (Color::Black, Piece::Knight) => 'n',
+            (Color::Black, Piece::Bishop) => 'b',
+            (Color::Black, Piece::Queen)  => 'q',
+            (Color::Black, Piece::King)   => 'k',
+        }
+    }
+}
+
+// ================================ pub(crate) impl
+
+impl Piece {
+    // Returns the piece corresponding to that number, assumes 0 <= i < 6
+    pub(crate) unsafe fn from_unchecked(i: u8) -> Piece {
+        *Piece::PIECES.get_unchecked(i as usize)
+    }
 }
 
 // ================================ traits impl
-
-impl fmt::Display for Piece {
-    /// Gives the character representing the piece.
-    /// Use the # modifier to print it in uppercase.
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", if f.alternate() {
-            match self {
-                Piece::Pawn   => 'P',
-                Piece::Rook   => 'R',
-                Piece::Knight => 'N',
-                Piece::Bishop => 'B',
-                Piece::Queen  => 'Q',
-                Piece::King   => 'K',
-            }
-        } else {
-            match self {
-                Piece::Pawn   => 'p',
-                Piece::Rook   => 'r',
-                Piece::Knight => 'n',
-                Piece::Bishop => 'b',
-                Piece::Queen  => 'q',
-                Piece::King   => 'k',
-            }
-        })
-    }
-}
 
 impl From<u8> for Piece {
     /// Creates a piece from a number. See codes in number definition.

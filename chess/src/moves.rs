@@ -3,6 +3,7 @@ use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering;
 
 use crate::piece::Piece;
+use crate::prelude::Color;
 use crate::square::Square;
 
 // Create the base for a move, with the given flags, from and to squares.
@@ -173,7 +174,7 @@ impl fmt::Display for Move {
     // Displays a move using pure algebraic coordinate notation.
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if self.is_promote() {
-            write!(fmt, "{}{}{}", self.from(), self.to(), self.get_promote())
+            write!(fmt, "{}{}{}", self.from(), self.to(), self.get_promote().as_char(Color::Black))
         } else {
             write!(fmt, "{}{}", self.from(), self.to())
         }
