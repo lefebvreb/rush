@@ -1,9 +1,11 @@
 <!-- Scripts -->
 
 <script>
+    // The wasm module, that needs to be awaited to be downloaded and initialized.
     export let wasm;
 
 	import {onMount} from "svelte";
+    import Logo from "./Logo.svelte";
 	
 	onMount(async () => {
         const lib = await wasm;
@@ -28,10 +30,13 @@
 
 <!-- Components -->
 
+<Logo></Logo>
+
 <!-- Styles -->
 
 <style>
     :global(body) {
+        overflow: hidden;
         background: #000000;
         padding: 0;
         display: grid;
