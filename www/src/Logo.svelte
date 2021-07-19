@@ -1,34 +1,14 @@
-<script>
-    // Reference to the logo <img> element.
-    let logo;
-
-    import {onMount} from "svelte";
-
-    // Change the color of the logo by rotating it's hue by a random amount.
-    function changeColor() {
-        const rand = Math.floor(Math.random() * 360);
-        logo.style.filter = `hue-rotate(${rand}deg)`
-    }
-
-    // Schedule the logo to change color on each bounce.
-    onMount(() => {
-        changeColor();
-        setInterval(changeColor, 6000);
-        setInterval(changeColor, 14000);
-    })
-</script>
-
 <!-- Components -->
 
-<img bind:this={logo} src="svg/logo.svg" alt="The Rush chess engine logo">
+<img src="svg/logo.svg" alt="The Rush chess engine logo.">
 
 <!-- Styles -->
 
 <style>
     img {
         position: absolute;
-        width: 16em;
-        animation: rotation 40s infinite linear, moveX 14s infinite linear alternate, moveY 6s infinite linear alternate;
+        width: 30vmin;
+        animation: change-color 10s infinite linear, rotation 40s infinite linear, move-x 13s infinite linear alternate, move-y 7s infinite linear alternate;
     }
 
     @keyframes rotation {
@@ -36,13 +16,18 @@
         to {transform: rotate(359deg);}
     }
 
-    @keyframes moveX {
+    @keyframes move-x {
         from {left: 0;} 
-        to {left: calc(100% - 16em);}
+        to {left: calc(100% - 30vmin);}
     }
 
-    @keyframes moveY {
+    @keyframes move-y {
         from {top: 0;} 
-        to {top: calc(100% - 16em);}
+        to {top: calc(100% - 30vmin);}
+    }
+
+    @keyframes change-color {
+        from {filter: hue-rotate(0def);}
+        to {filter: hue-rotate(359deg);}
     }
 </style>

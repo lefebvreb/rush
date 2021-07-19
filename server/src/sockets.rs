@@ -97,11 +97,15 @@ impl Sockets {
             match res {
                 // On correct message.
                 Ok(msg) => {
+                    // Message indicates that the client disconnected.
+                    if msg.is_close() {
+                        break;
+                    }
+
                     // If the message was incorrect, send all the state
                     // to the sender, so they can sync back with us.
                     if let Err(e) = self.on_message(msg) {
                         eprintln!("Erroneous order: {}", e);
-                        //self.send(uid, self.game.lock().await.on_all()).await;
                     }
                 },
                 // On error, prints it and breaks out of the event loop.

@@ -1,4 +1,6 @@
-# Rush: rust chess engine
+<img align="left" alt="" src="logo.svg" height="150"/>
+
+# Rush: Rust Chess Engine
 
 ## Overview
 
@@ -61,10 +63,6 @@ Where port is the port the server will bind to. The link to the server will be p
 + Recapture.
 + Better evealuation.
 + Repair `Board::test_upcoming_repetition()`
-
-### Web server:
-+ socket communication
-+ state management
 
 ### Web client:
 + socket communication

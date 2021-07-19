@@ -9,6 +9,8 @@ use chess::prelude::*;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
 // Construct a javascript Error as a JsValue, from something that implements fmt::Display.
 fn js_error<E: fmt::Display>(err: E) -> JsValue {
     JsError::new(err.to_string().as_str()).into()
@@ -27,15 +29,15 @@ pub struct WasmChess {
 impl WasmChess {
     /// Constructs a new WasmChess object, from it's fen representation.
     #[wasm_bindgen(constructor)]
-    pub fn new(fen: &str) -> Result<WasmChess, JsValue> {
+    pub fn new() -> WasmChess {
         // Initialize the chess lib, if not done already.
         chess::init();
 
         // Parses the game board.
-        Ok(WasmChess {
-            board: Board::new(fen).map_err(|e| js_error(e))?,
+        WasmChess {
+            board: Board::new(DEFAULT_FEN).unwrap(),
             buffer: Vec::new(),
-        })
+        }
     }
 
     // ================================ getters

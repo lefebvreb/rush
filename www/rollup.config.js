@@ -44,4 +44,8 @@ export default {
 		// When in production, minify.
 		production && terser(),
 	],
+	// Supress warnings from 3rd party code.
+	onwarn: (warning, warn) => {
+		if (warning.id.indexOf(__dirname + '/node_modules/') !== 0) warn(warning)
+	},
 };
