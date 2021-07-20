@@ -4,6 +4,8 @@
     // The wasm module, that needs to be awaited to be downloaded and initialized.
     export let wasm;
 
+    import {scale} from "svelte/transition";
+
     import Board from "./Board.svelte";
     import Logo from "./Logo.svelte";
 
@@ -20,12 +22,14 @@
 
 <Logo></Logo>
 
-<h1>Rush Chess Engine - Benjamin Lefebvre🄯 - GPLv3 Licensed - <a href="https://github.com/L-Benjamin/chess-engine-rs">Repository</a></h1>
+<h1>Rush Chess Engine - Copyleft🄯 2021 Benjamin Lefebvre - GPLv3 Licensed - <a href="https://github.com/L-Benjamin/chess-engine-rs">Repository</a></h1>
 
 {#if joined}
-    <Board wasm={wasm}></Board>
+    <div transition:scale={{duration: 3000, delay: 500}}>
+        <Board wasm={wasm}></Board>
+    </div>
 {:else}
-    <button class="glow" on:click={join}>Join</button>
+    <button class=glow on:click={join}>Join</button>
 {/if}
 
 <!-- Styles -->
@@ -42,7 +46,7 @@
     }
 
     h1 {
-        font-size: 0.9em;
+        font-size: 0.8em;
         font-family: sans-serif;
         color: #fff;
         position: absolute;

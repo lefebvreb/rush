@@ -3,7 +3,7 @@ use std::time::Duration;
 use anyhow::{Error, Result};
 use chess::prelude::*;
 use engine::Engine;
-use serde_json::{json, Value};
+use serde_json::Value;
 use tokio::sync::mpsc::{self, UnboundedSender};
 use warp::ws::Message;
 
@@ -11,13 +11,6 @@ use crate::messages::{Command, Response};
 
 // The fen used for the default position.
 const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
-// Makes a warp::ws::Message from a serde_json::json! input.
-macro_rules! msg {
-    {$($json:tt)*} => {
-        Message::text(json!({$($json)*}).to_string())
-    }
-}
 
 //#################################################################################################
 //
@@ -156,16 +149,10 @@ impl Game {
         match command {
             // On welcoming a new connection, send him the welcome message.
             Command::Welcome(dest) => {
-                Ok(Response::Send {
+                return Ok(Response::Send {
                     dest,
-                    msg: msg!{
-                        "fen": self.engine.read_board().to_string(),
-                        "history": Value::from(&self.history),
-                        "thinking": self.engine.is_thinking(),
-                        "engineMove": self.engine.get_best_move().map_or(Value::Null, |mv| Value::from(mv.to_string())),
-                        "engineDepth": self.engine.get_current_depth(),
-                    },
-                })
+                    msg: self.get_msg(),
+                });
             },
             // Request to play a move.
             Command::Play(s) => {
@@ -173,13 +160,6 @@ impl Game {
                 let mv = self.engine.read_board().parse_move(s.as_str()).map_err(|_| Error::msg("Unable to parse move."))?;
                 self.engine.write_board().do_move(mv);
                 self.history.push(mv);
-
-                Ok(Response::Broadcast(msg!{
-                    "doMove": mv.to_string(),
-                    "thinking": false,
-                    "engineMove": null,
-                    "engineDepth": 0,
-                }))
             },
             // Request to start the engine for a given amount of seconds.
             Command::Think(seconds) => {
@@ -195,10 +175,6 @@ impl Game {
                     tokio::time::sleep(Duration::from_secs_f64(seconds)).await;
                     tx.send(Command::Stop).ok();
                 });
-
-                Ok(Response::Broadcast(msg!{
-                    "thinking": true,
-                }))
             },
             // Request to stop the engine.
             Command::Stop => {
@@ -206,50 +182,47 @@ impl Game {
                     return Err(Error::msg("Engine is already stopped."));
                 }
                 self.engine.stop();
-
-                Ok(Response::Broadcast(msg!{
-                    "thinking": false,
-                    "engineMove": self.engine.get_best_move().ok_or(Error::msg("Engine has no best move."))?.to_string(),
-                    "engineDepth": self.engine.get_current_depth(),
-                }))
             },
             // Request to perform the engine's preferred move.
             Command::Do => {
                 let mv = self.engine.get_best_move().ok_or(Error::msg("Engine has no preferred move."))?;
                 self.engine.write_board().do_move(mv);
                 self.history.push(mv);
-
-                Ok(Response::Broadcast(msg!{
-                    "doMove": mv.to_string(),
-                    "thinking": false,
-                    "engineMove": null,
-                    "engineDepth": 0,
-                }))
             },
             // Request to undo move.
             Command::Undo => {
                 let mv = self.history.undo()?;
                 self.engine.write_board().undo_move(mv);
-
-                Ok(Response::Broadcast(msg!{
-                    "undoMove": self.engine.read_board().to_string(),
-                    "thinking": false,
-                    "engineMove": null,
-                    "engineDepth": 0,
-                }))
             },
             // Request to redo the last undoed move.
             Command::Redo => {
                 let mv = self.history.redo()?;
                 self.engine.write_board().do_move(mv);
-
-                Ok(Response::Broadcast(msg!{
-                    "doMove": mv.to_string(),
-                    "thinking": false,
-                    "engineMove": null,
-                    "engineDepth": 0,
-                }))
             },
         }
+
+        // Broadcast the new message.
+        Ok(Response::Broadcast(self.get_msg()))
+    }
+}
+
+impl Game {
+    fn get_msg(&self) -> Message {
+        Message::text(serde_json::json!({
+            "fen": self.engine.read_board().to_string(),
+            "history": Value::from(&self.history),
+            "draw": self.is_draw(),
+            "thinking": self.engine.is_thinking(),
+            "engineMove": self.engine_move(),
+            "engineDepth": self.engine.get_current_depth(),
+        }).to_string())
+    }
+
+    fn engine_move(&self) -> Value {
+        self.engine.get_best_move().map_or(Value::Null, |mv| Value::from(mv.to_string()))
+    }
+
+    fn is_draw(&self) -> bool {
+        matches!(self.engine.read_board().status(), Status::Draw)
     }
 }

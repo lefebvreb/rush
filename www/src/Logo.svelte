@@ -8,7 +8,7 @@
     img {
         position: absolute;
         width: 30vmin;
-        animation: change-color 10s infinite linear, rotation 40s infinite linear, move-x 13s infinite linear alternate, move-y 7s infinite linear alternate;
+        animation: change-color 5s infinite linear, rotation 40s infinite linear, move-x 13s infinite linear alternate, move-y 7s infinite linear alternate;
     }
 
     @keyframes rotation {

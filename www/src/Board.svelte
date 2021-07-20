@@ -6,7 +6,7 @@
 
     import "chessboard-element";
     import {onMount} from "svelte";
-        
+
     // The component that will contain the chessboard element, and it's div.
     let board;
 
@@ -16,15 +16,36 @@
     // The websocket connected to the server.
     let ws;
 
+    // Game state.
+    let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    let history = "";
+    let draw = false;
+
+    // Engine state.
+    let thinking = false;
+    let engineMove = null;
+    let engineDepth = null;
+
     // Upon receiving a message from the server.
     function socketMessaged(msg) {
-        console.log(msg.data);
+        // Parse the message's data.
+        const data = JSON.parse(msg.data);
+
+        // Update the game and engine states.
+        const properties = ["fen", "history", "draw", "thinking", "engineMove", "engineDepth"];
+        for (let property of properties) {
+            if (property in data) this[property] = data[property];
+        }
+
+        // Sets the fen if it is present in the history.
+        if ("fen" in data) {
+            chess.setPosition(data.fen, draw);
+            board.setPosition(data.fen.split(" ")[0], true);
+        }
     }
 
     onMount(async () => {
-        console.log(board);
-
-        // Iinitialze the chess library and chess object.
+        // Initialze the chess library and chess object.
         const lib = await wasm;
         chess = new lib.Chess();
 
@@ -37,10 +58,7 @@
 
 <!-- Components -->
 
-<chess-board bind:this={board}
-    draggable-pieces
-    position="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-></chess-board>
+<chess-board bind:this={board} draggable-pieces></chess-board>
 
 <!-- Styles -->
 
@@ -48,9 +66,10 @@
     chess-board {
         --light-color: #c99;
         --dark-color: #c00;
-        width: 40em;
-        height: 40em;
-        opacity: 0.9;
+        width: 32em;
+        height: 32em;
+        opacity: 0.75;
+        border-radius: 30px;
         animation: change-color 20s infinite;
     }
 
