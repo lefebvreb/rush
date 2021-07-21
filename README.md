@@ -67,6 +67,3 @@ Where port is the port the server will bind to. The link to the server will be p
 + Recapture.
 + Better evealuation.
 + Repair `Board::test_upcoming_repetition()`
-
-### Web client:
-+ under promotions selector.

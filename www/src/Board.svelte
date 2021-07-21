@@ -31,7 +31,11 @@
     // Engine state.
     let thinking = false;
     let engineMove = null;
-    let engineDepth = null;
+    let engineDepth = 0;
+
+    // When choosing a promotion.
+    let choosingPromotion = false;
+    let promoteMove = null;
 
     // Upon receiving a message from the server.
     function socketMessaged(msg) {
@@ -39,18 +43,20 @@
         const data = JSON.parse(msg.data);
 
         // Update the game and engine states.
-        if ("history" in data) history = data.history;
-        if ("end" in data) end = data.end;
-        if ("thinking" in data) thinking = data.thinking;
-        if ("engineMove" in data) engineMove = data.engineMove;
-        if ("engineDepth" in data) engineDepth = data.engineDepth;
+        history = data.history;
+        end = data.end;
+        thinking = data.thinking;
+        engineMove = data.engineMove;
+        engineDepth = data.engineDepth;
+
+        // Reset promotions values.
+        choosingPromotion = false;
+        promoteMove = null;
 
         // Sets the fen if it is present in the history.
-        if ("fen" in data) {
-            fen = data.fen;
-            chess.setPosition(fen, end);
-            board.setPosition(fen.split(" ")[0], true);
-        }
+        fen = data.fen;
+        chess.setPosition(fen, end);
+        board.setPosition(fen.split(" ")[0], true);
     }
 
     // For reactivity.
@@ -76,9 +82,9 @@
     function makeEndText() {
         if (chess.isInCheck()) {
             if (chess.isWhiteToMove()) {
-                return "White won by checkmate";
+                return "Black won by checkmate.";
             } else {
-                return "Black won by checkmate";
+                return "White won by checkmate.";
             }
         }
         return "The game is drawn."
@@ -92,15 +98,24 @@
         if (to === "offboard" || !chess.isLegal(from, to)) {
             e.detail.setAction("snapback");
         } else {
+            let move = `${from}${to}`;
             if (chess.isPromotion(from, to)) {
-                // TODO: under-promotes
-                send({kind: "play", move: `${from}${to}q`});
+                choosingPromotion = true;
+                promoteMove = move;
             } else {
-                send({kind: "play", move: `${from}${to}`});
+                send({kind: "play", move});
             }
         }
     }
 
+    // Sends a promotion move.
+    function promote(piece) {
+        choosingPromotion = false;
+        send({kind: "play", move: `${promoteMove}${piece}`});
+        promoteMove = null;
+    }
+
+    // When the board component is mounted.
     onMount(async () => {
         // Initialze the chess library and chess object.
         const lib = await wasm;
@@ -140,7 +155,7 @@
             <button id=think class="glow centered" on:click={_ => send({kind: "think", seconds: 5})}>Think</button>
 
             {#if engineMove}
-                <h1 id=engine class=text>Engine preferred move: {engineMove}.<br>Furthest depth searched: {engineDepth}.</h1>
+                <h1 id=engine class=text>Engine's preferred move: {engineMove}.<br>Furthest depth searched: {engineDepth}.</h1>
                 <button id=do class="glow centered" on:click={_ => send({kind: "do"})}>Do Engine's Move</button>
             {:else}
                 <h1 id=engine class=text>Engine has no preferred move yet.</h1>
@@ -150,6 +165,18 @@
 </div>
 
 <chess-board id=board class=centered bind:this={board} on:drop={dropPiece} transition:scale={{duration: 5000, delay: 500}} draggable-pieces></chess-board>
+
+{#if choosingPromotion}
+    <div id=focus-taker class=centered>
+        <div id=promote-wrapper class=centered>
+            <h1 id=promote-header>Choose a promotion:</h1>
+            <button id=promote-queen class="glow centered" on:click={_ => promote("q")}>Queen</button>
+            <button id=promote-rook class="glow centered" on:click={_ => promote("r")}>Rook</button>
+            <button id=promote-bishop class="glow centered" on:click={_ => promote("b")}>Bishop</button>
+            <button id=promote-knight class="glow centered" on:click={_ => promote("n")}>Knight</button>
+        </div>
+    </div>
+{/if}
 
 <!-- Styles -->
 
@@ -264,5 +291,48 @@
     @keyframes change-color {
         from {filter: hue-rotate(0def);}
         to {filter: hue-rotate(359deg);}
+    }
+
+    #focus-taker {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+    }
+
+    #promote-wrapper {
+        position: absolute;
+        display: grid;
+        grid-auto-rows: 5em;
+        grid-auto-columns: 10em;
+        background: #000;
+        border-radius: 1em;
+        padding: 1em;
+        place-content: center;
+        text-align: center;
+    }
+
+    #promote-header {
+        grid-column: 1 / 3;
+        grid-row: 1;
+    }
+
+    #promote-queen {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    #promote-rook {
+        grid-column: 2;
+        grid-row: 2;
+    }
+
+    #promote-bishop {
+        grid-column: 1;
+        grid-row: 3;
+    }
+
+    #promote-knight {
+        grid-column: 2;
+        grid-row: 3;
     }
 </style>
