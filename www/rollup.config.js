@@ -15,7 +15,7 @@ export default {
 	output: {
 		name: 'chess_engine_client',
 		format: 'iife',
-		sourcemap: true,
+		sourcemap: !production,
 		file: 'public/build/bundle.js',
 	},
 	// Plugins used.

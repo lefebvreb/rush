@@ -58,7 +58,8 @@ async fn main() {
 
         // For files.
         let public = warp::get()
-            .and(warp::fs::dir("www/public"));
+            .and(warp::fs::dir("www/public"))
+            .with(warp::compression::gzip());
 
         public.or(ws)
     };
