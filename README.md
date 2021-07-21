@@ -69,6 +69,4 @@ Where port is the port the server will bind to. The link to the server will be p
 + Repair `Board::test_upcoming_repetition()`
 
 ### Web client:
-+ intercation buttons
-+ text ui
-+ move checking
++ under promotions selector.

@@ -41,29 +41,28 @@
     }
 
     h1 {
-        font-size: 1em;
         font-family: sans-serif;
+        font-size: 0.9em;
         color: #fff;
         position: absolute;
         left: 2em;
         bottom: 2em;
     }
 
-    #join {
-        position: relative;
-    }
-
     :global(.glow) {
-        width: 10em;
-        height: 3em;
-        font-size: 1.2em;
+        font-size: 1em;
+        font-family: sans-serif;
+        position: relative;
+        width: 9em;
+        height: 4em;
         border: none;
         outline: none;
         color: #fff;
         background: #111;
         cursor: pointer;
+        position: relative;
         z-index: 0;
-        border-radius: 1em;
+        border-radius: 0.5em;
     }
 
     :global(.glow:before) {
@@ -77,10 +76,10 @@
         filter: blur(1em);
         width: calc(100% + 1em);
         height: calc(100% + 1em);
-        animation: glow 20s linear infinite;
+        animation: glowing 20s linear infinite;
         opacity: 0;
         transition: opacity .3s ease-in-out;
-        border-radius: 3em;
+        border-radius: 0.5em;
     }
 
     :global(.glow:active:after) {
@@ -100,10 +99,10 @@
         background: #111;
         left: 0;
         top: 0;
-        border-radius: 2em;
+        border-radius: 0.5em;
     }
 
-    @keyframes glow {
+    @keyframes glowing {
         0% { background-position: 0 0; }
         50% { background-position: 400% 0; }
         100% { background-position: 0 0; }

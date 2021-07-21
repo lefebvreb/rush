@@ -1,3 +1,4 @@
+use chess::piece::Piece;
 use js_sys::{Error as JsError};
 use wasm_bindgen::prelude::*;
 
@@ -15,6 +16,11 @@ const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 
 // Construct a javascript Error as a JsValue, from something that implements fmt::Display.
 fn js_error(msg: &str) -> JsValue {
     JsError::new(msg).into()
+}
+
+// Tries to parse a square from a String.
+fn parse_square(sq: &str) -> Result<Square, JsValue> {
+    Square::from_str(sq).map_err(|_| js_error("Invalid square literal."))
 }
 
 /// The WasmChess struct, simply named "Chess" in JS is a class
@@ -56,11 +62,24 @@ impl WasmChess {
 
     /// Returns true if the given move is legal.
     #[wasm_bindgen(method, js_name = isLegal)]
-    pub fn is_legal(&mut self, from: String, to: String) -> Result<bool, JsValue> {
-        let from = Square::from_str(&from).map_err(|_| "Invalid square literal.")?;
-        let to = Square::from_str(&to).map_err(|_| "Invalid square literal.")?;
+    pub fn is_legal(&self, from: String, to: String) -> Result<bool, JsValue> {
+        let from = parse_square(&from)?;
+        let to = parse_square(&to)?;
 
         Ok(self.legals.iter().any(|mv| mv.from() == from && mv.to() == to))
+    }
+
+    /// Returns true if the given move is a promotion. 
+    #[wasm_bindgen(method, js_name = isPromotion)]
+    pub fn is_promotion(&self, from: String, to: String) -> Result<bool, JsValue> {
+        let from = parse_square(&from)?;
+        let to = parse_square(&to)?;
+        let (color, piece) = self.board.get_piece(from).ok_or(js_error("Invalid move from square."))?;
+        
+        Ok(match color {
+            Color::White => to.y() == 7,
+            Color::Black => to.y() == 0,
+        } && piece == Piece::Pawn)
     }
 
     /// Returns true if the king is in check in this position.

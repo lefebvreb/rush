@@ -57,7 +57,7 @@ impl Sockets {
                 match res {
                     Ok(Response::Broadcast(msg)) => state.broadcast(msg).await,
                     Ok(Response::Send{dest, msg}) => state.send(dest, msg).await,
-                    Err(e) => eprintln!("{}", e),
+                    _ => (), // Invalid action in context, simply ignore.
                 }
             }
         });
