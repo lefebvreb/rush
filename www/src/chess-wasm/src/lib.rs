@@ -1,4 +1,4 @@
-use js_sys::{Error as JsError, Set as JsSet};
+use js_sys::{Error as JsError};
 use wasm_bindgen::prelude::*;
 
 use std::str::FromStr;
@@ -43,11 +43,11 @@ impl WasmChess {
 
     /// A setter for the current position, given by a fen string.
     #[wasm_bindgen(method, js_name = setPosition)]
-    pub fn set_position(&mut self, fen: &str, draw: bool) -> Result<(), JsValue> {
+    pub fn set_position(&mut self, fen: &str, end: bool) -> Result<(), JsValue> {
         self.board = Board::new(fen).map_err(|_| js_error("Invalid fen literal."))?;
 
         self.legals.clear();
-        if !draw {
+        if !end {
             movegen::legals(&self.board, &mut self.legals);
         }
 
@@ -56,12 +56,26 @@ impl WasmChess {
 
     /// Returns true if the given move is legal.
     #[wasm_bindgen(method, js_name = isLegal)]
-    pub fn is_legal(&mut self, mv: String) -> Result<bool, JsValue> {
-        let mv = self.board.parse_move(mv.as_str()).map_err(|_|"Invalid move literal.")?;
-        Ok(self.legals.contains(&mv))
+    pub fn is_legal(&mut self, from: String, to: String) -> Result<bool, JsValue> {
+        let from = Square::from_str(&from).map_err(|_| "Invalid square literal.")?;
+        let to = Square::from_str(&to).map_err(|_| "Invalid square literal.")?;
+
+        Ok(self.legals.iter().any(|mv| mv.from() == from && mv.to() == to))
     }
 
-    /// Returns the set of squares that lead to legal moves from a given square.
+    /// Returns true if the king is in check in this position.
+    #[wasm_bindgen(method, js_name = isInCheck)]
+    pub fn is_in_check(&self) -> bool {
+        self.board.get_checkers().not_empty()
+    }
+
+    /// Returns true if the side to move is white.
+    #[wasm_bindgen(method, js_name = isWhiteToMove)]
+    pub fn is_white_to_move(&self) -> bool {
+        self.board.get_side_to_move() == Color::White
+    }
+
+    /*/// Returns the set of squares that lead to legal moves from a given square.
     #[wasm_bindgen(method, js_name = getLegalsFrom)]
     pub fn get_legals_from(&self, from: String) -> Result<JsSet, JsValue> {
         let from = Square::from_str(&from).map_err(|_| "Invalid square literal.")?;
@@ -72,9 +86,11 @@ impl WasmChess {
         }
 
         Ok(set)
-    }
+    }*/
 
-    /// Prints self as debug.
+    // Compile only when in debug mode to save up some bytes.
+    /// Prints self, using rust debug's format.
+    #[cfg(debug_assertions)]
     #[wasm_bindgen(method, js_name = toString)]
     pub fn to_string(&self) -> String {
         format!("{:?}", self)

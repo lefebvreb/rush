@@ -211,18 +211,10 @@ impl Game {
         Message::text(serde_json::json!({
             "fen": self.engine.read_board().to_string(),
             "history": Value::from(&self.history),
-            "draw": self.is_draw(),
+            "end": !matches!(self.engine.read_board().status(), Status::Playing),
             "thinking": self.engine.is_thinking(),
-            "engineMove": self.engine_move(),
+            "engineMove": self.engine.get_best_move().map_or(Value::Null, |mv| Value::from(mv.to_string())),
             "engineDepth": self.engine.get_current_depth(),
         }).to_string())
-    }
-
-    fn engine_move(&self) -> Value {
-        self.engine.get_best_move().map_or(Value::Null, |mv| Value::from(mv.to_string()))
-    }
-
-    fn is_draw(&self) -> bool {
-        matches!(self.engine.read_board().status(), Status::Draw)
     }
 }

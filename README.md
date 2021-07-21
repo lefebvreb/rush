@@ -54,6 +54,10 @@ Where port is the port the server will bind to. The link to the server will be p
 
 ## TODO list
 
+### Chess:
++ Cleaner legals.
++ Cleaner perft.
+
 ### Engine:
 + Better `chess::movepick` module: make a trait implemeted by two structs, one for standard alpha-beta search, one for quiescient search.
 + Hash moves.
