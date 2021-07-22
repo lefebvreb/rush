@@ -9,11 +9,6 @@
 
     // A flag indicating if the client has joined the game yet or not.
     let joined = false;
-
-    // Join the game.
-    function join() {
-        joined = true;
-    }
 </script>
 
 <!-- Components -->
@@ -25,21 +20,12 @@
 {#if joined}
     <Board wasm={wasm}></Board>
 {:else}
-    <button id=join class=glow on:click={join}>Join</button>
+    <button class=glow on:click={_ => joined=true}>Join</button>
 {/if}
 
 <!-- Styles -->
 
 <style>
-    :global(body) {
-        overflow: hidden;
-        background: #000;
-        padding: 0;
-        height: 100vh;
-        display: grid;
-        place-content: center;
-    }
-
     h1 {
         font-family: sans-serif;
         font-size: 0.9em;
@@ -49,7 +35,18 @@
         bottom: 2em;
     }
 
-    :global(.centered) {
+    /* Global styles */
+
+    :global(body) {
+        overflow: hidden;
+        background: #000;
+        padding: 0;
+        height: 100vh;
+        display: grid;
+        place-content: center;
+    }
+
+    :global(.centered), :global(.glow) {
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
