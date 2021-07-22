@@ -4,6 +4,8 @@
     // The wasm module, that needs to be awaited to be downloaded and initialized.
     export let wasm;
 
+    import {fade} from "svelte/transition";
+
     import Board from "./Board.svelte";
     import Logo from "./Logo.svelte";
 
@@ -20,7 +22,7 @@
 {#if joined}
     <Board wasm={wasm}></Board>
 {:else}
-    <button class=glow on:click={_ => joined=true}>Join</button>
+    <button class=glow on:click={_ => joined=true} transition:fade>Join</button>
 {/if}
 
 <!-- Styles -->
