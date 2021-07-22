@@ -15,8 +15,8 @@ use crate::zobrist::Zobrist;
 static mut CUCKOO: [Zobrist; 8192] = [Zobrist::ZERO; 8192];
 static mut SQUARES: [Option<(Square, Square)>; 8192] = [None; 8192];
 
-// Returns true if the move is valid on an empty board.
-// Pawn moves are never reversible so we don't take them into account.
+/// Returns true if the move is valid on an empty board.
+/// Pawn moves are never reversible so we don't take them into account.
 #[cold]
 unsafe fn is_valid(piece: Piece, from: Square, to: Square) -> bool {
     let occ = from.into();
@@ -31,7 +31,7 @@ unsafe fn is_valid(piece: Piece, from: Square, to: Square) -> bool {
     }.contains(to)
 }
 
-// Inserts into the cuckoo table, only if the move is valid.
+/// Inserts into the cuckoo table, only if the move is valid.
 #[cold]
 unsafe fn insert(color: Color, piece: Piece, from: Square, to: Square) {
     if !is_valid(piece, from, to) {
@@ -60,7 +60,7 @@ unsafe fn insert(color: Color, piece: Piece, from: Square, to: Square) {
     }
 }
 
-// Initializes the cuckoo tables.
+/// Initializes the cuckoo tables.
 #[cold]
 pub(crate) unsafe fn init() {
     for color in Color::COLORS {
@@ -80,8 +80,8 @@ pub(crate) unsafe fn init() {
 //
 //#################################################################################################
 
-// Returns true if the provided zobrist is the hash of a legal reversible move.
-// Uses cuckoo hashing to reduce the memory footprint of the hash table.
+/// Returns true if the provided zobrist is the hash of a legal reversible move.
+/// Uses cuckoo hashing to reduce the memory footprint of the hash table.
 #[inline]
 pub(crate) fn is_hash_of_legal_move(board: &Board, diff: Zobrist) -> bool {
     // SAFETY: h1 and h2 always yield numbers that are < 8192

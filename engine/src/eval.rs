@@ -87,7 +87,7 @@ const TABLES: [[f32; 64]; 5] = [
     BISHOPS, QUEENS
 ];
 
-// The evaluation function.
+/// The evaluation function.
 pub(crate) fn eval(board: &Board) -> f32 {
     let mut score = 0.0;
 

@@ -10,7 +10,7 @@ use crate::movepick::MovePicker;
 use crate::params;
 use crate::table::{TableEntry, TableEntryFlag};
 
-// A struct holding all the necessary information for a search thread.
+/// A struct holding all the necessary information for a search thread.
 #[derive(Debug)]
 pub(crate) struct Search {
     info: Arc<GlobalInfo>,
@@ -24,7 +24,7 @@ pub(crate) struct Search {
 // ================================ pub(crate) impl
 
 impl Search {
-    // Creates a new search struct, ready to bes used for searching the game tree.
+    /// Creates a new search struct, ready to bes used for searching the game tree.
     pub(crate) fn new(info: Arc<GlobalInfo>) -> Search {
         Search {
             info,
@@ -36,7 +36,7 @@ impl Search {
         }
     }
 
-    // The loop run by threads
+    /// The loop run by threads
     pub(crate) fn thread_main(&mut self) {
         loop {
             // The start barrier.
@@ -60,7 +60,7 @@ impl Search {
 // ================================ impl
 
 impl Search {
-    // Search the position until told to stop.
+    /// Search the position until told to stop.
     fn search_position(&mut self) {
         // Clone global board and get search depth.
         const MAX_IDX: usize = params::ASPIRATION_WINDOW.len() - 1;
@@ -115,7 +115,7 @@ impl Search {
         }
     }
     
-    // The alpha-beta negamax algorithm, with a few more heuristics in it.
+    /// The alpha-beta negamax algorithm, with a few more heuristics in it.
     pub(crate) fn alpha_beta(&mut self, mut alpha: f32, beta: f32, do_null: bool, mut depth: u8, search_depth: u8) -> f32 {        
         if depth == 0 {
             return self.quiescence(alpha, beta);
@@ -234,7 +234,7 @@ impl Search {
         alpha
     }
 
-    // Return the value of the position, computed with a quiescent search (only considering captures).
+    /// Return the value of the position, computed with a quiescent search (only considering captures).
     fn quiescence(&mut self, mut alpha: f32, beta: f32) -> f32 {
         if utils::is_pseudo_draw(&self.board, alpha, self.depth == 0) {
             if alpha >= beta {

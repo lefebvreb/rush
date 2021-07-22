@@ -11,8 +11,8 @@ use crate::square::Square;
 //
 //#################################################################################################
 
-// An array whose ith element is 1 << i, precalculated as lookup
-// is slightly faster than calculating them.
+/// An array whose ith element is 1 << i, precalculated as lookup
+/// is slightly faster than calculating them.
 static mut SHIFTS: [BitBoard; 64] = [BitBoard::EMPTY; 64];
 
 // These arrays contain bitboards indexed by two squares, from and to. They contain respectively:
@@ -25,7 +25,7 @@ static mut SQUARES_BETWEEN_DIAGNOAL: [[BitBoard; 64]; 64] = [[BitBoard::EMPTY; 6
 static mut SQUARES_BETWEEN: [[BitBoard; 64]; 64] = [[BitBoard::EMPTY; 64]; 64];
 static mut SQUARES_RAY_MASK: [[BitBoard; 64]; 64] = [[BitBoard::EMPTY; 64]; 64];
 
-// Initializes the arrays above and the shifts table.
+/// Initializes the arrays above and the shifts table.
 #[cold]
 pub(crate) unsafe fn init() {
     for (i, shift) in SHIFTS.iter_mut().enumerate() {
@@ -114,6 +114,16 @@ impl BitBoard {
     pub const RANK_6: BitBoard = BitBoard(0xFF0000000000);
     pub const RANK_7: BitBoard = BitBoard(0xFF000000000000);
     pub const RANK_8: BitBoard = BitBoard(0xFF00000000000000);
+
+    // The files of the board.
+    pub const FILE_A: BitBoard = BitBoard(0x0101010101010101);
+    pub const FILE_B: BitBoard = BitBoard(0x0202020202020202);
+    pub const FILE_C: BitBoard = BitBoard(0x0404040404040404);
+    pub const FILE_D: BitBoard = BitBoard(0x0808080808080808);
+    pub const FILE_E: BitBoard = BitBoard(0x1010101010101010);
+    pub const FILE_F: BitBoard = BitBoard(0x2020202020202020);
+    pub const FILE_G: BitBoard = BitBoard(0x4040404040404040);
+    pub const FILE_H: BitBoard = BitBoard(0x8080808080808080);
 
     /// Return true if and only if the BitBoard self is empty.
     #[inline]
@@ -220,7 +230,7 @@ impl BitBoard {
 // ================================ pub(crate) impl
 
 impl BitBoard {
-    // Performs a parallel bits extract (pext) using the intrinsic (fast).
+    /// Performs a parallel bits extract (pext) using the intrinsic (fast).
     #[cfg(all(target_arch = "x86_64", target_feature = "bmi2"))]
     #[inline]
     pub(crate) fn pext(self, mask: BitBoard) -> BitBoard {
@@ -230,7 +240,7 @@ impl BitBoard {
         })
     }
 
-    // Performs a parallel bits extract (pext) without the intrinsic (slow).
+    /// Performs a parallel bits extract (pext) without the intrinsic (slow).
     #[cfg(not(all(target_arch = "x86_64", target_feature = "bmi2")))]
     #[inline]
     pub(crate) fn pext(self, mut mask: BitBoard) -> BitBoard {
@@ -248,7 +258,7 @@ impl BitBoard {
         BitBoard(res)
     }
 
-    // Performs a parallel bits deposit (pdep) using the intrinsic (fast).
+    /// Performs a parallel bits deposit (pdep) using the intrinsic (fast).
     #[cfg(all(target_arch = "x86_64", target_feature = "bmi2"))]
     #[inline]
     pub(crate) fn pdep(self, mask: BitBoard) -> BitBoard {
@@ -258,7 +268,7 @@ impl BitBoard {
         })
     }
 
-    // Performs a parallel bits deposit (pdep) without the intrinsic (slow).
+    /// Performs a parallel bits deposit (pdep) without the intrinsic (slow).
     #[cfg(not(all(target_arch = "x86_64", target_feature = "bmi2")))]
     #[inline]
     pub(crate) fn pdep(self, mut mask: BitBoard) -> BitBoard {
@@ -280,14 +290,14 @@ impl BitBoard {
 // ================================ traits impl
 
 impl fmt::Debug for BitBoard {
-    // Prints the bitboard in hex form for quick debugging.
+    /// Prints the bitboard in hex form for quick debugging.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "BitBoard(0x{:X})", self.0)
     }
 }
 
 impl fmt::Display for BitBoard {
-    // Pretty-prints the bitboard for human eyes.
+    /// Pretty-prints the bitboard for human eyes.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut bits = self.0.reverse_bits();
 

@@ -6,7 +6,7 @@ use crate::piece::Piece;
 use crate::prelude::Color;
 use crate::square::Square;
 
-// Create the base for a move, with the given flags, from and to squares.
+/// Create the base for a move, with the given flags, from and to squares.
 #[inline]
 const fn base(flags: u32, from: Square, to: Square) -> u32 {
     flags | (from as u32) << 5 | (to as u32) << 11
@@ -171,7 +171,7 @@ impl Move {
 // ================================ traits impl
 
 impl fmt::Display for Move {
-    // Displays a move using pure algebraic coordinate notation.
+    /// Displays a move using pure algebraic coordinate notation.
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if self.is_promote() {
             write!(fmt, "{}{}{}", self.from(), self.to(), self.get_promote().as_char(Color::Black))
@@ -182,7 +182,7 @@ impl fmt::Display for Move {
 }
 
 impl fmt::Debug for Move {
-    // Displays useful debugging informations about a move.
+    /// Displays useful debugging informations about a move.
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("Move")
             .field("from", &self.from())

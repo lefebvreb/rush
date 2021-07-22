@@ -238,6 +238,7 @@ fn main() -> Result<()> {
         history: Vec::new(),
     };
 
+    // The REPL.
     loop {
         // Print the state of the board and of the engine.
         state.print_board();

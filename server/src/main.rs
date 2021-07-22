@@ -11,7 +11,7 @@ mod sockets;
 
 use crate::sockets::Sockets;
 
-// The default address the server listens on.
+/// The default address the server listens on.
 const DEFAULT_ADDRESS: &str = "127.0.0.1:5050";
 
 #[tokio::main(flavor = "current_thread")]

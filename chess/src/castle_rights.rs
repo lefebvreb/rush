@@ -11,7 +11,7 @@ use crate::square::Square;
 //
 //#################################################################################################
 
-// Represents the masks used to manipulate castle rights.
+/// Represents the masks used to manipulate castle rights.
 #[repr(u8)]
 #[derive(Debug)]
 pub(crate) enum CastleMask {
@@ -27,20 +27,20 @@ pub(crate) enum CastleMask {
 //
 //#################################################################################################
 
-// Used to represent castle availability for both players.
+/// Used to represent castle availability for both players.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct CastleRights(u8);
 
 // ================================ pub(crate) impl
 
 impl CastleRights {
-    // Returns true if those rights contain that mask.
+    /// Returns true if those rights contain that mask.
     #[inline]
     pub(crate) fn has(self, mask: CastleMask) -> bool {
         (self.0 & mask as u8) != 0
     }
 
-    // Updates the rights with the given from and to squares of the move.
+    /// Updates the rights with the given from and to squares of the move.
     #[inline]
     pub(crate) fn update(&mut self, from: Square, to: Square) {
         match from {
@@ -72,7 +72,7 @@ impl CastleRights {
 // ================================ impl
 
 impl CastleRights {
-    // Remove the mask from the castling rights.
+    /// Remove the mask from the castling rights.
     #[inline]
     fn remove(&mut self, mask: CastleMask) {
         self.0 &= !(mask as u8)
@@ -82,14 +82,14 @@ impl CastleRights {
 // ================================ traits impl
 
 impl Default for CastleRights {
-    // The default castle rights: all of them.
+    /// The default castle rights: all of them.
     fn default() -> CastleRights {
         CastleRights(0b1111)
     }
 }
 
 impl fmt::Display for CastleRights {
-    // To fen notation for castle rights.
+    /// To fen notation for castle rights.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", match self.0 {
             0b0000 => "-",
@@ -116,7 +116,7 @@ impl fmt::Display for CastleRights {
 impl<'a> FromStr for CastleRights {
     type Err = Error;
 
-    // From fen notation for castle rights.
+    /// From fen notation for castle rights.
     fn from_str(s: &str) -> Result<CastleRights> {
         Ok(CastleRights(match s {
             "-"    => 0b0000,

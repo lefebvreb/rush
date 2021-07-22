@@ -10,11 +10,11 @@ use crate::square::Square;
 //
 //#################################################################################################
 
-// The zobrist keys.
+/// The zobrist keys.
 static mut KEYS: [[[Zobrist; 2]; 6]; 64] = [[[Zobrist::ZERO; 2]; 6]; 64];
 
-// The xorshift* algorithm for 64 bits numbers, producing
-// good enough pseudo-random numbers.
+/// The xorshift* algorithm for 64 bits numbers, producing
+/// good enough pseudo-random numbers.
 #[cold]
 fn xorshift(seed: &mut u64) -> Zobrist {
     let mut x = *seed;
@@ -25,7 +25,7 @@ fn xorshift(seed: &mut u64) -> Zobrist {
     Zobrist(x.wrapping_mul(0x2545F4914F6CDD1D))
 }
 
-// Initializes the zobrist keys at the beginning of the program.
+/// Initializes the zobrist keys at the beginning of the program.
 #[cold]
 pub(crate) unsafe fn init() {
     // Changing the seed may make the cuckoo init() non terminating.

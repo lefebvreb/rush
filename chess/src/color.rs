@@ -45,7 +45,7 @@ impl Default for Color {
 }
 
 impl fmt::Display for Color {
-    // To fen color notation.
+    /// To fen color notation.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", match self {
             Color::White => "w",
@@ -57,7 +57,7 @@ impl fmt::Display for Color {
 impl<'a> FromStr for Color {
     type Err = Error;
 
-    // From fen color notation.
+    /// From fen color notation.
     fn from_str(s: &str) -> Result<Color, Error> {
         match s {
             "w" => Ok(Color::White),

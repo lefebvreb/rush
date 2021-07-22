@@ -8,7 +8,7 @@ use warp::ws::Message;
 //
 //#################################################################################################
 
-// A struct representing a parsed message from a client.
+/// A struct representing a parsed message from a client.
 #[derive(Debug)]
 pub enum Command {
     Welcome(usize),
@@ -24,7 +24,7 @@ pub enum Command {
 // ================================ pub impl
 
 impl Command {
-    // Tries to parse a command from a warp message.
+    /// Tries to parse a command from a warp message.
     pub fn from_msg(msg: Message) -> Result<Self> {
         let data = msg.to_str().map_err(|_| Error::msg("Incoming message is not text."))?;
         let json: Value = serde_json::from_str(data)?;
@@ -65,7 +65,7 @@ impl Command {
 //
 //#################################################################################################
 
-// An enum representing the possible responses of the game state.
+/// An enum representing the possible responses of the game state.
 #[derive(Debug)]
 pub enum Response {
     Broadcast(Message),

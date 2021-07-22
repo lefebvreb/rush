@@ -1,15 +1,16 @@
 use std::time::Duration;
 
 use anyhow::{Error, Result};
-use chess::prelude::*;
 use engine::Engine;
 use serde_json::Value;
 use tokio::sync::mpsc::{self, UnboundedSender};
 use warp::ws::Message;
 
+use chess::prelude::*;
+
 use crate::messages::{Command, Response};
 
-// The fen used for the default position.
+/// The fen used for the default position.
 const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 //#################################################################################################
@@ -18,8 +19,8 @@ const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 
 //
 //#################################################################################################
 
-// A struct keeping a history of played and/or undoed moves, as well
-// as their textual representations.
+/// A struct keeping a history of played and/or undoed moves, as well
+/// as their textual representations.
 #[derive(Debug)]
 struct History {
     moves: Vec<Move>,
@@ -30,7 +31,7 @@ struct History {
 // ================================ impl
 
 impl History {
-    // Creates a new empty move history.
+    /// Creates a new empty move history.
     fn new() -> Self {
         Self {
             moves: Vec::new(),
@@ -39,7 +40,7 @@ impl History {
         }
     }
 
-    // Pushes a new move to the history, losing all undoed moves.
+    /// Pushes a new move to the history, losing all undoed moves.
     fn push(&mut self, mv: Move) {
         // If we are not at the end of the timeline.
         if self.cursor != self.moves.len() {
@@ -60,7 +61,7 @@ impl History {
         self.cursor += 1;
     }
 
-    // Undo a move.
+    /// Undo a move.
     fn undo(&mut self) -> Result<Move> {
         // Check there is something to undo.
         if self.cursor == 0 {
@@ -72,7 +73,7 @@ impl History {
         Ok(self.moves[self.cursor])
     }
 
-    // Redo a move.
+    /// Redo a move.
     fn redo(&mut self) -> Result<Move> {
         // Check that we are not at the end of the timeline.
         if self.cursor == self.moves.len() {
@@ -89,8 +90,8 @@ impl History {
 // ================================ traits impl
 
 impl From<&History> for Value {
-    // Converts the history into it's json representation: an array of the 
-    // moves currently played.
+    /// Converts the history into it's json representation: an array of the 
+    /// moves currently played.
     fn from(history: &History) -> Self {
         Self::from(&history.strings[..history.cursor])
     }
@@ -102,7 +103,7 @@ impl From<&History> for Value {
 //
 //#################################################################################################
 
-// Manages the state of the game.
+/// Manages the state of the game.
 #[derive(Debug)]
 pub struct Game {
     engine: Engine,
@@ -113,10 +114,10 @@ pub struct Game {
 // ================================ pub impl
 
 impl Game {
-    // Creates a new game with the default position.
-    // Returns a channel used to pass messages to the game state.
-    // Takes a channel in argument, used by the game state to respond
-    // to incoming messages.
+    /// Creates a new game with the default position.
+    /// Returns a channel used to pass messages to the game state.
+    /// Takes a channel in argument, used by the game state to respond
+    /// to incoming messages.
     pub fn new(tx: UnboundedSender<Result<Response>>) -> UnboundedSender<Command> {
         // Creates the communication channels used to send messages to the game state.
         let (game_tx, mut game_rx) = mpsc::unbounded_channel();
@@ -144,7 +145,7 @@ impl Game {
         game_tx
     }
 
-    // Reacts to a given command and returns the response.
+    /// Reacts to a given command and returns the response.
     pub fn react(&mut self, command: Command) -> Result<Response> {
         match command {
             // On welcoming a new connection, send him the welcome message.
@@ -222,6 +223,7 @@ impl Game {
 }
 
 impl Game {
+    /// Gets the warp message to send to a client to completely describe the current state of the game.
     fn get_msg(&self) -> Message {
         Message::text(serde_json::json!({
             "fen": self.engine.read_board().to_string(),

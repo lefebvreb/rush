@@ -57,6 +57,8 @@ Where port is the port the server will bind to. The link to the server will be p
 ### Chess:
 + Cleaner legals.
 + Cleaner perft.
++ Repair `Board::test_upcoming_repetition()`.
++ Better zobrist hashing.
 
 ### Engine:
 + Better `chess::movepick` module: make a trait implemeted by two structs, one for standard alpha-beta search, one for quiescient search.
@@ -66,4 +68,3 @@ Where port is the port the server will bind to. The link to the server will be p
 + Null move heuristic.
 + Recapture.
 + Better evealuation.
-+ Repair `Board::test_upcoming_repetition()`

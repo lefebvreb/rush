@@ -45,7 +45,7 @@ impl Status {
 //
 //#################################################################################################
 
-// The state of the board at a given turn.
+/// The state of the board at a given turn.
 #[derive(Clone, Default, Debug)]
 pub(crate) struct StateInfo {
     side_to_move: Color,
@@ -671,27 +671,27 @@ impl Board {
 // ================================ pub(crate) impl
 
 impl Board {
-    // Returns the castling rights in the current position.
+    /// Returns the castling rights in the current position.
     #[inline]
     pub(crate) fn get_castle_rights(&self) -> CastleRights {
         self.state.castle_rights
     }
 
-    // Returns the en passant square of the current position.
+    /// Returns the en passant square of the current position.
     #[inline]
     pub(crate) fn get_ep_square(&self) -> EnPassantSquare {
         self.state.ep_square
     }
 
-    // Returns true from and to are not aligned, or if the squares
-    // between them are empty.
+    /// Returns true from and to are not aligned, or if the squares
+    /// between them are empty.
     #[inline]
     pub(crate) fn is_path_clear(&self, from: Square, to: Square) -> bool {
         (BitBoard::between(from, to) & self.occ.all).empty()
     }
 
-    // Returns the bitboard of all the attackers to that square. Does not take
-    // en passant into account.
+    /// Returns the bitboard of all the attackers to that square. Does not take
+    /// en passant into account.
     #[inline]
     pub(crate) fn attackers_to(&self, sq: Square, occ: BitBoard) -> BitBoard {
         let us = self.get_side_to_move();
@@ -710,8 +710,8 @@ impl Board {
 // ================================ impl
 
 impl Board {
-    // Places a piece of the given color on the given square. If ZOBRIST is true, 
-    // updates the zobrist key accordingly.
+    /// Places a piece of the given color on the given square. If ZOBRIST is true, 
+    /// updates the zobrist key accordingly.
     #[inline]
     fn place_piece<const ZOBRIST: bool>(&mut self, color: Color, piece: Piece, sq: Square) {
         self.mailbox[usize::from(sq)] = Some((color, piece));
@@ -726,8 +726,8 @@ impl Board {
         }
     }
 
-    // Removes the piece on the given square. If ZOBRIST is true, updates the
-    // zobrist key accordingly.
+    /// Removes the piece on the given square. If ZOBRIST is true, updates the
+    /// zobrist key accordingly.
     #[inline]
     fn remove_piece<const ZOBRIST: bool>(&mut self, sq: Square) -> (Color, Piece) {
         let (color, piece) = self.mailbox[usize::from(sq)].unwrap();
@@ -745,8 +745,8 @@ impl Board {
         (color, piece)
     }
 
-    // Dispalces a piece between the two given squares. If ZOBRIST is true, updates the
-    // zobrist key accordingly.
+    /// Dispalces a piece between the two given squares. If ZOBRIST is true, updates the
+    /// zobrist key accordingly.
     #[inline]
     fn displace_piece<const ZOBRIST: bool>(&mut self, from: Square, to: Square) -> (Color, Piece) {
         let (color, piece) = self.remove_piece::<ZOBRIST>(from);
@@ -793,6 +793,7 @@ impl Board {
 // ================================ traits impl
 
 impl Default for Board {
+    /// Returns an empty board.
     fn default() -> Board {
         Board {
             ply: 0,

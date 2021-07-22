@@ -12,7 +12,7 @@ use chess::piece::Piece;
 //
 //#################################################################################################
 
-// Represents the state of a movepicker.
+/// Represents the state of a movepicker.
 #[derive(Debug)]
 enum GenState {
     // No checkers.
@@ -34,7 +34,7 @@ enum GenState {
     End,
 }
 
-// A struct allowing semi-lazily move generation.
+/// A struct allowing semi-lazily move generation.
 #[derive(Debug)]
 pub(crate) struct MovePicker {
     state: GenState,
@@ -45,7 +45,7 @@ pub(crate) struct MovePicker {
 // ================================ pub(crate) impl
 
 impl MovePicker {
-    // Creates a new MovePicker, for the current board and given buffer.
+    /// Creates a new MovePicker, for the current board and given buffer.
     #[inline]
     pub(crate) fn new(board: &Board, buffer: &[Move]) -> MovePicker {
         let zero_index = buffer.len();
@@ -75,10 +75,10 @@ impl MovePicker {
         }
     }
 
-    // A state machine generating moves lazily.
-    // If there is nothing left to generate, returns None.
-    // If some moves where generated, returns some range,
-    // giving the indexes of the generated moves in the buffer.
+    /// A state machine generating moves lazily.
+    /// If there is nothing left to generate, returns None.
+    /// If some moves where generated, returns some range,
+    /// giving the indexes of the generated moves in the buffer.
     pub(crate) fn next(&mut self, board: &Board, buffer: &mut Vec<Move>) -> Option<Range<usize>> {
         // Remove the last batch from the list.
         buffer.truncate(self.zero_index);
@@ -254,6 +254,6 @@ impl MovePicker {
 // ================================ impl
 
 impl MovePicker {
-    // The list of under promotions, from best to worst.
+    /// The list of under promotions, from best to worst.
     const UNDER_PROMOTES: [Piece; 3] = [Piece::Rook, Piece::Bishop, Piece::Knight];
 }

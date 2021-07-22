@@ -18,7 +18,7 @@ use crate::messages::{Command, Response};
 //
 //#################################################################################################
 
-// Manages the different connections, as well as the state of the server.
+/// Manages the different connections, as well as the state of the server.
 #[derive(Debug)]
 pub struct Sockets {
     // The atomic counter keeping trace of wich ids have been attributed already.
@@ -32,7 +32,7 @@ pub struct Sockets {
 // ================================ pub impl
 
 impl Sockets {
-    // Creates a new Socket object, managing all connections.
+    /// Creates a new Socket object, managing all connections.
     pub fn new() -> Arc<Self> {
         // Create channels to communicate with the game state.
         let (tx, mut game_rx) = mpsc::unbounded_channel();
@@ -65,7 +65,7 @@ impl Sockets {
         state
     }
 
-    // Handle a new connections through it's life cycle.
+    /// Handle a new connections through it's life cycle.
     pub async fn handle_connection(self: Arc<Self>, ws: warp::ws::WebSocket) {
         // Get the next valid unique id.
         let uid = self.next_uid.fetch_add(1, Ordering::Relaxed);
@@ -124,21 +124,21 @@ impl Sockets {
 // ================================ impl
 
 impl Sockets {
-    // Sends a message to a specified client, if it is still connected.
+    /// Sends a message to a specified client, if it is still connected.
     async fn send(&self, uid: usize, msg: Message) {
         if let Some(tx) = self.senders.read().await.get(&uid) {
             tx.send(Ok(msg)).ok();
         }
     }
 
-    // Broadcasts a message to all connected clients.
+    /// Broadcasts a message to all connected clients.
     async fn broadcast(&self, msg: Message) {
         for tx in self.senders.read().await.values() {
             tx.send(Ok(msg.clone())).ok();
         }
     }
 
-    // Upon receiving a message from a client, parses it and forwards to the game state.
+    /// Upon receiving a message from a client, parses it and forwards to the game state.
     fn on_message(&self, msg: Message) -> Result<()> {
         let command = Command::from_msg(msg)?;
         self.game_tx.send(command)?;

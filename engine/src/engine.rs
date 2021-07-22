@@ -16,7 +16,7 @@ use crate::table::TranspositionTable;
 //
 //#################################################################################################
 
-// The shared info between threads.
+/// The shared info between threads.
 #[derive(Debug)]
 pub(crate) struct GlobalInfo {
     barrier: Barrier,
@@ -34,50 +34,50 @@ pub(crate) struct GlobalInfo {
 // ================================ pub(crate) impl
 
 impl GlobalInfo {
-    // Returns a reference to the TranspositionTable.
+    /// Returns a reference to the TranspositionTable.
     #[inline]
     pub(crate) fn get_table(&self) -> &TranspositionTable {
         &self.table
     }
 
-    // Returns a clone of the current board, the root of the tree to explore.
+    /// Returns a clone of the current board, the root of the tree to explore.
     #[inline]
     pub(crate) fn board(&self) -> Board {
         self.board.read().unwrap().clone()
     }
 
-    // Returns true if the engine is currently searching.
+    /// Returns true if the engine is currently searching.
     #[inline]
     pub(crate) fn is_searching(&self) -> bool {
         self.searching.load(Ordering::Relaxed)
     }
 
-    // Atomically looks for the stop signal.
+    /// Atomically looks for the stop signal.
     #[inline]
     pub(crate) fn should_stop(&self) -> bool {
         self.stop.load(Ordering::Acquire)
     }
 
-    // Wait at the barrier for every other thread.
+    /// Wait at the barrier for every other thread.
     #[inline]
     pub(crate) fn wait(&self) {
         self.barrier.wait();
     }
 
-    // Returns the current search depth.
+    /// Returns the current search depth.
     #[inline]
     pub(crate) fn search_depth(&self) -> u8 {
         self.search_depth.load(Ordering::Relaxed)
     }
 
-    // Returns the search depth a thread should search to next.
-    // This is computed as 1 + the current base depth + the id,
-    // where the id is a number such that at any given time,
-    // one thread searches to log2(params::NUM_SEARCH_THREAD),
-    // two at log2(params::NUM_SEARCH_THREAD)-1, four at 
-    // log2(params::NUM_SEARCH_THREAD)-2, etc.
-    // This allow for a flexible work distribution, and makes threads
-    // not all search at the same thing at the same time.
+    /// Returns the search depth a thread should search to next.
+    /// This is computed as 1 + the current base depth + the id,
+    /// where the id is a number such that at any given time,
+    /// one thread searches to log2(params::NUM_SEARCH_THREAD),
+    /// two at log2(params::NUM_SEARCH_THREAD)-1, four at 
+    /// log2(params::NUM_SEARCH_THREAD)-2, etc.
+    /// This allow for a flexible work distribution, and makes threads
+    /// not all search at the same thing at the same time.
     #[inline]
     pub(crate) fn thread_search_depth(&self) -> u8 {
         let depth = self.search_depth();
@@ -91,8 +91,8 @@ impl GlobalInfo {
         1 + depth + (id + 1).trailing_zeros() as u8 
     }
 
-    // Report back a move, stores if it was searched at a deeper depth
-    // than the current one, and subsequently increase the base search depth.
+    /// Report back a move, stores if it was searched at a deeper depth
+    /// than the current one, and subsequently increase the base search depth.
     #[inline]
     pub(crate) fn report_move(&self, mv: Move, depth: u8) {
         self.search_depth.fetch_update(
@@ -225,7 +225,7 @@ impl Engine {
 // ================================ traits impl
 
 impl Drop for Engine {
-    // On dropping the engine, make sure that all threads are joined.
+    /// On dropping the engine, make sure that all threads are joined.
     fn drop(&mut self) {
         if self.handles.is_empty() {
             return;

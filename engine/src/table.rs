@@ -10,7 +10,7 @@ use crate::params;
 //
 //#################################################################################################
 
-// An enum representing the type of a node.
+/// An enum representing the type of a node.
 #[derive(Copy, Clone, Debug)]
 pub(crate) enum TableEntryFlag {
     Alpha = 0,
@@ -18,7 +18,7 @@ pub(crate) enum TableEntryFlag {
     Exact = 2,
 }
 
-// A struct representing an entry of the table.
+/// A struct representing an entry of the table.
 #[derive(Copy, Clone, Debug)]
 pub(crate) struct TableEntry {
     zobrist: Zobrist,
@@ -32,7 +32,7 @@ pub(crate) struct TableEntry {
 // ================================ pub(crate) impl
 
 impl TableEntry {
-    // Creates a new table entry based with the given values.
+    /// Creates a new table entry based with the given values.
     #[inline]
     pub(crate) fn new(board: &Board, mv: Move, score: f32, depth: u8, flag: TableEntryFlag) -> TableEntry {
         TableEntry {
@@ -52,16 +52,16 @@ impl TableEntry {
 //
 //#################################################################################################
 
-// The type of a bucket in the map.
+/// The type of a bucket in the map.
 type Bucket = Option<TableEntry>;
 
-// The size in buckets of the table. It is a power of two for
-// faster indexing.
+/// The size in buckets of the table. It is a power of two for
+/// faster indexing.
 const NUM_BUCKETS: usize = (params::TABLE_SIZE / std::mem::size_of::<Bucket>()).next_power_of_two();
 
-// The struct representing an access to a transposition table.
-// A transposition table is a lock-less memory-efficient concurrent hashmap.
-// It's only default is that it is lossy and may rarely corrupt some of it's data.
+/// The struct representing an access to a transposition table.
+/// A transposition table is a lock-less memory-efficient concurrent hashmap.
+/// It's only default is that it is lossy and may rarely corrupt some of it's data.
 #[repr(transparent)]
 #[derive(Clone, Debug)]
 pub(crate) struct TranspositionTable(*mut Bucket);
@@ -69,7 +69,7 @@ pub(crate) struct TranspositionTable(*mut Bucket);
 // ================================ pub(crate) impl
 
 impl TranspositionTable {
-    // Creates a new transposition table, from leaking a vector.
+    /// Creates a new transposition table, from leaking a vector.
     pub(crate) fn new() -> TranspositionTable {
         let mut vec = vec![None; NUM_BUCKETS];
         let ptr = vec.as_mut_ptr();
@@ -78,11 +78,12 @@ impl TranspositionTable {
         TranspositionTable(ptr)
     }
     
-    // Inserts into the hashtable, or not depending on the replacement strategy.
+    /// Inserts into the hashtable, or not depending on the replacement strategy.
     #[inline]
     pub(crate) fn insert(&self, entry: TableEntry) {
         let i = entry.zobrist.idx::<NUM_BUCKETS>();
 
+        // SAFE: not inherently unsafe, at worst we risk getting a currupted entry.
         if let Some(prev) = unsafe {*self.0.offset(i)} {
             let replace_score = 
                 entry.depth as i32 - prev.depth as i32 + 
@@ -94,14 +95,16 @@ impl TranspositionTable {
             }
         }
 
+        // SAFE: not inherently unsafe, at worst we risk corrupting an entry.
         unsafe {*self.0.offset(i) = Some(entry)};
     }
 
-    // Probes the hashmap and gets any pertinent information available.
+    /// Probes the hashmap and gets any pertinent information available.
     #[inline]
     pub(crate) fn probe(&self, zobrist: Zobrist, alpha: f32, beta: f32, depth: u8) -> Option<(Move, f32)> {
         let i = zobrist.idx::<NUM_BUCKETS>();
         
+        // SAFE: not inherently unsafe, at worst we risk getting a currupted entry.
         if let Some(entry) = unsafe {*self.0.offset(i)} {
             if entry.zobrist == zobrist && entry.depth >= depth {
                 let mv = entry.mv;
@@ -123,7 +126,7 @@ impl TranspositionTable {
 // ================================ traits impl
 
 impl Drop for TranspositionTable {
-    // TranspositionTable needs to be manually dropped.
+    /// TranspositionTable needs to be manually dropped.
     fn drop(&mut self) {
         unsafe {Box::from_raw(self.0)};
     }

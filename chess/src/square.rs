@@ -108,7 +108,7 @@ impl Square {
 // ================================ traits impl
 
 impl fmt::Display for Square {
-    // Gives the square's pure algebraic coordinates notation.
+    /// Gives the square's pure algebraic coordinates notation.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const FILES: [char; 8] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
         const RANKS: [char; 8] = ['1', '2', '3', '4', '5', '6', '7', '8'];
@@ -144,7 +144,7 @@ impl From<Square> for usize {
 impl FromStr for Square {
     type Err = Error;
 
-    // Tries to construct a square from a pure algebraic coordinates notation.
+    /// Tries to construct a square from a pure algebraic coordinates notation.
     fn from_str(s: &str) -> Result<Square, Error> {
         if s.len() == 2 {
             let mut chars = s.chars();
