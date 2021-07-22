@@ -1,9 +1,10 @@
 use std::fmt;
 use std::str::FromStr;
 
+use anyhow::{Error, Result};
+
 use crate::bitboard::BitBoard;
 use crate::color::Color;
-use crate::errors::ParseFenError;
 
 //#################################################################################################
 //
@@ -141,10 +142,10 @@ impl From<Square> for usize {
 }
 
 impl FromStr for Square {
-    type Err = ParseFenError;
+    type Err = Error;
 
     // Tries to construct a square from a pure algebraic coordinates notation.
-    fn from_str(s: &str) -> Result<Square, ParseFenError> {
+    fn from_str(s: &str) -> Result<Square, Error> {
         if s.len() == 2 {
             let mut chars = s.chars();
 
@@ -154,15 +155,15 @@ impl FromStr for Square {
             Ok(Square::from((
                 match file {
                     'a'..='h' => file as i8 - 'a' as i8,
-                    _ => return Err(ParseFenError::new("first character of a square should be a letter between a and h")),
+                    _ => return Err(Error::msg("first character of a square should be a letter between a and h")),
                 },
                 match rank {
                     '1'..='8' => rank as i8 - '1' as i8,
-                    _ => return Err(ParseFenError::new("second character of a square should be a digit between 1 and 8")),
+                    _ => return Err(Error::msg("second character of a square should be a digit between 1 and 8")),
                 },
             )))
         } else {
-            Err(ParseFenError::new("a square should be exactly 2 characters long"))
+            Err(Error::msg("a square should be exactly 2 characters long"))
         }
     }
 }

@@ -1,7 +1,8 @@
 use std::fmt;
 use std::str::FromStr;
 
-use crate::errors::ParseFenError;
+use anyhow::{Error, Result};
+
 use crate::square::Square;
 
 //#################################################################################################
@@ -113,10 +114,10 @@ impl fmt::Display for CastleRights {
 }
 
 impl<'a> FromStr for CastleRights {
-    type Err = ParseFenError;
+    type Err = Error;
 
     // From fen notation for castle rights.
-    fn from_str(s: &str) -> Result<CastleRights, ParseFenError> {
+    fn from_str(s: &str) -> Result<CastleRights> {
         Ok(CastleRights(match s {
             "-"    => 0b0000,
             "K"    => 0b0001,
@@ -134,7 +135,7 @@ impl<'a> FromStr for CastleRights {
             "Kkq"  => 0b1101,
             "Qkq"  => 0b1110,
             "KQkq" => 0b1111,
-            _ => return Err(ParseFenError::new("Invalid castle rights format")),
+            _ => return Err(Error::msg("Invalid castle rights format")),
         }))
     }
 }

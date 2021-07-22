@@ -18,10 +18,10 @@ const DEFAULT_ADDRESS: &str = "127.0.0.1:5050";
 async fn main() {
     // Gets the arguments.
     let args = App::new("Rush Chess Engine Server")
-        .version(env!("CARGO_PKG_VERSION"))
+        .version(engine::VERSION)
         .author("Benjamin Lefebvre")
         .about("A web server backend for playing againt the Rush chess engine.")
-        .arg(Arg::with_name("Address")
+        .arg(Arg::with_name("address")
             .short("a")
             .long("address")
             .value_name("ADDRESS")
@@ -30,7 +30,7 @@ async fn main() {
         .get_matches();
 
     // Parses the socket address.
-    let addr_str = args.value_of("Address").unwrap_or(DEFAULT_ADDRESS);
+    let addr_str = args.value_of("address").unwrap_or(DEFAULT_ADDRESS);
     let addr = match SocketAddr::from_str(addr_str) {
         Ok(addr) => addr,
         Err(_) => {

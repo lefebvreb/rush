@@ -1,6 +1,8 @@
 use std::fmt;
 use std::str::FromStr;
 
+use anyhow::{Error, Result};
+
 use crate::attacks;
 use crate::bitboard::BitBoard;
 use crate::castle_rights::CastleMask;
@@ -8,7 +10,6 @@ use crate::castle_rights::CastleRights;
 use crate::color::Color;
 use crate::cuckoo;
 use crate::en_passant::EnPassantSquare;
-use crate::errors::ParseFenError;
 use crate::movegen;
 use crate::moves::Move;
 use crate::piece::Piece;
@@ -118,7 +119,7 @@ pub struct Board {
 
 impl Board {
     /// Tries to parse the fen string into a board.
-    pub fn new(fen: &str) -> Result<Board, ParseFenError> {
+    pub fn new(fen: &str) -> Result<Board> {
         Board::from_str(fen)
     }
 
@@ -558,7 +559,7 @@ impl Board {
     }
 
     /// Parses the move, checking the legality of the move.
-    pub fn parse_move(&self, s: &str) -> Result<Move, ParseFenError> {
+    pub fn parse_move(&self, s: &str) -> Result<Move> {
         let mv = match s.len() {
             4 => {
                 let from = Square::from_str(&s[0..2])?;
@@ -605,7 +606,7 @@ impl Board {
                     'n' => Piece::Knight,
                     'b' => Piece::Bishop,
                     'q' => Piece::Queen,
-                    _ => return Err(ParseFenError::new("unrecognized promotion")),
+                    _ => return Err(Error::msg("Unrecognized promotion.")),
                 };
     
                 if let Some((_, capture)) = self.get_piece(to) {
@@ -614,13 +615,13 @@ impl Board {
                     Move::promote(from, to, promote)
                 }
             },
-            _ => return Err(ParseFenError::new("a move should be encoded in pure algebraic coordinate notation")),
+            _ => return Err(Error::msg("A move should be encoded in pure algebraic coordinate notation.")),
         };
 
         if self.is_pseudo_legal(mv) && self.is_legal(mv) {
             Ok(mv)
         } else {
-            Err(ParseFenError::new("move is illegal in this context"))
+            Err(Error::msg("Move is illegal in this context."))
         }
     }
 
@@ -850,13 +851,13 @@ impl fmt::Display for Board {
 }
 
 impl<'a> FromStr for Board {
-    type Err = ParseFenError;
+    type Err = Error;
 
     /// Tries to parse a board from a string in fen representation.
-    fn from_str(s: &str) -> Result<Board, ParseFenError> {
+    fn from_str(s: &str) -> Result<Board> {
         let mut split = s.split(' ');
 
-        let mut next_arg = || split.next().ok_or_else(|| ParseFenError::new("not enough arguments in fen string"));
+        let mut next_arg = || split.next().ok_or_else(|| Error::msg("not enough arguments in fen string"));
 
         let ranks = next_arg()?;
 
@@ -868,7 +869,7 @@ impl<'a> FromStr for Board {
         board.ply = u16::from_str(next_arg()?)?;
 
         if split.next().is_some() {
-            return Err(ParseFenError::new("too many arguments in fen string"));
+            return Err(Error::msg("Too many arguments in fen string."));
         }
 
         let mut y = 0;
@@ -876,7 +877,7 @@ impl<'a> FromStr for Board {
 
         for rank in ranks {
             if y == 8 {
-                return Err(ParseFenError::new("too many ranks in fen string"));
+                return Err(Error::msg("Too many ranks in fen string."));
             }
             
             let mut x = 0;
@@ -893,18 +894,18 @@ impl<'a> FromStr for Board {
 
                 x += 1;
                 if x > 8 {
-                    return Err(ParseFenError::new("rank too large in fen string"));
+                    return Err(Error::msg("Rank too large in fen string."));
                 }
             }
 
             if x != 8 {
-                return Err(ParseFenError::new("rank too small in fen string"));
+                return Err(Error::msg("Rank too small in fen string."));
             }
             y += 1;
         }
 
         if y != 8 {
-            return Err(ParseFenError::new("not enough ranks in fen string"));
+            return Err(Error::msg("Not enough ranks in fen string."));
         }
 
         board.state.checkers = board.checkers();

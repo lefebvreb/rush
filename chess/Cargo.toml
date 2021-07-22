@@ -6,3 +6,6 @@ edition = "2018"
 [[bin]]
 name = "perft"
 path = "src/perft.rs"
+
+[dependencies]
+anyhow = "1.0.42"

@@ -9,3 +9,7 @@ path = "src/cli.rs"
 
 [dependencies.chess]
 path = "../chess"
+
+[dependencies]
+anyhow = "1.0.42"
+clap = "2.33.3"

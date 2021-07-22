@@ -1,6 +1,3 @@
-// Utilitary modules.
-pub mod errors;
-
 // Primitive types.
 pub mod bitboard;
 pub mod color;
@@ -24,7 +21,6 @@ pub mod prelude {
     pub use crate::color::Color;
     pub use crate::moves::Move;
     pub use crate::movegen;
-    pub use crate::square::Square;
 }
 
 /// Initializes the components of the chess lib.

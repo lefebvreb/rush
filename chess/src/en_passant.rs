@@ -1,7 +1,8 @@
 use std::fmt;
 use std::str::FromStr;
 
-use crate::errors::ParseFenError;
+use anyhow::{Error, Result};
+
 use crate::square::Square;
 
 //#################################################################################################
@@ -57,10 +58,10 @@ impl fmt::Display for EnPassantSquare {
 }
 
 impl<'a> FromStr for EnPassantSquare {
-    type Err = ParseFenError;
+    type Err = Error;
 
     // From fen en passant square notation.
-    fn from_str(s: &str) -> Result<EnPassantSquare, ParseFenError> {
+    fn from_str(s: &str) -> Result<EnPassantSquare, Error> {
         Ok(match s {
             "-" => EnPassantSquare::None,
             s => EnPassantSquare::Some(Square::from_str(s)?),

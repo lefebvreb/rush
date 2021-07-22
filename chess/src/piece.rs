@@ -1,5 +1,6 @@
+use anyhow::{Error, Result};
+
 use crate::color::Color;
-use crate::errors::ParseFenError;
 
 //#################################################################################################
 //
@@ -34,7 +35,7 @@ impl Piece {
     ];
 
     /// Tries to parse a piece from a single char.
-    pub fn from_char(c: char) -> Result<(Color, Piece), ParseFenError> {
+    pub fn from_char(c: char) -> Result<(Color, Piece), Error> {
         match c {
             'P' => Ok((Color::White, Piece::Pawn)),
             'R' => Ok((Color::White, Piece::Rook)),
@@ -48,7 +49,7 @@ impl Piece {
             'b' => Ok((Color::Black, Piece::Bishop)),
             'q' => Ok((Color::Black, Piece::Queen)),
             'k' => Ok((Color::Black, Piece::King)),
-            _ => Err(ParseFenError::new("unrecognized piece literal")),
+            _ => Err(Error::msg("unrecognized piece literal")),
         }
     }
 

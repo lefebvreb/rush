@@ -1,7 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use crate::errors::ParseFenError;
+use anyhow::{Error, Result};
 
 //#################################################################################################
 //
@@ -55,14 +55,14 @@ impl fmt::Display for Color {
 }
 
 impl<'a> FromStr for Color {
-    type Err = ParseFenError;
+    type Err = Error;
 
     // From fen color notation.
-    fn from_str(s: &str) -> Result<Color, ParseFenError> {
+    fn from_str(s: &str) -> Result<Color, Error> {
         match s {
             "w" => Ok(Color::White),
             "b" => Ok(Color::Black),
-            _ => Err(ParseFenError::new("invalid color litteral")),
+            _ => Err(Error::msg("invalid color litteral")),
         }
     }
 }

@@ -1,14 +1,19 @@
-use chess::piece::Piece;
-use js_sys::{Error as JsError};
+use js_sys::Error as JsError;
 use wasm_bindgen::prelude::*;
+use wee_alloc::WeeAlloc;
 
 use std::str::FromStr;
 
-use chess::prelude::*;
+use chess::board::Board;
+use chess::color::Color;
+use chess::piece::Piece;
+use chess::movegen;
+use chess::moves::Move;
+use chess::square::Square;
 
 // Use the wee_alloc allocator instead of the std one to save space.
 #[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+static ALLOC: WeeAlloc = WeeAlloc::INIT;
 
 // The default fen position, used to initialize the board.
 const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -93,19 +98,6 @@ impl WasmChess {
     pub fn is_white_to_move(&self) -> bool {
         self.board.get_side_to_move() == Color::White
     }
-
-    /*/// Returns the set of squares that lead to legal moves from a given square.
-    #[wasm_bindgen(method, js_name = getLegalsFrom)]
-    pub fn get_legals_from(&self, from: String) -> Result<JsSet, JsValue> {
-        let from = Square::from_str(&from).map_err(|_| "Invalid square literal.")?;
-
-        let set = JsSet::new(&JsValue::UNDEFINED);
-        for mv in self.legals.iter().filter(|mv| mv.from() == from) {
-            set.add(&JsValue::from_str(mv.to_string().as_str()));
-        }
-
-        Ok(set)
-    }*/
 
     // Compile only when in debug mode to save up some bytes.
     /// Prints self, using rust debug's format.
