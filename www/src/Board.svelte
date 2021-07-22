@@ -4,10 +4,12 @@
     // The wasm module, that needs to be awaited to be downloaded and initialized.
     export let wasm;
 
+    import {onMount} from "svelte";
+    import {fade, scale} from "svelte/transition";
+
     import "chessboard-element";
 
-    import {fade, scale} from "svelte/transition";
-    import {onMount} from "svelte";
+    import Popup from "./Popup.svelte";
 
     // The component that will contain the chessboard element, and it's div.
     let board;
@@ -170,27 +172,17 @@
 
 <chess-board id=board class=centered bind:this={board} on:drop={dropPiece} transition:scale={{duration: 5000, delay: 500}} draggable-pieces></chess-board>
 
-{#if choosingPromotion}
-    <div id=focus-taker class=centered>
-        <div id=promote-wrapper class=centered>
-            <h1 id=promote-header>Choose a promotion:</h1>
-            <button id=promote-queen class="glow centered" on:click={_ => promote("q")}>Queen</button>
-            <button id=promote-rook class="glow centered" on:click={_ => promote("r")}>Rook</button>
-            <button id=promote-bishop class="glow centered" on:click={_ => promote("b")}>Bishop</button>
-            <button id=promote-knight class="glow centered" on:click={_ => promote("n")}>Knight</button>
-        </div>
-    </div>
-{/if}
+<Popup display={choosingPromotion}>
+    <h1>Choose a promotion:</h1>
+    <button class="glow centered" on:click={_ => promote("q")}>Queen</button>
+    <button class="glow centered" on:click={_ => promote("r")}>Rook</button>
+    <button class="glow centered" on:click={_ => promote("b")}>Bishop</button>
+    <button class="glow centered" on:click={_ => promote("n")}>Knight</button>
+</Popup>
 
 <!-- Styles -->
 
 <style>
-    .centered {
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-    }
-
     #wrapper {
         position: absolute;
         display: grid;
@@ -305,48 +297,5 @@
     @keyframes change-color {
         from {filter: hue-rotate(0def);}
         to {filter: hue-rotate(359deg);}
-    }
-
-    #focus-taker {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-    }
-
-    #promote-wrapper {
-        position: absolute;
-        display: grid;
-        grid-auto-rows: 5em;
-        grid-auto-columns: 10em;
-        background: #000;
-        border-radius: 1em;
-        padding: 1em;
-        place-content: center;
-        text-align: center;
-    }
-
-    #promote-header {
-        grid-column: 1 / 3;
-        grid-row: 1;
-    }
-
-    #promote-queen {
-        grid-column: 1;
-        grid-row: 2;
-    }
-
-    #promote-rook {
-        grid-column: 2;
-        grid-row: 2;
-    }
-
-    #promote-bishop {
-        grid-column: 1;
-        grid-row: 3;
-    }
-
-    #promote-knight {
-        grid-column: 2;
-        grid-row: 3;
     }
 </style>

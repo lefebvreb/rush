@@ -49,6 +49,12 @@
         bottom: 2em;
     }
 
+    :global(.centered) {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
     :global(.glow) {
         font-size: 1em;
         font-family: sans-serif;
