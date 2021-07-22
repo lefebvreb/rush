@@ -1,8 +1,8 @@
-use std::env::args;
+use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use anyhow::{Error, Result};
+use clap::{Arg, App};
 use warp::Filter;
 
 mod game;
@@ -11,26 +11,30 @@ mod sockets;
 
 use crate::sockets::Sockets;
 
-// The default port the server listens on.
-const DEFAULT_PORT: u16 = 5050;
-
-// Tries to parse the port from the program's arguments.
-fn parse_port() -> Result<u16> {
-    // Get the program arguments.
-    let mut args = args();
-    // Extract the executable's path.
-    args.next().ok_or(Error::msg("Cannot get executable path"))?;
-    // Get and parse port.
-    args.next().map_or(Ok(DEFAULT_PORT), |s| Ok(u16::from_str(s.as_str())?))
-}
+// The default address the server listens on.
+const DEFAULT_ADDRESS: &str = "127.0.0.1:5050";
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    // Parse the port.
-    let port = match parse_port() {
-        Ok(port) => port,
-        Err(e) => {
-            eprintln!("Error while parsing port: {}", e);
+    // Gets the arguments.
+    let args = App::new("Rush Chess Engine Server")
+        .version(env!("CARGO_PKG_VERSION"))
+        .author("Benjamin Lefebvre")
+        .about("A web server backend for playing againt the Rush chess engine.")
+        .arg(Arg::with_name("Address")
+            .short("a")
+            .long("address")
+            .value_name("ADDRESS")
+            .help("Sets the address to bind the http server to, uses localhost by default.")
+            .takes_value(true))
+        .get_matches();
+
+    // Parses the socket address.
+    let addr_str = args.value_of("Address").unwrap_or(DEFAULT_ADDRESS);
+    let addr = match SocketAddr::from_str(addr_str) {
+        Ok(addr) => addr,
+        Err(_) => {
+            eprintln!("Failed to parse address: {}.", addr_str);
             return;
         },
     };
@@ -65,8 +69,8 @@ async fn main() {
     };
 
     // Launches the server, printing the used port.
-    println!("Launching server @ http://localhost:{}", port);
+    println!("Launching server @ http://{}", addr_str);
     warp::serve(routes)
-        .run(([127, 0, 0, 1], port))
+        .run(addr)
         .await;
 }
