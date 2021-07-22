@@ -176,6 +176,20 @@ impl Game {
                     tx.send(Command::Stop).ok();
                 });
             },
+            Command::ThinkDo(seconds) => {
+                // Starts the engine.
+                if self.engine.is_thinking() {
+                    return Err(Error::msg("Engine is already thinking."));
+                }
+                self.engine.start();
+
+                // Starts a task that will play the engine's move later the engine later.
+                let tx = self.tx.clone();
+                tokio::spawn(async move {
+                    tokio::time::sleep(Duration::from_secs_f64(seconds)).await;
+                    tx.send(Command::Do).ok();
+                });
+            },
             // Request to stop the engine.
             Command::Stop => {
                 if !self.engine.is_thinking() {
@@ -185,6 +199,7 @@ impl Game {
             },
             // Request to perform the engine's preferred move.
             Command::Do => {
+                self.engine.stop();
                 let mv = self.engine.get_best_move().ok_or(Error::msg("Engine has no preferred move."))?;
                 self.engine.write_board().do_move(mv);
                 self.history.push(mv);

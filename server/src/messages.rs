@@ -14,6 +14,7 @@ pub enum Command {
     Welcome(usize),
     Play(String),
     Think(f64),
+    ThinkDo(f64),
     Stop,
     Do,
     Undo,
@@ -43,6 +44,11 @@ impl Command {
                 let seconds = obj.get("seconds").ok_or(Error::msg("No attribute move in json value."))?
                     .as_f64().ok_or(Error::msg("seconds attribute is not a string."))?;
                 Self::Think(seconds)
+            },
+            "thinkdo" => {
+                let seconds = obj.get("seconds").ok_or(Error::msg("No attribute move in json value."))?
+                    .as_f64().ok_or(Error::msg("seconds attribute is not a string."))?;
+                Self::ThinkDo(seconds)
             },
             "stop" => Self::Stop,
             "do" => Self::Do,

@@ -37,6 +37,9 @@
     let choosingPromotion = false;
     let promoteMove = null;
 
+    // The number of seconds to make the engine think for.
+    let seconds = 5;
+
     // Upon receiving a message from the server.
     function socketMessaged(msg) {
         // Parse the message's data.
@@ -148,11 +151,12 @@
     {:else}
         {#if thinking}
             <h1 id=thinking class=text>Engine is currently thinking...</h1>
-            <button id=think class="glow centered" on:click={_ => send({kind: "stop"})}>Stop</button>
+            <button id=stop class="glow centered" on:click={_ => send({kind: "stop"})}>Stop</button>
         {:else}
             <h1 id=thinking class=text>Engine is idling.</h1>
             <range id=seconds></range>
-            <button id=think class="glow centered" on:click={_ => send({kind: "think", seconds: 5})}>Think</button>
+            <button id=think class="glow centered" on:click={_ => send({kind: "think", seconds})}>Think</button>
+            <button id=think-do class="glow centered" on:click={_ => send({kind: "thinkdo", seconds})}>Think & Do</button>
 
             {#if engineMove}
                 <h1 id=engine class=text>Engine's preferred move: {engineMove}.<br>Furthest depth searched: {engineDepth}.</h1>
@@ -232,8 +236,18 @@
         grid-row: 3;
     }
 
-    #think {
+    #stop {
         grid-column: 6 / 8;
+        grid-row: 4;
+    }
+
+    #think {
+        grid-column: 6;
+        grid-row: 4;
+    }
+
+    #think-do {
+        grid-column: 7;
         grid-row: 4;
     }
 
