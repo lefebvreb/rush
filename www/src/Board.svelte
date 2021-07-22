@@ -11,13 +11,26 @@
 
     import Popup from "./Popup.svelte";
 
-    // ================================ websocket
-
     // The component that will contain the chessboard element, and it's div.
     let board;
 
     // The chess object, initialized with the component.
     let chess;
+
+    // ================================ thinking duration
+
+    // The number of seconds to make the engine think for.
+    let seconds = 5;
+
+    // The text displayed about the thinking duration.
+    $: durationText = `Current thinking duration is ${seconds} seconds.`;
+
+    // Sets the duration the engine needs to think for.
+    function setDuration(secs) {
+        seconds = secs;
+    }
+
+    // ================================ state
 
     // Game state.
     let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -28,9 +41,6 @@
     let thinking = false;
     let engineMove = null;
     let engineDepth = 0;
-
-    // The number of seconds to make the engine think for.
-    let seconds = 5;
 
     // For reactivity.
     $: historyText = makeHistory(history);
@@ -56,6 +66,8 @@
         }
         return "The game is drawn."
     }
+
+    // ================================ move validation
 
     // When a piece is dropped.
     function onDropPiece(e) {
@@ -138,8 +150,8 @@
 
 <div id=wrapper class=centered transition:fade={{duration: 3000, delay: 2500}}>
     {#if history.length}
-        <h1 id=history>Move History:</h1>
-        <p id=history-text>{historyText}</p>
+        <h1 id=history transition:fade>Move History:</h1>
+        <p id=history-text transition:fade>{historyText}</p>
     {/if}
 
     <h1 id=fen>{fen}</h1>
@@ -149,22 +161,26 @@
     <button id=redo class=glow on:click={_ => send({kind: "redo"})}>Redo</button>
 
     {#if end}
-        <h1 id="thinking">{makeEndText()}</h1>
+        <h1 id="thinking" transition:fade>{makeEndText()}</h1>
     {:else}
         {#if thinking}
-            <h1 id=thinking>Engine is currently thinking...</h1>
-            <button id=stop class=glow on:click={_ => send({kind: "stop"})}>Stop</button>
+            <h1 id=thinking transition:fade>Engine is currently thinking...</h1>
+            <button id=stop class=glow on:click={_ => send({kind: "stop"})} transition:fade>Stop</button>
         {:else}
-            <h1 id=thinking>Engine is idling.</h1>
-            <range id=seconds></range>
-            <button id=think class=glow on:click={_ => send({kind: "think", seconds})}>Think</button>
-            <button id=think-do class=glow on:click={_ => send({kind: "thinkdo", seconds})}>Think & Do</button>
+            <h1 id=thinking transition:fade>Engine is idling.</h1>
+            <button id=think class=glow on:click={_ => send({kind: "think", seconds})} transition:fade>Think</button>
+            <button id=think-do class=glow on:click={_ => send({kind: "thinkdo", seconds})} transition:fade>Think & Do</button>
+
+            {#if seconds !== null}
+                <h1 id=duration transition:fade>{durationText}</h1>
+                <button id=change-seconds class=glow on:click={_ => seconds=null} transition:fade>Change Duration</button>
+            {/if}
 
             {#if engineMove}
-                <h1 id=engine>Engine's preferred move: {engineMove}.<br>Furthest depth searched: {engineDepth}.</h1>
-                <button id=do class=glow on:click={_ => send({kind: "do"})}>Do Engine's Move</button>
+                <h1 id=engine transition:fade>Engine's preferred move: {engineMove}.<br>Furthest depth searched: {engineDepth}.</h1>
+                <button id=do class=glow on:click={_ => send({kind: "do"})} transition:fade>Do Engine's Move</button>
             {:else}
-                <h1 id=engine class=text>Engine has no preferred move yet.</h1>
+                <h1 id=engine class=text transition:fade>Engine has no preferred move yet.</h1>
             {/if}
         {/if}
     {/if}
@@ -178,6 +194,14 @@
     <button class=glow on:click={_ => promote("r")}>Rook</button>
     <button class=glow on:click={_ => promote("b")}>Bishop</button>
     <button class=glow on:click={_ => promote("n")}>Knight</button>
+</Popup>
+
+<Popup display={seconds === null}>
+    <h1>Choose a duration:</h1>
+    <button class=glow on:click={_ => setDuration(1)}>1 Second</button>
+    <button class=glow on:click={_ => setDuration(3)}>3 Seconds</button>
+    <button class=glow on:click={_ => setDuration(5)}>5 Seconds</button>
+    <button class=glow on:click={_ => setDuration(10)}>10 Seconds</button>
 </Popup>
 
 <!-- Styles -->
@@ -225,41 +249,42 @@
 
     #thinking {
         grid-column: 6 / 8;
-        grid-row: 3;
+        grid-row: 2;
     }
 
     #stop {
         grid-column: 6 / 8;
-        grid-row: 4;
+        grid-row: 3;
     }
 
     #think {
         grid-column: 6;
-        grid-row: 4;
+        grid-row: 3;
     }
 
     #think-do {
         grid-column: 7;
+        grid-row: 3;
+    }
+
+    #duration {
+        grid-column: 6 / 8;
         grid-row: 4;
     }
 
-    #engine {
+    #change-seconds {
         grid-column: 6 / 8;
         grid-row: 5;
     }
 
-    #do {
+    #engine {
         grid-column: 6 / 8;
         grid-row: 6;
     }
 
-    #seconds {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        width: 200px;
-        margin-top: 10px;
-        transform: translate(-50%, -50%);
+    #do {
+        grid-column: 6 / 8;
+        grid-row: 7;
     }
 
     h1 {
@@ -269,7 +294,7 @@
         font-family: sans-serif;
         position: relative;
         font-family: sans-serif;
-        color: #777;
+        color: #999;
         text-align: center;
     }
 
@@ -277,7 +302,7 @@
         font-size: 0.9em;
         font-family: sans-serif;
         position: relative;
-        color: #777;
+        color: #999;
         text-align: justify;
         text-justify: inter-word;
         text-align-last: left;

@@ -2,13 +2,15 @@
 
 <script>
     export let display;
+
+    import {fade} from "svelte/transition";
 </script>
 
 <!-- Components -->
 
 {#if display}
     <div id=focus-taker class=centered>
-        <div id=wrapper class=centered>
+        <div id=wrapper class=centered transition:fade>
             <slot></slot>
         </div>
     </div>

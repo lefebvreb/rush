@@ -79,7 +79,7 @@
         filter: blur(1em);
         width: calc(100% + 1em);
         height: calc(100% + 1em);
-        animation: glowing 20s linear infinite;
+        animation: glowing 10s infinite linear alternate;
         opacity: 0;
         transition: opacity .3s ease-in-out;
         border-radius: 0.5em;
@@ -106,8 +106,7 @@
     }
 
     @keyframes glowing {
-        0% { background-position: 0 0; }
-        50% { background-position: 400% 0; }
-        100% { background-position: 0 0; }
+        from { background-position: 0 0; }
+        to { background-position: 400% 0; }
     }
 </style>
