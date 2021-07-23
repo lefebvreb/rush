@@ -1,11 +1,191 @@
-use std::ops::Range;
+use std::cmp::Ordering;
 
 use chess::bitboard::BitBoard;
 use chess::board::Board;
-use chess::movegen;
 use chess::moves::Move;
-use chess::piece::Piece;
 
+//#################################################################################################
+//
+//                                           struct RatedMove
+//
+//#################################################################################################
+
+/// A struct representing a move along with it's heuristic value.
+#[derive(Copy, Clone, Debug)]
+pub(crate) struct RatedMove {
+    mv: Move,
+    score: f32,
+}
+
+// ================================ impl
+
+impl RatedMove {
+    /// Compares the two moves scores, we simply assume that no floats here are infinite.
+    #[inline]
+    fn pseudo_cmp(&self, rhs: &RatedMove) -> Ordering {
+        if self.score < rhs.score {
+            Ordering::Less
+        } else if self.score > rhs.score {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        }
+    }
+}
+
+//#################################################################################################
+//
+//                                       trait MovePickerState
+//
+//#################################################################################################
+
+trait MovePickerState {
+    /// Creates a new state from a given board.
+    fn new(board: &Board) -> Self;
+
+    /// Must generate the next batch of moves and change self appropriately.
+    /// Returns None if no moves were generated (meaning there is nothing left to generate),
+    /// else returns Some(end) where end is the new length of the buffer.
+    fn gen_next_batch(&mut self, board: &Board, buffer: &mut Vec<RatedMove>) -> Option<u16>;
+}
+
+//#################################################################################################
+//
+//                                    struct MovePicker
+//
+//#################################################################################################
+
+/// A struct used to provide a layer of abstraction over move generation and picking.
+/// Uses u16s instead of usizes to save space, since we won't go as far as 65536 moves anyway.
+pub(crate) struct MovePicker<T: MovePickerState> {
+    state: T,
+    start: u16,
+    end: u16,
+}
+
+// ================================ pub(crate) impl
+
+impl<T: MovePickerState> MovePicker<T> {
+    /// Constructs a new move picker.
+    #[inline]
+    fn new(board: &Board, buffer: &mut Vec<RatedMove>) -> MovePicker<T> {
+        let len = buffer.len() as u16;
+
+        MovePicker {
+            state: T::new(board),
+            start: len,
+            end: len,
+        }
+    }
+
+    /// Returns the next pseudo-legal move to try, or None if there is no more moves for this position.
+    fn next(&mut self, board: &Board, buffer: &mut Vec<RatedMove>) -> Option<Move> {
+        // If there were any leftovers move from a deeper node's MovePicker: forget them.
+        // SAFE: we know the buffer has at least end_index elements already.
+        unsafe {buffer.set_len(self.end as usize)};
+
+        // There are no more moves in the buffer.
+        if self.start == self.end {
+            if let Some(end) = self.state.gen_next_batch(board, buffer) {
+                // A new batch was generated, sort the new moves.
+                self.end = end;
+                &buffer[(self.start as usize)..].sort_by(RatedMove::pseudo_cmp);
+            } else {
+                // The new batch was empty, return None.
+                return None;
+            }
+        }
+
+        // Return the last element of the buffer.
+        buffer.pop().map(|rated| rated.mv)
+    }
+}
+
+//#################################################################################################
+//
+//                                   struct StandardGen
+//
+//#################################################################################################
+
+/// The MovePickerState used for standard search, generates all pseudo-legals for a given position.
+pub(crate) enum Standard {
+    // No checkers.
+    QueenPromotes,
+    Captures,
+    Castles,
+    UnderPromotes,
+    Quiets,
+
+    // One checker: store the mask in which pieces must move.
+    CheckQueenPromotes {mask: BitBoard},
+    CheckCaptures {mask: BitBoard},
+    CheckOthers {mask: BitBoard},
+
+    // Two checkers.
+    DoubleCheck,
+}
+
+impl MovePickerState for Standard {
+    #[inline]
+    fn new(board: &Board) -> Standard {
+        let checkers = board.get_checkers();
+
+        if checkers.empty() {
+            // No checkers, start by queen promotions.
+            Standard::QueenPromotes
+        } else if checkers.more_than_one() {
+            // Two checkers, no choice.
+            Standard::DoubleCheck
+        } else {
+            // One checker: compute the check mask: the checker's square or any square between them and the king.
+            let checker = unsafe {checkers.as_square_unchecked()};
+            let mask = BitBoard::between(board.king_sq(), checker) | checkers;
+
+            Standard::CheckQueenPromotes {mask}
+        }
+    }
+
+    #[inline]
+    fn gen_next_batch(&mut self, board: &Board, buffer: &mut Vec<RatedMove>) -> Option<u16> {
+        loop {
+            match self {
+                Standard::QueenPromotes => todo!(),
+                Standard::Captures => todo!(),
+                Standard::Castles => todo!(),
+                Standard::UnderPromotes => todo!(),
+                Standard::Quiets => todo!(),
+
+                Standard::CheckQueenPromotes {mask} => todo!(),
+                Standard::CheckCaptures {mask} => todo!(),
+                Standard::CheckOthers {mask} => todo!(),
+
+                Standard::DoubleCheck => todo!(),
+            }
+        }
+    }
+}
+
+// ================================ pub(crate) impl
+
+/*
+pub(crate) trait MovePicker {
+    /// Creates a new MovePicker, that will generate moves
+    fn new(board: &Board, buffer: &Vec<Move>) -> Self;
+
+    fn start_index(&self) -> usize;
+
+    fn next_batch(&mut self, board: &Board, buffer: &mut Vec<Move>) -> Option<Range<usize>>;
+
+    fn next(&mut self, board: &Board, buffer: &mut Vec<Move>) -> Option<Move> {
+        if buffer.len() == self.start_index() {
+
+        }
+
+        todo!()
+    }
+}
+*/
+/*
 //#################################################################################################
 //
 //                                           struct MovePicker
@@ -256,4 +436,4 @@ impl MovePicker {
 impl MovePicker {
     /// The list of under promotions, from best to worst.
     const UNDER_PROMOTES: [Piece; 3] = [Piece::Rook, Piece::Bishop, Piece::Knight];
-}
+}*/
