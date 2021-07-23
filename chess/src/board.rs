@@ -285,7 +285,7 @@ impl Board {
                     // If the ep square is exactly between the king and the rook, 
                     // and there is nothing else than the two pawns, then it is an
                     // (incredibly rare) double pin.
-                    if between.contains(ep_square) && (between & occ).count() == 2 {
+                    if between.contains(ep_square) && (between & occ).is_two() {
                         return false;
                     }
                 }
@@ -774,14 +774,14 @@ impl Board {
 
         for sq in (self.get_bitboard(them, Piece::Rook) | queens).iter_squares() {
             let between = BitBoard::between_straight(king_sq, sq);
-            if (between & self.occ.all).count() == 1 {
+            if (between & self.occ.all).is_one() {
                 pinned |= between & occ_us;
             }
         }
 
         for sq in (self.get_bitboard(them, Piece::Bishop) | queens).iter_squares() {
             let between = BitBoard::between_diagonal(king_sq, sq);
-            if (between & self.occ.all).count() == 1 {
+            if (between & self.occ.all).is_one() {
                 pinned |= between & occ_us;
             }
         }
@@ -858,11 +858,19 @@ impl<'a> FromStr for Board {
     fn from_str(s: &str) -> Result<Board> {
         let mut split = s.split(' ');
 
+        // Closure to get the next arg, or return an error if there is not.
         let mut next_arg = || split.next().ok_or_else(|| Error::msg("not enough arguments in fen string"));
 
-        let ranks = next_arg()?;
+        // Parse the fen string later.
+        let ranks: Vec<_> = next_arg()?.split('/').collect();
+        if ranks.len() != 8 {
+            return Err(Error::msg("Invalid number of ranks in fen string."));
+        }
 
+        // An empty board.
         let mut board = Board::default();
+
+        // Parse the state arguments.
         board.state.side_to_move = Color::from_str(next_arg()?)?;
         board.state.castle_rights = CastleRights::from_str(next_arg()?)?;
         board.state.ep_square = EnPassantSquare::from_str(next_arg()?)?;
@@ -873,27 +881,21 @@ impl<'a> FromStr for Board {
             return Err(Error::msg("Too many arguments in fen string."));
         }
 
-        let mut y = 0;
-        let ranks = ranks.split('/');
-
-        for rank in ranks {
-            if y == 8 {
-                return Err(Error::msg("Too many ranks in fen string."));
-            }
-            
+        // Parse the fen board.
+        for (y, &rank) in ranks.iter().enumerate() {           
             let mut x = 0;
             for c in rank.chars() {
                 match c {
-                    '1'..='8' => x += c as i8 - '1' as i8,
+                    '1'..='8' => x += c.to_digit(10).unwrap(),
                     _ => {
                         let (color, piece) = Piece::from_char(c)?;
-                        let sq = Square::from((x, 7 - y));
+                        let sq = Square::from((x as i8, 7 - y as i8));
                         board.get_bitboard(Color::White, Piece::Pawn);
                         board.place_piece::<true>(color, piece, sq);
+                        x += 1;
                     }
                 }
-
-                x += 1;
+                
                 if x > 8 {
                     return Err(Error::msg("Rank too large in fen string."));
                 }
@@ -902,16 +904,32 @@ impl<'a> FromStr for Board {
             if x != 8 {
                 return Err(Error::msg("Rank too small in fen string."));
             }
-            y += 1;
         }
 
-        if y != 8 {
-            return Err(Error::msg("Not enough ranks in fen string."));
+        // Check that both sides have only one king
+        for color in Color::COLORS {
+            if !board.get_bitboard(color, Piece::King).is_one() {
+                return Err(Error::msg("Invalid number of kings on the board."));
+            }
         }
 
+        // Check that the side to move only has at most two checkers.
         board.state.checkers = board.checkers();
+        if board.get_checkers().count() > 2 {
+            return Err(Error::msg("Too many checkers for the side to move."));
+        }
+        // Check that the other side's king is not in check.
+        board.state.side_to_move = board.get_other_side();
+        if board.checkers().not_empty() {
+            return Err(Error::msg("Other side's king is under check, which is illegal."));
+        }
+        board.state.side_to_move = board.get_other_side();
+
+        // Compute the pinned pieces of the board.
         board.state.pinned = board.pinned();
 
+        // TODO: further checks ?
+ 
         Ok(board)
     }
 }

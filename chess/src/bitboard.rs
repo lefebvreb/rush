@@ -219,11 +219,28 @@ impl BitBoard {
         }
     }
 
-    /// Returns true if that bitboard contains more than
-    /// one bit set to 1.
+    /// Pops the least significant bit. Returns 0 if self is empty.
+    #[inline]
+    pub fn pop_lsb(self) -> BitBoard {
+        self & (self - BitBoard(1))
+    }
+
+    /// Returns true if this bitboard contains exactly one bit set to 1.
+    #[inline]
+    pub fn is_one(self) -> bool {
+        self.not_empty() && self.pop_lsb().empty()
+    }
+
+    /// Returns true if that bitboard contains more than one bit set to 1.
     #[inline]
     pub fn more_than_one(self) -> bool {
-        (self.0 & (self.0.wrapping_sub(1))) != 0
+        self.pop_lsb().not_empty()
+    }
+
+    /// Returns true if this bitboard contains exactly two bits set to 1.
+    #[inline]
+    pub fn is_two(self) -> bool {
+        self.pop_lsb().is_one()
     }
 }
 

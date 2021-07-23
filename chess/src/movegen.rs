@@ -323,3 +323,44 @@ pub fn legals(board: &Board, list: &mut Vec<Move>) {
         _ => unreachable!(),
     }
 }
+
+//#################################################################################################
+//
+//                                         fn perft()
+//
+//#################################################################################################
+
+/// Counts the number of leaf nodes of a given position and a given game tree depth.
+pub fn perft(board: &mut Board, depth: usize) -> u64 {
+    // The real perft function, optimized by bulk counting.
+    pub fn internal(board: &mut Board, buffer: &mut Vec<Move>, depth: usize) -> u64 {
+        let start_index = buffer.len();
+        legals(board, buffer);
+
+        let total = if depth == 1 {
+            (buffer.len() - start_index) as u64
+        } else {
+            let mut count = 0;
+
+            for i in start_index..buffer.len() {
+                let mv = buffer[i];
+
+                board.do_move(mv);
+                count += internal(board, buffer, depth - 1);
+                board.undo_move(mv);
+            }
+
+            count
+        };
+
+        buffer.truncate(start_index);
+        total
+    }
+
+    // The internal function will panic if depth is 0.
+    if depth == 0 {
+        1
+    } else {
+        internal(board, &mut Vec::new(), depth)
+    }
+}

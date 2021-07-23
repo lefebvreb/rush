@@ -1,5 +1,5 @@
 use std::time::Duration;
-use std::{env, io, thread};
+use std::{io, thread};
 use std::io::Write;
 use std::str::FromStr;
 
@@ -24,6 +24,13 @@ const HELP: &str = r#"Available commands:
   do              : plays the engine's preferred move.
   auto <seconds>  : plays the engine against itself, with <seconds> seconds to think for each move.
   exit            : exits the cli."#;
+
+// Tries to parse a duration from a string.
+fn parse_duration(s: &str) -> Result<Duration> {
+    Ok(Duration::from_secs_f64(
+        f64::from_str(s).map_err(|_| Error::msg("Unable to parse duration"))?
+    ))
+}
 
 /// The global state of the cli.
 struct State {
@@ -61,7 +68,7 @@ impl State {
             println!("{}", history_string);
         }
         
-        // Board pretty-print.
+        // Board pretty-print, offset by three tabs.
         println!("\t\t\t{}", board.pretty_print().replace("\n", "\n\t\t\t"));
 
         // Formats the game status.
@@ -159,9 +166,7 @@ impl State {
             return Err(Error::msg("Game has ended. \"undo\" last move or \"reset\" the game."));
         }
 
-        let duration = Duration::from_secs_f64(
-            f64::from_str(&args.next().ok_or(Error::msg("Can't find <seconds> argument."))?)?
-        );
+        let duration = parse_duration(&args.next().ok_or(Error::msg("Cannot find <seconds> argument."))?)?;
 
         self.think_for(duration);
 
@@ -178,9 +183,7 @@ impl State {
 
     /// Makes the engine auto-play against itself, with the parsed given time, in seconds, to think between each move.
     fn auto(&mut self, args: &mut impl Iterator<Item = String>) -> Result<()> {
-        let duration = Duration::from_secs_f64(
-            f64::from_str(&args.next().ok_or(Error::msg("Can't find <seconds> argument."))?)?
-        );
+        let duration = parse_duration(&args.next().ok_or(Error::msg("Cannot find <seconds> argument."))?)?;
 
         while !self.print_board() {
             // Get the engine's preferred move.
@@ -215,20 +218,21 @@ fn main() -> Result<()> {
     chess::init();
 
     // Get the args to the program.
-    let args = App::new("Rush Chess Engine CLI")
-        .version(env!("CARGO_PKG_VERSION"))
+    let args = App::new("Rush chess engine CLI")
+        .version(engine::VERSION)
         .author("Benjamin Lefebvre")
         .about("A command line interface for playing the Rush chess engine in the terminal.")
         .arg(Arg::with_name("fen")
             .short("f")
             .long("fen")
             .value_name("FEN")
-            .help("Sets the fen string to use as the starting position, the default position is used if no fen string is provided. Use double-quotes.")
+            .default_value(DEFAULT_FEN)
+            .help("Sets the fen string to use as the starting position, the default position is used if no fen string is provided. Use double quotes.")
             .takes_value(true))
         .get_matches();
 
     // The fen string used for the position.
-    let default_fen = args.value_of("fen").unwrap_or(DEFAULT_FEN);
+    let default_fen = args.value_of("fen").unwrap();
 
     // Construct the state.
     let mut state = State {
@@ -244,9 +248,11 @@ fn main() -> Result<()> {
         state.print_board();
         state.print_engine();
 
+        // Tokenize the arguments.
         let mut args = state.read_tokens().into_iter();
 
         if let Some(command) = args.next() {
+            // Match the first argument.
             let res = match command.as_str() {
                 "help" => {
                     println!("{}", HELP);
@@ -266,6 +272,7 @@ fn main() -> Result<()> {
                 unknown => Err(Error::msg(format!("Unknown command: \"{}\". Type \"help\" to get a list of available commands.", unknown))),
             };
 
+            // If there was any error, prints it to stderr, and ask the user for confirmation.
             if let Err(e) = res {
                 eprintln!("{}", e);
                 state.ask_ok();

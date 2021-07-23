@@ -17,7 +17,7 @@ const DEFAULT_ADDRESS: &str = "127.0.0.1:5050";
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     // Gets the arguments.
-    let args = App::new("Rush Chess Engine Server")
+    let args = App::new("Rush chess engine server")
         .version(engine::VERSION)
         .author("Benjamin Lefebvre")
         .about("A web server backend for playing againt the Rush chess engine.")
@@ -25,12 +25,13 @@ async fn main() {
             .short("a")
             .long("address")
             .value_name("ADDRESS")
+            .default_value(DEFAULT_ADDRESS)
             .help("Sets the address to bind the http server to, uses localhost by default.")
             .takes_value(true))
         .get_matches();
 
     // Parses the socket address.
-    let addr_str = args.value_of("address").unwrap_or(DEFAULT_ADDRESS);
+    let addr_str = args.value_of("address").unwrap();
     let addr = match SocketAddr::from_str(addr_str) {
         Ok(addr) => addr,
         Err(_) => {

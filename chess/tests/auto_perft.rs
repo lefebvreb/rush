@@ -1,25 +1,5 @@
 use chess::prelude::*;
 
-// The perft algorithm, counting the number of leaf nodes.
-fn perft(board: &mut Board, depth: usize) -> u64 {    
-    let mut list = Vec::new();
-    movegen::legals(&board, &mut list);
-    
-    if depth == 1 {
-        return list.len() as u64;
-    }
-
-    let mut nodes = 0;
-    
-    for &mv in list.iter() {
-        board.do_move(mv);
-        nodes += perft(board, depth - 1);
-        board.undo_move(mv);
-    }
-
-    nodes
-}
-
 // FEN notations for testing.
 const FENS: [(&'static str, u64); 127] = [
     ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 197281),
@@ -157,6 +137,6 @@ fn auto_perft() {
 
     for &(fen, res) in &FENS {
         let mut board = Board::new(fen).unwrap();
-        assert_eq!(perft(&mut board, 4), res, "Error at {:?}.", fen);
+        assert_eq!(movegen::perft(&mut board, 4), res, "Error at {:?}.", fen);
     }
 }

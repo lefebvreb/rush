@@ -9,3 +9,4 @@ path = "src/perft.rs"
 
 [dependencies]
 anyhow = "1.0.42"
+clap = "2.33.3"

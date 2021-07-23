@@ -19,7 +19,7 @@ pub(crate) fn is_endgame(board: &Board) -> bool {
         let rooks  = board.get_bitboard(color, Piece::Rook);
         let occ    = board.get_occupancy().colored(color);
 
-        queens.empty() || (queens.count() == 1 && rooks.empty() && occ.count() < 3)
+        queens.empty() || (queens.is_one() && rooks.empty() && occ.count() < 3)
     })
 }
 

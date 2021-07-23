@@ -2,101 +2,64 @@ use std::env;
 use std::str::FromStr;
 use std::thread;
 
+use anyhow::{Error, Result};
+use clap::App;
+
 use chess::prelude::*;
+use clap::Arg;
 
-/// The usage/help of this binary.
-const USAGE: &str = r#"The goal of this binary is to be used by perftree (https://github.com/agausmann/perftree) and to help debug the move generator.
-It can also be used for profiling.
+/* 
+ * For the default position:
+ * $ cargo build --bin perft --release 
+ * $ target/release/perft 6 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+ *
+ * For profiling using perf:
+ * $ cargo build --bin perft --release
+ * $ perf record --call-graph dwarf target/release/perft 4 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+ * $ perf report
+ * Don't forget this also benchmarks initialization costs, as well as argument parsing.
+ *
+ * For a quick adn dirty benchmark:
+ * $ cargo build --bin perft --release 
+ * $ time target/release/perft 6 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+ */
 
-Usage: 
-  ./target/release/perft <depth> <fen> <moves>
-    <depth> : The depth at which the perft needs to be carried.
-    <fen>   : the fen string to be used, put it into quotes.
-    <moves> : (optional) a list of space seperated moves, in pure algebraic
-               coordinates notation, to be performed before node counting.
-               Needs to be a single arguments, use quotes.
+fn main() -> Result<()> {
+    // Get the args to the program.
+    let args = App::new("Rush chess engine perft debugger")
+        .version(env!("CARGO_PKG_VERSION"))
+        .author("Benjamin Lefebvre")
+        .about("A binary to be used along perftree (https://github.com/agausmann/perftree), designed to help debug the move generator. It can also be used for profiling.")
+        .arg(Arg::with_name("depth")
+            .index(1)
+            .help("The maximum depth at which to expand the game tree.")
+            .required(true))
+        .arg(Arg::with_name("fen")
+            .index(2)
+            .help("The fen of the starting position. Use double quotes.")
+            .required(true))
+        .arg(Arg::with_name("moves")
+            .index(3)
+            .help("A space seperated serie of moves to perform before beginning game tree expansion."))
+        .get_matches();
 
-Example:
-  ./target/release/perft 3 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-
-For profiling with perf:
-  cargo build --bin perft --release
-  perf record --call-graph dwarf target/release/perft 3 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-  perf report"#;
-
-// The perft algorithm, counting the number of leaf nodes.
-fn perft(board: &mut Board, depth: usize) -> u64 {
-    let mut list = Vec::new();
-    movegen::legals(board, &mut list);
-    
-    if depth == 1 {
-        return list.len() as u64;
+    // Parse depth.
+    let depth = usize::from_str(args.value_of("depth").unwrap()).map_err(|_| Error::msg("Unable to parse depth."))?;
+    if !(0..=12).contains(&depth) {
+        return Err(Error::msg("Invalid depth, depth must be between 1 and 12."));
     }
-
-    let mut nodes = 0;
     
-    for &mv in list.iter() {
-        board.do_move(mv);
-        nodes += perft(board, depth - 1);
-        board.undo_move(mv);
-    }
-
-    nodes
-}
-
-fn main() {
     // Initialize the chess library.
     chess::init();
 
-    // Get the arguments.
-    let mut args = env::args();
-    
-    // Executable path.
-    args.next().expect("Can't get executable path.");
+    // Parse the board.
+    let mut board = Board::from_str(args.value_of("fen").unwrap())?;
 
-    // Parse depth.
-    let arg = args.next();
-    if arg.is_none() {
-        println!("{}", USAGE);
-        return;
-    }
-    let depth = match usize::from_str(arg.unwrap().as_str()) {
-        Ok(n) => n,
-        Err(err) => {
-            println!("{}", err);
-            return;
-        }
-    };
-    if !(1..12).contains(&depth) {
-        println!("<depth>, must be comprised between 1 and 12 inclusive.");
-        return;
-    }
-
-    // fen position.
-    let arg = args.next();
-    if arg.is_none() {
-        println!("{}", USAGE);
-        return;
-    }
-    let fen = arg.unwrap();
-    let mut board = match Board::new(&fen) {
-        Ok(board) => board,
-        Err(err) => {
-            println!("{}", err);
-            return;
-        }
-    };
-
-    // Moves to apply.
-    if let Some(arg) = args.next() {
+    // Parse and do the moves to apply.
+    if let Some(arg) = args.value_of("moves") {
         for s in arg.split(' ') {
-            match board.parse_move(s) {
-                Ok(mv) => board.do_move(mv),
-                Err(err) => {
-                    println!("{}", err);
-                    return;
-                }
-            };
+            let mv = board.parse_move(s)?;
+            board.do_move(mv);
         }
     }
 
@@ -113,20 +76,23 @@ fn main() {
             println!("{} 1", mv);
         }
 
+        // Bulk-count the number of nodes.
         total = list.len() as u64;
     } else {
         // Launch a thread for each move.
         let mut handles = Vec::new();
 
+        // For each thread, assign it a move to perform before perft.
         for &mv in list.iter() {
             let mut board = board.clone();
 
             handles.push(thread::spawn(move || {
                 board.do_move(mv);
-                perft(&mut board, depth - 1)
+                movegen::perft(&mut board, depth - 1)
             }));
         }
 
+        // Join all thread handles and get results.
         for (handle, mv) in handles.into_iter().zip(list) {
             let count = handle.join().unwrap();
             println!("{} {}", mv, count);
@@ -136,4 +102,7 @@ fn main() {
 
     // Print the total after an empty line.
     println!("\n{}", total);
+
+    // Successfully return.
+    Ok(())
 }
