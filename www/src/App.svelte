@@ -67,7 +67,7 @@
         cursor: pointer;
         position: relative;
         z-index: 0;
-        border-radius: 0.5em;
+        border-radius: 1em;
     }
 
     :global(.glow:before) {

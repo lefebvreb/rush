@@ -19,7 +19,7 @@ use clap::Arg;
  * $ perf report
  * Don't forget this also benchmarks initialization costs, as well as argument parsing.
  *
- * For a quick adn dirty benchmark:
+ * For a quick and dirty benchmark:
  * $ cargo build --bin perft --release 
  * $ time target/release/perft 6 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
  */
@@ -32,14 +32,17 @@ fn main() -> Result<()> {
         .about("A binary to be used along perftree (https://github.com/agausmann/perftree), designed to help debug the move generator. It can also be used for profiling.")
         .arg(Arg::with_name("depth")
             .index(1)
+            .value_name("DEPTH")
             .help("The maximum depth at which to expand the game tree.")
             .required(true))
         .arg(Arg::with_name("fen")
             .index(2)
+            .value_name("FEN")
             .help("The fen of the starting position. Use double quotes.")
             .required(true))
         .arg(Arg::with_name("moves")
             .index(3)
+            .value_name("MOVES")
             .help("A space seperated serie of moves to perform before beginning game tree expansion."))
         .get_matches();
 

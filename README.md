@@ -56,7 +56,6 @@ Where port is the port the server will bind to. The link to the server will be p
 
 ### Chess:
 + Cleaner legals.
-+ Cleaner perft.
 + Repair `Board::test_upcoming_repetition()`.
 + Better zobrist hashing.
 

@@ -202,6 +202,8 @@
     <button class=glow on:click={_ => setDuration(3)}>3 Seconds</button>
     <button class=glow on:click={_ => setDuration(5)}>5 Seconds</button>
     <button class=glow on:click={_ => setDuration(10)}>10 Seconds</button>
+    <button class=glow on:click={_ => setDuration(30)}>30 Seconds</button>
+    <button class=glow on:click={_ => setDuration(60)}>60 Seconds</button>
 </Popup>
 
 <!-- Styles -->
