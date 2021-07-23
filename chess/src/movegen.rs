@@ -21,13 +21,16 @@ use crate::square::Square;
 /// and captured piece.
 /// It is called for each pseudo-legal promote-capture.
 #[inline]
-pub fn gen_promote_captures(board: &Board, mut gen: impl FnMut(Square, Square, Piece)) {
+pub fn gen_promote_captures(board: &Board, promotes: &[Piece], mut gen: impl FnMut(Piece, Move)) {
     let us = board.get_side_to_move();
     let them = board.get_other_side();
 
     for from in (board.get_bitboard(us, Piece::Pawn) & BitBoard::promote_rank(us)).iter_squares() {
         for to in (attacks::pawn(us, from) & board.get_occupancy().colored(them)).iter_squares() {
-            gen(from, to, board.get_piece_unchecked(to));
+            for &promote in promotes {
+                let mv = Move::promote_capture(from, to, board.get_piece_unchecked(to), promote);
+                gen(Piece::Pawn, mv);
+            }
         }
     }
 }
@@ -36,13 +39,16 @@ pub fn gen_promote_captures(board: &Board, mut gen: impl FnMut(Square, Square, P
 /// The provided closure takes two arguments: from square and to square.
 /// It is called for each pseudo-legal promotion.
 #[inline]
-pub fn gen_promotes(board: &Board, mut gen: impl FnMut(Square, Square)) {
+pub fn gen_promotes(board: &Board, promotes: &[Piece], mut gen: impl FnMut(Piece, Move)) {
     let us = board.get_side_to_move();
 
     for from in (board.get_bitboard(us, Piece::Pawn) & BitBoard::promote_rank(us)).iter_squares() {
         let to = attacks::pawn_push(us, from).unwrap();
         if board.get_piece(to).is_none() {
-            gen(from, to);
+            for &promote in promotes {
+                let mv = Move::promote(from, to, promote);
+                gen(Piece::Pawn, mv);
+            }
         }
     }
 }
@@ -51,14 +57,15 @@ pub fn gen_promotes(board: &Board, mut gen: impl FnMut(Square, Square)) {
 /// The provided closure takes two arguments: from square and to square.
 /// It is called for each pseudo-legal en passant.
 #[inline]
-pub fn gen_en_passant(board: &Board, mut gen: impl FnMut(Square, Square)) {
+pub fn gen_en_passant(board: &Board, mut gen: impl FnMut(Piece, Move)) {
     let us = board.get_side_to_move();
     let them = board.get_other_side();
 
     if let EnPassantSquare::Some(sq) = board.get_ep_square() {
         let to = attacks::pawn_push(us, sq).unwrap();
         for from in (attacks::pawn(them, to) & board.get_bitboard(us, Piece::Pawn)).iter_squares() {
-            gen(from, to);
+            let mv = Move::en_passant(from, to);
+            gen(Piece::Pawn, mv);
         }
     }
 }
@@ -68,7 +75,7 @@ pub fn gen_en_passant(board: &Board, mut gen: impl FnMut(Square, Square)) {
 /// and the captured piece.
 /// It is called for each pseudo-legal pawn captures.
 #[inline]
-pub fn gen_pawn_captures(board: &Board, mut gen: impl FnMut(Square, Square, Piece)) {
+pub fn gen_pawn_captures(board: &Board, mut gen: impl FnMut(Piece, Move)) {
     let us = board.get_side_to_move();
     let them = board.get_other_side();
 
@@ -76,7 +83,8 @@ pub fn gen_pawn_captures(board: &Board, mut gen: impl FnMut(Square, Square, Piec
     
     for from in (board.get_bitboard(us, Piece::Pawn) & !BitBoard::promote_rank(us)).iter_squares() {
         for to in (attacks::pawn(us, from) & them_occ).iter_squares() {
-            gen(from, to, board.get_piece_unchecked(to));
+            let mv = Move::capture(from, to, board.get_piece_unchecked(to));
+            gen(Piece::Pawn, mv);
         }
     }
 }
@@ -86,16 +94,18 @@ pub fn gen_pawn_captures(board: &Board, mut gen: impl FnMut(Square, Square, Piec
 /// and a bool which is true if the move is a double push.
 /// It is called for each pseudo-legal pushes and double pushes.
 #[inline]
-pub fn gen_pushes(board: &Board, mut gen: impl FnMut(Square, Square, bool)) {
+pub fn gen_pushes(board: &Board, mut gen: impl FnMut(Piece, Move)) {
     let us = board.get_side_to_move();
 
     for from in (board.get_bitboard(us, Piece::Pawn) & !BitBoard::promote_rank(us)).iter_squares() {
         if let Some(to1) = attacks::pawn_push(us, from) {
             if board.get_piece(to1).is_none() {
-                gen(from, to1, false);
+                let mv = Move::quiet(from, to1);
+                gen(Piece::Pawn, mv);
                 if let Some(to2) = attacks::pawn_double_push(us, from) {
                     if board.get_piece(to2).is_none() {
-                        gen(from, to2, true);
+                        let mv = Move::double_push(from, to2);
+                        gen(Piece::Pawn, mv);
                     }
                 }
             }
@@ -110,12 +120,13 @@ pub fn gen_pushes(board: &Board, mut gen: impl FnMut(Square, Square, bool)) {
 /// and the captured piece.
 /// It is called for each pseudo-legal capture from the king.
 #[inline]
-pub fn gen_king_captures(board: &Board, mut gen: impl FnMut(Square, Square, Piece)) {
+pub fn gen_king_captures(board: &Board, mut gen: impl FnMut(Piece, Move)) {
     let them_occ = board.get_occupancy().colored(board.get_other_side());
 
     let from = board.king_sq();
     for to in (attacks::king(from) & them_occ).iter_squares() {
-        gen(from, to, board.get_piece_unchecked(to));
+        let mv = Move::capture(from, to, board.get_piece_unchecked(to));
+        gen(Piece::King, mv);
     }
 }
 
@@ -123,12 +134,13 @@ pub fn gen_king_captures(board: &Board, mut gen: impl FnMut(Square, Square, Piec
 /// The provided closure takes two arguments: from square and to square.
 /// It is called for each pseudo-legal quiets from the king.
 #[inline]
-pub fn gen_king_quiets(board: &Board, mut gen: impl FnMut(Square, Square)) {
+pub fn gen_king_quiets(board: &Board, mut gen: impl FnMut(Piece, Move)) {
     let free = board.get_occupancy().free();
 
     let from = board.king_sq();
     for to in (attacks::king(from) & free).iter_squares() {
-        gen(from, to);
+        let mv = Move::quiet(from, to);
+        gen(Piece::King, mv);
     }
 }
 
@@ -136,25 +148,29 @@ pub fn gen_king_quiets(board: &Board, mut gen: impl FnMut(Square, Square)) {
 /// The provided closure takes two arguments: from square and to square.
 /// It is called for each pseudo-legal castling.
 #[inline]
-pub fn gen_castles(board: &Board, mut gen: impl FnMut(Square, Square)) {
+pub fn gen_castles(board: &Board, mut gen: impl FnMut(Piece, Move)) {
     let us = board.get_side_to_move();
     let castle_rights = board.get_castle_rights();
 
     match us {
         Color::White => {
             if castle_rights.has(CastleMask::WhiteOO) & board.is_path_clear(Square::E1, Square::H1) {
-                gen(Square::E1, Square::G1);
+                let mv = Move::castle(Square::E1, Square::G1);
+                gen(Piece::King, mv);
             }
             if castle_rights.has(CastleMask::WhiteOOO) & board.is_path_clear(Square::E1, Square::A1) {
-                gen(Square::E1, Square::C1);
+                let mv = Move::castle(Square::E1, Square::C1);
+                gen(Piece::King, mv);
             }
         },
         Color::Black => {
             if castle_rights.has(CastleMask::BlackOO) & board.is_path_clear(Square::E8, Square::H8) {
-                gen(Square::E8, Square::G8);
+                let mv = Move::castle(Square::E8, Square::G8);
+                gen(Piece::King, mv);
             }
             if castle_rights.has(CastleMask::BlackOOO) & board.is_path_clear(Square::E8, Square::A8) {
-                gen(Square::E8, Square::C8);
+                let mv = Move::castle(Square::E8, Square::C8);
+                gen(Piece::King, mv);
             }
         },
     }
@@ -167,7 +183,7 @@ pub fn gen_castles(board: &Board, mut gen: impl FnMut(Square, Square)) {
 /// and captured piece.
 /// It is called for each pseudo-legal capture.
 #[inline]
-pub fn gen_captures(board: &Board, mut gen: impl FnMut(Square, Square, Piece)) {
+pub fn gen_captures(board: &Board, mut gen: impl FnMut(Piece, Move)) {
     let us = board.get_side_to_move();
     let them = board.get_other_side();
 
@@ -176,22 +192,26 @@ pub fn gen_captures(board: &Board, mut gen: impl FnMut(Square, Square, Piece)) {
 
     for from in board.get_bitboard(us, Piece::Knight).iter_squares() {
         for to in (attacks::knight(from) & them_occ).iter_squares() {
-            gen(from, to, board.get_piece_unchecked(to));
+            let mv = Move::capture(from, to, board.get_piece_unchecked(to));
+            gen(Piece::Knight, mv);
         }
     }
     for from in board.get_bitboard(us, Piece::Bishop).iter_squares() {
         for to in (attacks::bishop(from, occ) & them_occ).iter_squares() {
-            gen(from, to, board.get_piece_unchecked(to));
+            let mv = Move::capture(from, to, board.get_piece_unchecked(to));
+            gen(Piece::Bishop, mv);
         }
     }
     for from in board.get_bitboard(us, Piece::Rook).iter_squares() {
         for to in (attacks::rook(from, occ) & them_occ).iter_squares() {
-            gen(from, to, board.get_piece_unchecked(to));
+            let mv = Move::capture(from, to, board.get_piece_unchecked(to));
+            gen(Piece::Rook, mv);
         }
     }
     for from in board.get_bitboard(us, Piece::Queen).iter_squares() {
         for to in (attacks::queen(from, occ) & them_occ).iter_squares() {
-            gen(from, to, board.get_piece_unchecked(to));
+            let mv = Move::capture(from, to, board.get_piece_unchecked(to));
+            gen(Piece::Queen, mv);
         }
     }
 }
@@ -200,7 +220,7 @@ pub fn gen_captures(board: &Board, mut gen: impl FnMut(Square, Square, Piece)) {
 /// The provided closure takes two arguments: from square and to square.
 /// It is called for each pseudo-legal quiets.
 #[inline]
-pub fn gen_quiets(board: &Board, mut gen: impl FnMut(Square, Square)) {
+pub fn gen_quiets(board: &Board, mut gen: impl FnMut(Piece, Move)) {
     let us = board.get_side_to_move();
 
     let occ = board.get_occupancy().all();
@@ -208,119 +228,85 @@ pub fn gen_quiets(board: &Board, mut gen: impl FnMut(Square, Square)) {
 
     for from in board.get_bitboard(us, Piece::Knight).iter_squares() {
         for to in (attacks::knight(from) & free).iter_squares() {
-            gen(from, to);
+            let mv = Move::quiet(from, to);
+            gen(Piece::Knight, mv);
         }
     }
     for from in board.get_bitboard(us, Piece::Bishop).iter_squares() {
         for to in (attacks::bishop(from, occ) & free).iter_squares() {
-            gen(from, to);
+            let mv = Move::quiet(from, to);
+            gen(Piece::Bishop, mv);
         }
     }
     for from in board.get_bitboard(us, Piece::Rook).iter_squares() {
         for to in (attacks::rook(from, occ) & free).iter_squares() {
-            gen(from, to);
+            let mv = Move::quiet(from, to);
+            gen(Piece::Rook, mv);
         }
     }
     for from in board.get_bitboard(us, Piece::Queen).iter_squares() {
         for to in (attacks::queen(from, occ) & free).iter_squares() {
-            gen(from, to);
+            let mv = Move::quiet(from, to);
+            gen(Piece::Queen, mv);
         }
     }
 }
 
 //#################################################################################################
 //
-//                                         Legals Generation
+//                                         fn legals()
 //
 //#################################################################################################
 
 /// Generates all legal moves for the current position.
 /// This function is rather slow. Use the other movegen functions
 /// for more control over generation and better performance.
-pub fn legals(board: &Board, list: &mut Vec<Move>) {
-    // Bitboard of the checkers.
+pub fn legals(board: &Board, buffer: &mut Vec<Move>) {
+    // Generates all non-king moves with the given consumer.
+    pub fn gen_non_king(board: &Board, mut gen: impl FnMut(Move)) {
+        gen_promote_captures(board, &Piece::PROMOTES, |_, mv| gen(mv));
+        gen_en_passant(board, |_, mv| gen(mv));
+        gen_pawn_captures(board, |_, mv| gen(mv));
+        gen_promotes(board, &Piece::PROMOTES, |_, mv| gen(mv));
+        gen_pushes(board, |_, mv| gen(mv));
+        gen_captures(board, |_, mv| gen(mv));
+        gen_quiets(board, |_, mv| gen(mv));
+    }
+
     let checkers = board.get_checkers();
-    
-    // A closure to check that the move is legal before pushing it
-    // to the list.
-    let mut push = |mv| if board.is_legal(mv) {list.push(mv)};
 
-    match checkers.count() {
-        0 => {
-            // King moves.
-            gen_castles(board, |from, to| push(Move::castle(from, to)));
-            gen_king_captures(board, |from, to, capture| push(Move::capture(from, to, capture)));
-            gen_king_quiets(board, |from, to| push(Move::quiet(from, to)));
+    let mut gen = |mv| if board.is_legal(mv) {buffer.push(mv)};
 
-            // Pawn moves.
-            gen_promote_captures(board, |from, to, capture| {
-                for promote in Piece::PROMOTES {
-                    push(Move::promote_capture(from, to, capture, promote));
-                }
-            });
-            gen_en_passant(board, |from, to| push(Move::en_passant(from, to)));
-            gen_pawn_captures(board, |from, to, capture| push(Move::capture(from, to, capture)));
-            gen_promotes(board, |from, to| {
-                for promote in Piece::PROMOTES {
-                    push(Move::promote(from, to, promote));
-                }
-            });
-            gen_pushes(board, |from, to, is_double| {
-                if is_double {
-                    push(Move::double_push(from, to));
-                } else {
-                    push(Move::quiet(from, to));
-                }
-            });
+    if checkers.empty() {
+        // No checkers.
 
-            // Other moves.
-            gen_captures(board, |from, to, capture| push(Move::capture(from, to, capture)));
-            gen_quiets(board, |from, to| push(Move::quiet(from, to)));
-        },
-        1 => {
-            // King moves.
-            gen_king_captures(board, |from, to, capture| push(Move::capture(from, to, capture)));
-            gen_king_quiets(board, |from, to| push(Move::quiet(from, to)));
+        // Generate all castling and king moves. 
+        gen_castles(board, |_, mv| gen(mv));
+        gen_king_captures(board, |_, mv| gen(mv));
+        gen_king_quiets(board, |_, mv| gen(mv));
 
-            // If there is a single checker, we must also check that the move is either blocking
-            // (in between the king and the checker) or that it is capturing the checker.
-            // Or that the king itself is moving.
-            let checker = unsafe {checkers.as_square_unchecked()};
-            let mask = BitBoard::between(board.king_sq(), checker) | checkers;
-            let mut push = |mv: Move| if mask.contains(mv.to()) && board.is_legal(mv) {list.push(mv)};
+        // Generates all other moves.
+        gen_non_king(board, gen);
+    } else if checkers.is_one() {
+        // One checker.
 
-            // Pawn moves.
-            gen_promote_captures(board, |from, to, capture| {
-                for promote in Piece::PROMOTES {
-                    push(Move::promote_capture(from, to, capture, promote));
-                }
-            });
-            gen_en_passant(board, |from, to| push(Move::en_passant(from, to)));
-            gen_pawn_captures(board, |from, to, capture| push(Move::capture(from, to, capture)));
-            gen_promotes(board, |from, to| {
-                for promote in Piece::PROMOTES {
-                    push(Move::promote(from, to, promote));
-                }
-            });
-            gen_pushes(board, |from, to, is_double| {
-                if is_double {
-                    push(Move::double_push(from, to));
-                } else {
-                    push(Move::quiet(from, to));
-                }
-            });
+        // Generate all king moves.
+        gen_king_captures(board, |_, mv| gen(mv));
+        gen_king_quiets(board, |_, mv| gen(mv));
 
-            // Other moves.
-            gen_captures(board, |from, to, capture| push(Move::capture(from, to, capture)));
-            gen_quiets(board, |from, to| push(Move::quiet(from, to)));
-        },
-        2 => {
-            // King captures.
-            gen_king_captures(board, |from, to, capture| push(Move::capture(from, to, capture)));
-            // King quiets.
-            gen_king_quiets(board, |from, to| push(Move::quiet(from, to)));
-        },
-        _ => unreachable!(),
+        // Check that the move is either capturing the checker or blocking it.
+        let checker = unsafe {checkers.as_square_unchecked()};
+        let mask = BitBoard::between(board.king_sq(), checker) | checkers;
+        let gen = |mv: Move| if mask.contains(mv.to()) && board.is_legal(mv) {buffer.push(mv)};
+
+        // Generate.
+        gen_non_king(board, gen);
+    } else {
+        // Two checkers.
+
+        // Only generate king moves.
+        gen_king_captures(board, |_, mv| gen(mv));
+        gen_king_quiets(board, |_, mv| gen(mv));
     }
 }
 
@@ -333,7 +319,7 @@ pub fn legals(board: &Board, list: &mut Vec<Move>) {
 /// Counts the number of leaf nodes of a given position and a given game tree depth.
 pub fn perft(board: &mut Board, depth: usize) -> u64 {
     // The real perft function, optimized by bulk counting.
-    pub fn internal(board: &mut Board, buffer: &mut Vec<Move>, depth: usize) -> u64 {
+    pub fn internal_perft(board: &mut Board, buffer: &mut Vec<Move>, depth: usize) -> u64 {
         let start_index = buffer.len();
         legals(board, buffer);
 
@@ -346,7 +332,7 @@ pub fn perft(board: &mut Board, depth: usize) -> u64 {
                 let mv = buffer[i];
 
                 board.do_move(mv);
-                count += internal(board, buffer, depth - 1);
+                count += internal_perft(board, buffer, depth - 1);
                 board.undo_move(mv);
             }
 
@@ -361,6 +347,6 @@ pub fn perft(board: &mut Board, depth: usize) -> u64 {
     if depth == 0 {
         1
     } else {
-        internal(board, &mut Vec::new(), depth)
+        internal_perft(board, &mut Vec::new(), depth)
     }
 }
