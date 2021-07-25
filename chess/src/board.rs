@@ -549,6 +549,9 @@ impl Board {
         self.state.checkers = self.checkers();
         self.state.pinned = self.pinned();
 
+        // Remove en passant rights.
+        self.state.ep_square = EnPassantSquare::None;
+
         // Update the halfmove clock.
         self.state.halfmove += 1;
 
