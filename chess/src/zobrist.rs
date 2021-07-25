@@ -1,6 +1,8 @@
 use std::ops::{BitXor, BitXorAssign, Not};
 
+use crate::castle_rights::CastleRights;
 use crate::color::Color;
+use crate::en_passant::EnPassantSquare;
 use crate::piece::Piece;
 use crate::square::Square;
 
@@ -10,11 +12,13 @@ use crate::square::Square;
 //
 //#################################################################################################
 
-/// The zobrist keys.
-static mut KEYS: [[[Zobrist; 2]; 6]; 64] = [[[Zobrist::ZERO; 2]; 6]; 64];
+/// The zobrist keys for pieces.
+static mut PIECES: [[[Zobrist; 2]; 6]; 64] = [[[Zobrist::ZERO; 2]; 6]; 64];
+static mut EP_FILES: [Zobrist; 8] = [Zobrist::ZERO; 8];
+static mut CASTLING_RIGHTS: [Zobrist; 16] = [Zobrist::ZERO; 16];
 
 /// The xorshift* algorithm for 64 bits numbers, producing
-/// good enough pseudo-random numbers.
+/// good enough pseudo-random numbers for initializing zobrist keys.
 #[cold]
 fn xorshift(seed: &mut u64) -> Zobrist {
     let mut x = *seed;
@@ -28,14 +32,22 @@ fn xorshift(seed: &mut u64) -> Zobrist {
 /// Initializes the zobrist keys at the beginning of the program.
 #[cold]
 pub(crate) unsafe fn init() {
-    // Changing the seed may make the cuckoo init() non terminating.
+    // Warning: changing the seed may make the cuckoo init() function non terminating.
     let mut seed = 0x0C3B301A1AF7EE42;
 
-    for sq in Square::SQUARES {
-        for piece in Piece::PIECES {
-            KEYS[usize::from(sq)][usize::from(piece)][usize::from(Color::White)] = xorshift(&mut seed);
-            KEYS[usize::from(sq)][usize::from(piece)][usize::from(Color::Black)] = xorshift(&mut seed);
+    for i in 0..64 {
+        for j in 0..6 {
+            PIECES[i][j][0] = xorshift(&mut seed);
+            PIECES[i][j][1] = xorshift(&mut seed);
         }
+    }
+
+    for i in 0..8 {
+        EP_FILES[i] = xorshift(&mut seed);
+    }
+
+    for i in 0..16 {
+        CASTLING_RIGHTS[i] = xorshift(&mut seed);
     }
 }
 
@@ -89,9 +101,28 @@ impl From<(Color, Piece, Square)> for Zobrist {
     #[inline]
     fn from((color, piece, sq): (Color, Piece, Square)) -> Zobrist {
         // SAFE: array initialization is done at startup
-        unsafe {
-            KEYS[usize::from(sq)][usize::from(piece)][usize::from(color)]
+        unsafe {PIECES[usize::from(sq)][usize::from(piece)][usize::from(color)]}
+    }
+}
+
+impl From<EnPassantSquare> for Zobrist {
+    /// Hashes an en passant square.
+    #[inline]
+    fn from(ep_square: EnPassantSquare) -> Zobrist {
+        match ep_square {
+            // SAFE: array initialization is done at startup
+            EnPassantSquare::Some(sq) => unsafe {EP_FILES[sq.x() as usize]}
+            _ => Zobrist::ZERO,
         }
+    }
+}
+
+impl From<CastleRights> for Zobrist {
+    /// Hashes a castle rights object.
+    #[inline]
+    fn from(castle_rights: CastleRights) -> Zobrist {
+        // SAFE: array initialization is done at startup
+        unsafe {CASTLING_RIGHTS[usize::from(castle_rights.raw())]}
     }
 }
 

@@ -413,8 +413,15 @@ impl Board {
     /// Do the move without checking anything about it's legality.
     /// Returns true if the move is irreversible.
     pub fn do_move(&mut self, mv: Move) -> bool {
+        // Clone the previous state to store it later.
+        let old_state = self.state.clone();
+
+        // Undo the zobrist hashing of the ep square and castle rights.
+        self.state.zobrist ^= Zobrist::from(old_state.ep_square);
+        self.state.zobrist ^= Zobrist::from(old_state.castle_rights);
+
         // Store previous state and increment fullmove counter.
-        self.prev_states.push(self.state.clone());
+        self.prev_states.push(old_state);
         self.ply += 1;
 
         // Invert the side to move.
@@ -460,8 +467,12 @@ impl Board {
 
         // Update castling rights and en passant square.
         self.state.castle_rights.update(from, to);
+        self.state.zobrist ^= Zobrist::from(self.state.castle_rights);
+
         if mv.is_double_push() {
-            self.state.ep_square = EnPassantSquare::Some(to);
+            let ep_square = EnPassantSquare::Some(to);
+            self.state.ep_square = ep_square;
+            self.state.zobrist ^= Zobrist::from(ep_square);
         } else {
             self.state.ep_square = EnPassantSquare::None;
         }
@@ -473,7 +484,7 @@ impl Board {
             self.state.halfmove = 0;
         }
 
-        // Invert the zobrist key, as we change color.
+        // Invert zobrist since we change side.
         self.state.zobrist = !self.state.zobrist;
     
         reversible

@@ -67,6 +67,12 @@ impl CastleRights {
             _ => (),
         }
     }
+
+    /// Returns the castling rights as a raw integer.
+    #[inline]
+    pub fn raw(self) -> u8 {
+        self.0
+    }
 }
 
 // ================================ impl

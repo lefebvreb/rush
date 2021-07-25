@@ -16,10 +16,8 @@ use crate::square::Square;
 
 // ================================ pawns pseudo-legals
 
-/// Gives all pseudo-legals promote captures for pawns.
-/// The provided closure takes three arguments: from square, to square
-/// and captured piece.
-/// It is called for each pseudo-legal promote-capture.
+/// Gives all pseudo-legal promote captures for pawns, promoting to the given pieces.
+/// The provided closure is called for all generated moves.
 #[inline]
 pub fn gen_promote_captures(board: &Board, promotes: &[Piece], mut gen: impl FnMut(Move)) {
     let us = board.get_side_to_move();
@@ -34,9 +32,8 @@ pub fn gen_promote_captures(board: &Board, promotes: &[Piece], mut gen: impl FnM
     }
 }
 
-/// Gives all pseudo-legals promotion for pawns.
-/// The provided closure takes two arguments: from square and to square.
-/// It is called for each pseudo-legal promotion.
+/// Gives all pseudo-legal promotions for pawns, promoting to the given pieces.
+/// The provided closure is called for all generated moves.
 #[inline]
 pub fn gen_promotes(board: &Board, promotes: &[Piece], mut gen: impl FnMut(Move)) {
     let us = board.get_side_to_move();
@@ -51,9 +48,8 @@ pub fn gen_promotes(board: &Board, promotes: &[Piece], mut gen: impl FnMut(Move)
     }
 }
 
-/// Gives all pseudo-legals en passant moves.
-/// The provided closure takes two arguments: from square and to square.
-/// It is called for each pseudo-legal en passant.
+/// Gives all pseudo-legal en passant moves.
+/// The provided closure is called for all generated moves.
 #[inline]
 pub fn gen_en_passant(board: &Board, mut gen: impl FnMut(Move)) {
     let us = board.get_side_to_move();
@@ -67,10 +63,8 @@ pub fn gen_en_passant(board: &Board, mut gen: impl FnMut(Move)) {
     }
 }
 
-/// Gives all pseudo-legals pawn captures.
-/// The provided closure takes three arguments: from square, to square
-/// and the captured piece.
-/// It is called for each pseudo-legal pawn captures.
+/// Gives all pseudo-legal captures from pawns.
+/// The provided closure is called for all generated moves.
 #[inline]
 pub fn gen_pawn_captures(board: &Board, mut gen: impl FnMut(Move)) {
     let us = board.get_side_to_move();
@@ -85,10 +79,8 @@ pub fn gen_pawn_captures(board: &Board, mut gen: impl FnMut(Move)) {
     }
 }
 
-/// Gives all pseudo-legals pushes and double pushes moves.
-/// The provided closure takes three arguments: from square, to square
-/// and a bool which is true if the move is a double push.
-/// It is called for each pseudo-legal pushes and double pushes.
+/// Gives all pseudo-legals pushes and double pushes from pawns.
+/// The provided closure is called for all generated moves.
 #[inline]
 pub fn gen_pushes(board: &Board, mut gen: impl FnMut(Move)) {
     let us = board.get_side_to_move();
@@ -109,10 +101,8 @@ pub fn gen_pushes(board: &Board, mut gen: impl FnMut(Move)) {
 
 // ================================ king pseudo-legals
 
-/// Gives all pseudo-legals captures from the king.
-/// The provided closure takes three arguments: from square, to square
-/// and the captured piece.
-/// It is called for each pseudo-legal capture from the king.
+/// Gives all pseudo-legal captures from the king.
+/// The provided closure is called for all generated moves.
 #[inline]
 pub fn gen_king_captures(board: &Board, mut gen: impl FnMut(Move)) {
     let them_occ = board.get_occupancy().colored(board.get_other_side());
@@ -123,9 +113,8 @@ pub fn gen_king_captures(board: &Board, mut gen: impl FnMut(Move)) {
     }
 }
 
-/// Gives all pseudo-legals quiets from the king.
-/// The provided closure takes two arguments: from square and to square.
-/// It is called for each pseudo-legal quiets from the king.
+/// Gives all pseudo-legal quiets from the king.
+/// The provided closure is called for all generated moves.
 #[inline]
 pub fn gen_king_quiets(board: &Board, mut gen: impl FnMut(Move)) {
     let free = board.get_occupancy().free();
@@ -136,9 +125,8 @@ pub fn gen_king_quiets(board: &Board, mut gen: impl FnMut(Move)) {
     }
 }
 
-/// Generates all pseudo-legals castling moves for the position.
-/// The provided closure takes two arguments: from square and to square.
-/// It is called for each pseudo-legal castling.
+/// Gives all pseudo-legal castling moves.
+/// The provided closure is called for all generated moves.
 #[inline]
 pub fn gen_castles(board: &Board, mut gen: impl FnMut(Move)) {
     let us = board.get_side_to_move();
@@ -166,10 +154,8 @@ pub fn gen_castles(board: &Board, mut gen: impl FnMut(Move)) {
 
 // ================================ other moves
 
-/// Gives all pseudo-legals captures from knights, bishops, rooks and queens.
-/// The provided closure takes three arguments: from square, to square
-/// and captured piece.
-/// It is called for each pseudo-legal capture.
+/// Gives all pseudo-legal captures from knights, bishops, rooks and queens.
+/// The provided closure is called for all generated moves, and given the piece that moved.
 #[inline]
 pub fn gen_captures(board: &Board, mut gen: impl FnMut(Piece, Move)) {
     let us = board.get_side_to_move();
@@ -204,9 +190,8 @@ pub fn gen_captures(board: &Board, mut gen: impl FnMut(Piece, Move)) {
     }
 }
 
-/// Gives all pseudo-legals quiets from knights, bishops, rooks and queens.
-/// The provided closure takes two arguments: from square and to square.
-/// It is called for each pseudo-legal quiets.
+/// Gives all pseudo-legal quiets from knights, bishops, rooks and queens.
+/// The provided closure is called for all generated moves, and given the piece that moved.
 #[inline]
 pub fn gen_quiets(board: &Board, mut gen: impl FnMut(Piece, Move)) {
     let us = board.get_side_to_move();
@@ -246,9 +231,8 @@ pub fn gen_quiets(board: &Board, mut gen: impl FnMut(Piece, Move)) {
 //
 //#################################################################################################
 
-/// Generates all legal moves for the current position.
-/// This function is rather slow. Use the other movegen functions
-/// for more control over generation and better performance.
+/// Generates all legal moves for the current position, and pushes them at the end of the buffer, 
+/// in no particular order.
 pub fn legals(board: &Board, buffer: &mut Vec<Move>) {
     // Generates all non-king moves with the given consumer.
     pub fn gen_non_king(board: &Board, mut gen: impl FnMut(Move)) {
@@ -328,7 +312,9 @@ pub fn perft(board: &mut Board, depth: usize) -> u64 {
             count
         };
 
-        buffer.truncate(start_index);
+        // SAFE: we had at least start_index moves prior to calling this function
+        unsafe {buffer.set_len(start_index)};
+
         total
     }
 

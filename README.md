@@ -55,10 +55,7 @@ Where port is the port the server will bind to. The link to the server will be p
 ## TODO list
 
 ### Chess:
-+ Update movegen comments.
-+ Resafe unchecked access to arrays.
 + Repair `Board::test_upcoming_repetition()`.
-+ Better zobrist hashing.
 
 ### Engine:
 + Cleaning and commenting.
