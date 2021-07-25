@@ -26,7 +26,7 @@ unsafe fn is_valid(piece: Piece, from: Square, to: Square) -> bool {
         Piece::Bishop => attacks::bishop(from, occ),
         Piece::Knight => attacks::knight(from),
         Piece::Queen => attacks::queen(from, occ),
-        Piece::King => attacks::knight(from),
+        Piece::King => attacks::king(from),
         _ => unreachable!(),
     }.contains(to)
 }
@@ -84,18 +84,18 @@ pub(crate) unsafe fn init() {
 /// Uses cuckoo hashing to reduce the memory footprint of the hash table.
 #[inline]
 pub(crate) fn is_hash_of_legal_move(board: &Board, diff: Zobrist) -> bool {
-    // SAFETY: h1 and h2 always yield numbers that are < 8192
+    // SAFETY: arrays are initialized at startup
     unsafe {
         let mut i = diff.h1();
 
-        if *CUCKOO.get_unchecked(i) != diff {
+        if CUCKOO[i] != diff {
             i = diff.h2();
-            if *CUCKOO.get_unchecked(i) != diff {
+            if CUCKOO[i] != diff {
                 return false;
             }
         }
 
-        let (from, to) = SQUARES.get_unchecked(i).unwrap();
+        let (from, to) = SQUARES[i].unwrap();
         board.is_path_clear(from, to)
     }
 }

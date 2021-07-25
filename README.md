@@ -54,12 +54,10 @@ Where port is the port the server will bind to. The link to the server will be p
 
 ## TODO list
 
-### Chess:
-+ Repair `Board::test_upcoming_repetition()`.
-
 ### Engine:
 + Cleaning and commenting.
 + Hash moves.
 + Recapture.
 + Null move heuristic.
 + Better evaluation.
++ Opening book.
