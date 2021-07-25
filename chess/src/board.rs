@@ -630,8 +630,8 @@ impl Board {
         const RESET: &str = "\x1b[0m";
         const BLACK: &str = "\x1b[40;1m";
         const CHARS: [[char; 6]; 2] = [
-            ['♙', '♖', '♘', '♗', '♕', '♔'],
-            ['♟', '♜', '♞', '♝', '♛', '♚'],
+            ['♙', '♘', '♗', '♖', '♕', '♔'],
+            ['♟', '♞', '♝', '♜', '♛', '♚'],
         ];
 
         let mut res = String::new();

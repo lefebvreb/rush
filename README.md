@@ -55,15 +55,14 @@ Where port is the port the server will bind to. The link to the server will be p
 ## TODO list
 
 ### Chess:
-+ Cleaner legals.
++ Update movegen comments.
++ Resafe unchecked access to arrays.
 + Repair `Board::test_upcoming_repetition()`.
 + Better zobrist hashing.
 
 ### Engine:
-+ Better `chess::movepick` module: make a trait implemeted by two structs, one for standard alpha-beta search, one for quiescient search.
++ Cleaning and commenting.
 + Hash moves.
-+ Move sorting.
 + Recapture.
 + Null move heuristic.
-+ Recapture.
-+ Better evealuation.
++ Better evaluation.

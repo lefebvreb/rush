@@ -2,7 +2,7 @@ use chess::board::Board;
 use chess::color::Color;
 use chess::piece::Piece;
 
-use crate::{params, utils};
+use crate::utils;
 
 const PAWNS: [f32; 64] = [
 	0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -87,17 +87,30 @@ const TABLES: [[f32; 64]; 5] = [
     BISHOPS, QUEENS
 ];
 
+/// Returns the heuristic value of a piece, in pawns.
+#[inline]
+pub(crate) const fn value_of(piece: Piece) -> f32 {
+    match piece {
+        Piece::Pawn => 1.0,
+        Piece::Rook => 5.0,
+        Piece::Knight => 3.2,
+        Piece::Bishop => 3.3,
+        Piece::Queen => 9.0,
+        Piece::King => 200.0,
+    }
+}
+
 /// The evaluation function.
 pub(crate) fn eval(board: &Board) -> f32 {
     let mut score = 0.0;
 
     for &piece in &Piece::PIECES[..5] {
         for sq in board.get_bitboard(Color::White, piece).iter_squares() {
-            score += params::value_of(piece) + TABLES[usize::from(piece)][usize::from(sq)];
+            score += value_of(piece) + TABLES[usize::from(piece)][usize::from(sq)];
         }
         
         for sq in board.get_bitboard(Color::Black, piece).iter_squares() {
-            score -= params::value_of(piece) + TABLES[usize::from(piece)][63 - usize::from(sq)];
+            score -= value_of(piece) + TABLES[usize::from(piece)][63 - usize::from(sq)];
         }  
     }
 

@@ -13,9 +13,9 @@ use crate::color::Color;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Piece {
     Pawn = 0,
-    Rook = 1,
-    Knight = 2,
-    Bishop = 3,
+    Knight = 1,
+    Bishop = 2,
+    Rook = 3,
     Queen = 4,
     King = 5,
 }
@@ -25,8 +25,8 @@ pub enum Piece {
 impl Piece {
     /// The list of all pieces, in order.
     pub const PIECES: [Piece; 6] = [
-        Piece::Pawn, Piece::Rook, Piece::Knight, 
-        Piece::Bishop, Piece::Queen, Piece::King,
+        Piece::Pawn, Piece::Knight, Piece::Bishop,
+        Piece::Rook, Piece::Queen, Piece::King,
     ];
 
     /// The pieces a pawn promotes to, in order from most to least interesting.

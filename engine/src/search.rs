@@ -5,19 +5,22 @@ use chess::moves::Move;
 use chess::piece::Piece;
 
 use crate::engine::GlobalInfo;
+use crate::heuristics::Heuristics;
 use crate::{eval, utils};
-use crate::movepick::MovePicker;
+use crate::movepick::{MovePicker, Quiescient, RatedMove, Standard};
 use crate::params;
 use crate::table::{TableEntry, TableEntryFlag};
 
 /// A struct holding all the necessary information for a search thread.
 #[derive(Debug)]
 pub(crate) struct Search {
+    board: Board,
+    depth: u8,
+    heuristics: Heuristics,
+
     info: Arc<GlobalInfo>,
     best_move: Option<Move>,
-    depth: u8,
-    board: Board,
-    buffer: Vec<Move>,
+    buffer: Vec<RatedMove>,
     seed: u32,
 }
 
@@ -33,6 +36,7 @@ impl Search {
             board: Board::default(),
             buffer: Vec::new(),
             seed: 0,
+            heuristics: Heuristics::new(),
         }
     }
 
@@ -60,6 +64,13 @@ impl Search {
 // ================================ impl
 
 impl Search {
+    /// Resest internal state that must be between searches, when the root's ply changes.
+    #[inline]
+    fn reset(&mut self) {
+        self.best_move = None;
+        self.heuristics = Heuristics::new();
+    }
+
     /// Search the position until told to stop.
     fn search_position(&mut self) {
         // Clone global board and get search depth.
@@ -69,8 +80,7 @@ impl Search {
             let ply = self.board.get_ply();
             self.board = self.info.board();
             if self.board.get_ply() != ply {
-                // New board, reset some fields.
-                self.best_move = None;
+                self.reset();
             }
         }
         
@@ -122,12 +132,13 @@ impl Search {
         }
         
         if utils::is_pseudo_draw(&self.board, alpha, self.depth == 0) {
+            alpha = utils::prng_draw_value(&mut self.seed);
             if alpha >= beta {
-                return utils::prng_draw_value(&mut self.seed);
+                return alpha;
             }
         }
         
-        if self.depth >= params::MAX_DEPTH {
+        if self.depth >= params::MAX_DEPTH as u8 {
             return eval::eval(&self.board);
         }
         
@@ -151,59 +162,59 @@ impl Search {
     
         let mut best_score = f32::NEG_INFINITY;
         let mut best_move = None;
-        let mut picker = MovePicker::new(&self.board, &self.buffer);
+        let mut picker = MovePicker::<Standard>::new(&self.board, &self.buffer);
         let mut move_count = 0;
     
-        while let Some(range) = picker.next(&self.board, &mut self.buffer) {
-            for i in range {
-                let mv = self.buffer[i];
-
-                if !self.board.is_legal(mv) {
-                    continue;
-                }
-
-                self.depth += 1;
-                self.board.do_move(mv);
-                let score = -self.alpha_beta(-beta, -alpha, do_null, depth-1, search_depth);
-                self.board.undo_move(mv);
-                self.depth -= 1;
-
-                if self.info.search_depth() >= search_depth || !self.info.is_searching() {
-                    return 0.0;
-                }
-        
-                if score > best_score {
-                    best_score = score;
-                    best_move = Some(mv);
-                    
-                    if score > alpha {
-                        if score >= beta {
-                            if !mv.is_capture() {
-                                // TODO: killer heuristic
-                            }
-
-                            self.info.get_table().insert(TableEntry::new(
-                                &self.board,
-                                mv, 
-                                beta,
-                                depth, 
-                                TableEntryFlag::Beta
-                            ));
-                            
-                            return beta;
-                        }
-        
-                        alpha = score;
-                    }
-                }
-                
-                move_count += 1;
+        while let Some(mv) = picker.next(&self.board, &self.heuristics, self.depth, &mut self.buffer) {
+            if !self.board.is_legal(mv) {
+                continue;
             }
+
+            self.depth += 1;
+            self.board.do_move(mv);
+            let score = -self.alpha_beta(-beta, -alpha, do_null, depth-1, search_depth);
+            self.board.undo_move(mv);
+            self.depth -= 1;
+
+            if self.info.search_depth() >= search_depth || !self.info.is_searching() {
+                return 0.0;
+            }
+    
+            if score > best_score {
+                best_score = score;
+                best_move = Some(mv);
+                
+                if score > alpha {
+                    if score >= beta {
+                        if !mv.is_capture() {
+                            self.heuristics.store_killer(mv, self.depth);
+                        }
+
+                        self.info.get_table().insert(TableEntry::new(
+                            &self.board,
+                            mv, 
+                            beta,
+                            depth, 
+                            TableEntryFlag::Beta
+                        ));
+                        
+                        return beta;
+                    }
+
+                    if !mv.is_capture() {
+                        self.heuristics.update_history(mv, self.depth);
+                    }
+    
+                    alpha = score;
+                }
+            }
+            
+            move_count += 1;
         }
         
         if move_count == 0 {
             return if in_check {
-                -params::value_of(Piece::King) + self.depth as f32
+                -eval::value_of(Piece::King) + self.depth as f32
             } else {
                 0.0
             };
@@ -237,14 +248,15 @@ impl Search {
     /// Return the value of the position, computed with a quiescent search (only considering captures).
     fn quiescence(&mut self, mut alpha: f32, beta: f32) -> f32 {
         if utils::is_pseudo_draw(&self.board, alpha, self.depth == 0) {
+            alpha = utils::prng_draw_value(&mut self.seed);
             if alpha >= beta {
-                return utils::prng_draw_value(&mut self.seed);
+                return alpha;
             }
         }
         
         let stand_pat = eval::eval(&self.board);
     
-        if self.depth >= params::MAX_DEPTH {
+        if self.depth >= params::MAX_DEPTH as u8 {
             return stand_pat;
         }
     
@@ -252,9 +264,9 @@ impl Search {
             return beta;
         }
     
-        let mut big_delta = params::value_of(Piece::Queen);
+        let mut big_delta = eval::value_of(Piece::Queen);
         if utils::may_promote(&self.board) {
-            big_delta += params::value_of(Piece::Queen) - params::value_of(Piece::Pawn);
+            big_delta += eval::value_of(Piece::Queen) - eval::value_of(Piece::Pawn);
         }
     
         if stand_pat < alpha - big_delta {
@@ -263,36 +275,28 @@ impl Search {
     
         alpha = alpha.max(stand_pat);
     
-        let mut picker = MovePicker::new(&self.board, &self.buffer);
+        let mut picker = MovePicker::<Quiescient>::new(&self.board, &self.buffer);
     
-        'search: while let Some(range) = picker.next(&self.board, &mut self.buffer) {
-            for i in range {
-                let mv = self.buffer[i];
-
-                if mv.is_quiet() {
-                    break 'search; // TODO: Better movepicker
+        while let Some(mv) = picker.next(&self.board, &self.heuristics, self.depth, &mut self.buffer) {
+            if eval::value_of(mv.get_capture()) + params::DELTA < alpha || !self.board.is_legal(mv) {
+                continue;
+            }
+    
+            self.depth += 1;
+            self.board.do_move(mv);
+            let score = -self.quiescence(-beta, -alpha);
+            self.board.undo_move(mv);
+            self.depth -= 1;
+    
+            if !self.info.is_searching() {
+                return 0.0;
+            }
+    
+            if score > alpha {
+                if score >= beta {
+                    return beta;
                 }
-
-                if !mv.is_capture() || params::value_of(mv.get_capture()) + params::DELTA < alpha || !self.board.is_legal(mv) {
-                    continue;
-                }
-        
-                self.depth += 1;
-                self.board.do_move(mv);
-                let score = -self.quiescence(-beta, -alpha);
-                self.board.undo_move(mv);
-                self.depth -= 1;
-        
-                if !self.info.is_searching() {
-                    return 0.0;
-                }
-        
-                if score > alpha {
-                    if score >= beta {
-                        return beta;
-                    }
-                    alpha = score;
-                }
+                alpha = score;
             }
         }
         
