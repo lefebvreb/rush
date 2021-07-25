@@ -411,8 +411,7 @@ impl Board {
     }
 
     /// Do the move without checking anything about it's legality.
-    /// Returns true if the move is irreversible.
-    pub fn do_move(&mut self, mv: Move) -> bool {
+    pub fn do_move(&mut self, mv: Move) {
         // Clone the previous state to store it later.
         let old_state = self.state.clone();
 
@@ -465,10 +464,11 @@ impl Board {
         self.state.checkers = self.checkers();
         self.state.pinned = self.pinned();
 
-        // Update castling rights and en passant square.
+        // Update castling rights.
         self.state.castle_rights.update(from, to);
         self.state.zobrist ^= Zobrist::from(self.state.castle_rights);
 
+        // Update en passant square.
         if mv.is_double_push() {
             let ep_square = EnPassantSquare::Some(to);
             self.state.ep_square = ep_square;
@@ -486,8 +486,6 @@ impl Board {
 
         // Invert zobrist since we change side.
         self.state.zobrist = !self.state.zobrist;
-    
-        reversible
     }
 
     /// Undoes the move, reverting the board to it's previous state.
@@ -528,6 +526,41 @@ impl Board {
         }
 
         self.place_piece::<false>(color, piece, from);
+    }
+
+    /// Performs a null move (pass). Intended only for the engine to perform null-move pruning.
+    /// Illegal in chess.
+    pub fn do_null(&mut self) {
+        // Clone the previous state to store it later.
+        let old_state = self.state.clone();
+
+        // Undo the zobrist hashing of the ep square and castle rights.
+        self.state.zobrist ^= Zobrist::from(old_state.ep_square);
+        self.state.zobrist ^= Zobrist::from(old_state.castle_rights);
+
+        // Store previous state and increment fullmove counter.
+        self.prev_states.push(old_state);
+        self.ply += 1;
+
+        // Invert the side to move.
+        self.state.side_to_move = self.get_other_side();
+
+        // Determine checkers and pinned bitboard.
+        self.state.checkers = self.checkers();
+        self.state.pinned = self.pinned();
+
+        // Update the halfmove clock.
+        self.state.halfmove += 1;
+
+        // Invert zobrist since we change side.
+        self.state.zobrist = !self.state.zobrist;
+    }
+
+    /// Undoes a null move (pass). Intended only for the engine to perform null-move pruning.
+    pub fn undo_null(&mut self) {
+        // Restore the previous state and decrement the fullmove counter.
+        self.state = self.prev_states.pop().unwrap();
+        self.ply -= 1;
     }
 
     /// Efficiently tests for an upcoming repetition on the line,

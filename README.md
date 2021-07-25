@@ -55,8 +55,5 @@ Where port is the port the server will bind to. The link to the server will be p
 ## TODO list
 
 ### Engine:
-+ Hash moves.
-+ Recapture.
-+ Null move heuristic.
 + Better evaluation.
 + Opening book.

@@ -156,7 +156,17 @@ impl Search {
         if in_check {
             depth += 1;
         } else if do_null && self.depth > 0 && depth >= 4 {
-            // TODO: Null move heuristic
+            if !utils::is_endgame(&self.board) {
+                self.depth += 1;
+                self.board.do_null();
+                let null_score = -self.alpha_beta(-beta, -beta + 1.0, false, depth - 4, search_depth);
+                self.board.undo_null();
+                self.depth -= 1;
+
+                if null_score >= beta {
+                    return beta;
+                }
+            }
         }
     
         let mut best_score = f32::NEG_INFINITY;
