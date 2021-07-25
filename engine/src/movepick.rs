@@ -8,6 +8,7 @@ use chess::piece::Piece;
 
 use crate::heuristics::Heuristics;
 
+/// All under-prmotions.
 const UNDER_PROMOTES: &[Piece] = &[Piece::Rook, Piece::Bishop, Piece::Knight];
 
 //#################################################################################################
@@ -26,7 +27,7 @@ pub(crate) struct RatedMove {
 // ================================ impl
 
 impl RatedMove {
-    /// Rates a castling move.
+    /// Rates a move assuming it is a castling move.
     #[inline]
     fn castle(mv: Move) -> RatedMove {
         RatedMove {mv, score: 0.0}
@@ -79,7 +80,8 @@ impl RatedMove {
 //
 //#################################################################################################
 
-/// A trait to keep the code DRY.
+/// A trait to keep the code DRY. Allow the reuse of the MovePicker struct for both 
+/// norml move generation and quiescient move generation.
 pub(crate) trait MovePickerState {
     /// Creates a new state from a given board.
     fn new(board: &Board) -> Self;

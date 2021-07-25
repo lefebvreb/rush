@@ -39,7 +39,7 @@ impl Heuristics {
     }
 
     #[inline]
-    /// Rates a given move.
+    /// Rates a given quiet move.
     pub(crate) fn rate(&self, mv: Move, depth: u8) -> RatedMove {
         let score = if self.killers[usize::from(depth)][0].map_or(false, |killer| killer == mv) {
             9000000.0

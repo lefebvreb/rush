@@ -25,13 +25,6 @@ const HELP: &str = r#"Available commands:
   auto <seconds>  : plays the engine against itself, with <seconds> seconds to think for each move.
   exit            : exits the cli."#;
 
-// Tries to parse a duration from a string.
-fn parse_duration(s: &str) -> Result<Duration> {
-    Ok(Duration::from_secs_f64(
-        f64::from_str(s).map_err(|_| Error::msg("Unable to parse duration"))?
-    ))
-}
-
 /// The global state of the cli.
 struct State {
     engine: Engine,
@@ -166,7 +159,9 @@ impl State {
             return Err(Error::msg("Game has ended. \"undo\" last move or \"reset\" the game."));
         }
 
-        let duration = parse_duration(&args.next().ok_or(Error::msg("Cannot find <seconds> argument."))?)?;
+        let seconds = args.next().ok_or(Error::msg("Cannot find <seconds> argument."))?;
+        let seconds_f64 = f64::from_str(&seconds)?;
+        let duration = Duration::from_secs_f64(seconds_f64);
 
         self.think_for(duration);
 
@@ -183,7 +178,9 @@ impl State {
 
     /// Makes the engine auto-play against itself, with the parsed given time, in seconds, to think between each move.
     fn auto(&mut self, args: &mut impl Iterator<Item = String>) -> Result<()> {
-        let duration = parse_duration(&args.next().ok_or(Error::msg("Cannot find <seconds> argument."))?)?;
+        let seconds = args.next().ok_or(Error::msg("Cannot find <seconds> argument."))?;
+        let seconds_f64 = f64::from_str(&seconds)?;
+        let duration = Duration::from_secs_f64(seconds_f64);
 
         while !self.print_board() {
             // Get the engine's preferred move.

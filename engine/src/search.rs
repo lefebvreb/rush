@@ -17,7 +17,6 @@ pub(crate) struct Search {
     board: Board,
     depth: u8,
     heuristics: Heuristics,
-
     info: Arc<GlobalInfo>,
     best_move: Option<Move>,
     buffer: Vec<RatedMove>,
