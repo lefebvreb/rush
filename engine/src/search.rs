@@ -125,7 +125,7 @@ impl Search {
     }
     
     /// The alpha-beta negamax algorithm, with a few more heuristics in it.
-    pub(crate) fn alpha_beta(&mut self, mut alpha: f32, beta: f32, do_null: bool, mut depth: u8, search_depth: u8) -> f32 {                              
+    fn alpha_beta(&mut self, mut alpha: f32, beta: f32, do_null: bool, mut depth: u8, search_depth: u8) -> f32 {                              
         if depth == 0 {
             return self.quiescence(alpha, beta);
         }
@@ -137,7 +137,7 @@ impl Search {
             }
         }
         
-        if self.depth >= params::MAX_DEPTH as u8 {
+        if self.depth == params::MAX_DEPTH as u8 {
             return eval::eval(&self.board);
         }
         
@@ -186,6 +186,7 @@ impl Search {
             self.depth -= 1;
 
             if self.info.search_depth() >= search_depth || !self.info.is_searching() {
+                picker.truncate(&mut self.buffer);
                 return 0.0;
             }
     
@@ -207,6 +208,7 @@ impl Search {
                             TableEntryFlag::Beta
                         ));
                         
+                        picker.truncate(&mut self.buffer);
                         return beta;
                     }
 
@@ -220,6 +222,8 @@ impl Search {
             
             move_count += 1;
         }
+
+        picker.truncate(&mut self.buffer);
         
         if move_count == 0 {
             return if in_check {
@@ -265,7 +269,7 @@ impl Search {
         
         let stand_pat = eval::eval(&self.board);
     
-        if self.depth >= params::MAX_DEPTH as u8 {
+        if self.depth == params::MAX_DEPTH as u8 {
             return stand_pat;
         }
     
@@ -298,16 +302,20 @@ impl Search {
             self.depth -= 1;
     
             if !self.info.is_searching() {
+                picker.truncate(&mut self.buffer);
                 return 0.0;
             }
     
             if score > alpha {
                 if score >= beta {
+                    picker.truncate(&mut self.buffer);
                     return beta;
                 }
                 alpha = score;
             }
         }
+
+        picker.truncate(&mut self.buffer);
         
         alpha
     }

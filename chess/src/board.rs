@@ -308,7 +308,7 @@ impl Board {
             // Verify to square occupied <=> move is a capture and the square 
             // is occupied by the piece stored in the move.
             if let Some((color, piece)) = self.get_piece(to) {
-                verify!(mv.is_capture() && color != self.get_side_to_move() && piece == mv.get_capture());
+                verify!(mv.is_capture() && color == self.get_other_side() && piece == mv.get_capture());
             } else {
                 verify!(!mv.is_capture());
             }
@@ -376,7 +376,7 @@ impl Board {
                     return attacks::pawn(color, from).contains(to);
                 } else {
                     // If the move is a promotion, it must go to the first or last rank.
-                    verify!(to.y() == 0 || to.y() == 7 || !mv.is_promote());
+                    verify!(BitBoard::promote_rank(self.get_side_to_move()).contains(from) || !mv.is_promote());
 
                     // Verify that the move is legal for a pawn.
                     if mv.is_capture() {
@@ -399,9 +399,9 @@ impl Board {
 
             // For any other piece, verify the move would be valid on an empty board.
             return match piece {
-                Piece::Rook => attacks::rook(from, occ),
                 Piece::Knight => attacks::knight(from),
                 Piece::Bishop => attacks::bishop(from, occ),
+                Piece::Rook => attacks::rook(from, occ),
                 Piece::Queen => attacks::queen(from, occ),
                 _ => unreachable!(),
             }.contains(to);
@@ -451,7 +451,7 @@ impl Board {
                 self.remove_piece::<true>(to);
             }
     
-            // If the move is a promotion, 
+            // If the move is a promotion, set the piece to be the promotion.
             if mv.is_promote() {
                 piece = mv.get_promote();
             }

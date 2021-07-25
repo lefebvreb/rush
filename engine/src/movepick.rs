@@ -76,11 +76,11 @@ impl RatedMove {
 
 //#################################################################################################
 //
-//                                       trait MovePickerState
+//                                   trait MovePickerState
 //
 //#################################################################################################
 
-/// A trait to keep the code DRY. Allow the reuse of the MovePicker struct for both 
+/// A trait to keep the code DRY. Allow the reuse of the MovePicker struct for both
 /// norml move generation and quiescient move generation.
 pub(crate) trait MovePickerState {
     /// Creates a new state from a given board.
@@ -126,7 +126,7 @@ impl<T: MovePickerState> MovePicker<T> {
     #[inline]
     pub(crate) fn next(&mut self, board: &Board, heuristics: &Heuristics, depth: u8, buffer: &mut Vec<RatedMove>) -> Option<Move> {
         // If there were any leftovers move from a deeper node's MovePicker: forget them.
-        // SAFE: we know the buffer has at least end_index elements already.
+        // SAFE: we know the buffer has at least self.end elements already.
         unsafe {buffer.set_len(self.end as usize)};
 
         // There are no more moves in the buffer.
@@ -134,7 +134,7 @@ impl<T: MovePickerState> MovePicker<T> {
             if let Some(end) = self.state.gen_next_batch(board, heuristics, depth, buffer) {
                 // A new batch was generated, sort the new moves.
                 self.end = end;
-                buffer[(self.start as usize)..].sort_by(RatedMove::pseudo_cmp);
+                buffer[(self.start as usize)..].sort_unstable_by(RatedMove::pseudo_cmp);
             } else {
                 // The new batch was empty, return None.
                 return None;
@@ -144,6 +144,13 @@ impl<T: MovePickerState> MovePicker<T> {
         // Return the last element of the buffer.
         self.end -= 1;
         buffer.pop().map(|rated| rated.mv)
+    }
+
+    /// Needs to be called after all moves have been consumed from the movepicker.
+    #[inline]
+    pub(crate) fn truncate(&self, buffer: &mut Vec<RatedMove>) {
+        // SAFE: we know the buffer had at least self.start elements already.
+        unsafe {buffer.set_len(self.start as usize)};
     }
 }
 
