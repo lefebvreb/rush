@@ -210,6 +210,7 @@ impl Board {
     pub fn status(&self) -> Status {
         let halfmoves = self.get_halfmove();
 
+        // 50 moves rule and threefold repetition.
         if halfmoves >= 50 {
             return Status::Draw;
         } else if halfmoves >= 3 {
@@ -223,6 +224,38 @@ impl Board {
             }
         }
 
+        // Draw by insufficient material.
+        let occ = self.get_occupancy().all();
+        match occ.count() {
+            // King versus King
+            2 => return Status::Draw,
+            3 => {
+                // King + Knight versus King or King + Bishop versus King.
+                let other = occ ^ self.get_bitboard(Color::White, Piece::King) ^ self.get_bitboard(Color::Black, Piece::King);
+                // SAFE: cardinality of other is one
+                match self.get_piece_unchecked(unsafe {other.as_square_unchecked()}) {
+                    Piece::Knight | Piece::Bishop => return Status::Draw,
+                    _ => (),
+                }
+            },
+            4 => {
+                // King + Bishop versus King + Bishop where the bishops have the same parity.
+                let others = occ ^ self.get_bitboard(Color::White, Piece::King) ^ self.get_bitboard(Color::Black, Piece::King);
+                // SAFE: cardinality of other is two
+                let sq1 = unsafe {others.as_square_unchecked()};
+                let sq2 = unsafe {others.pop_lsb().as_square_unchecked()};
+                if sq1.parity() == sq2.parity() {
+                    let (color1, piece1) = self.get_piece(sq1).unwrap();
+                    let (color2, piece2) = self.get_piece(sq2).unwrap();
+                    if color1 != color2 && piece1 == Piece::Bishop && piece2 == Piece::Bishop {
+                        return Status::Draw;
+                    }
+                }
+            },
+            _ => (),
+        }
+
+        // Stalemate, or checkmate.
         let mut legals = Vec::new();
         movegen::legals(self, &mut legals);
         if legals.len() == 0 {
