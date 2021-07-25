@@ -283,6 +283,7 @@ pub fn legals(board: &Board, buffer: &mut Vec<Move>) {
         gen_king_quiets(board, |mv| gen(mv));
 
         // Check that the move is either capturing the checker or blocking it.
+        // SAFE: there is always a king on the board.
         let checker = unsafe {checkers.as_square_unchecked()};
         let mask = BitBoard::between(board.king_sq(), checker) | checkers;
         let gen = |mv: Move| if mask.contains(mv.to()) && board.is_legal(mv) {buffer.push(mv)};

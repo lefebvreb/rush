@@ -194,11 +194,11 @@ pub(crate) unsafe fn init() {
 /// Returns the attacks BitBoard of a Pawn of Color color located on square sq with Board occupancy occ.
 #[inline]
 pub(crate) fn pawn(color: Color, sq: Square) -> BitBoard {
-    // SAFE: 0 <= usize::from(sq) < 64
+    // SAFE: arrays are initialized at startup
     unsafe {
         match color {
-            Color::White => *WHITE_PAWN_ATTACKS.get_unchecked(usize::from(sq)),
-            Color::Black => *BLACK_PAWN_ATTACKS.get_unchecked(usize::from(sq)),
+            Color::White => WHITE_PAWN_ATTACKS[usize::from(sq)],
+            Color::Black => BLACK_PAWN_ATTACKS[usize::from(sq)],
         }
     }
 }
@@ -207,11 +207,11 @@ pub(crate) fn pawn(color: Color, sq: Square) -> BitBoard {
 /// would occupy if it was pushed.
 #[inline]
 pub(crate) fn pawn_push(color: Color, sq: Square) -> Option<Square> {
-    // SAFE: 0 <= usize::from(sq) < 64
+    // SAFE: arrays are initialized at startup
     unsafe {
         match color {
-            Color::White => *WHITE_PAWN_PUSHES.get_unchecked(usize::from(sq)),
-            Color::Black => *BLACK_PAWN_PUSHES.get_unchecked(usize::from(sq)),
+            Color::White => WHITE_PAWN_PUSHES[usize::from(sq)],
+            Color::Black => BLACK_PAWN_PUSHES[usize::from(sq)],
         }
     }
 }
@@ -220,11 +220,11 @@ pub(crate) fn pawn_push(color: Color, sq: Square) -> Option<Square> {
 /// would occupy if it was double pushed.
 #[inline]
 pub(crate) fn pawn_double_push(color: Color, sq: Square) -> Option<Square> {
-    // SAFE: 0 <= usize::from(sq) < 64
+    // SAFE: arrays are initialized at startup
     unsafe {
         match color {
-            Color::White => *WHITE_PAWN_DOUBLE_PUSHES.get_unchecked(usize::from(sq)),
-            Color::Black => *BLACK_PAWN_DOUBLE_PUSHES.get_unchecked(usize::from(sq)),
+            Color::White => WHITE_PAWN_DOUBLE_PUSHES[usize::from(sq)],
+            Color::Black => BLACK_PAWN_DOUBLE_PUSHES[usize::from(sq)],
         }
     }
 }
@@ -232,10 +232,10 @@ pub(crate) fn pawn_double_push(color: Color, sq: Square) -> Option<Square> {
 /// Returns the attacks BitBoard of a Rook located on square sq, with Board occupancy occ.
 #[inline]
 pub(crate) fn rook(sq: Square, occ: BitBoard) -> BitBoard {
-    // SAFE: 0 <= usize::from(sq) < 64
+    // SAFE: arrays are initialized at startup
     unsafe {
-        let info = ROOK_BMI2.get_unchecked(usize::from(sq));
-        let mask = SLIDER_ATTACKS[info.offset + occ.pext(info.mask1).0 as usize]; // Keeping that bounds check for now.
+        let info = &ROOK_BMI2[usize::from(sq)];
+        let mask = SLIDER_ATTACKS[info.offset + occ.pext(info.mask1).0 as usize];
         BitBoard(mask as u64).pdep(info.mask2)
     }
 }
@@ -243,19 +243,17 @@ pub(crate) fn rook(sq: Square, occ: BitBoard) -> BitBoard {
 /// Returns the attacks BitBoard of a Knight located on square sq.
 #[inline]
 pub(crate) fn knight(sq: Square) -> BitBoard {
-    // SAFE: 0 <= usize::from(sq) < 64
-    unsafe {
-        *KNIGHT_ATTACKS.get_unchecked(usize::from(sq))
-    }
+    // SAFE: array is initialized at startup
+    unsafe {KNIGHT_ATTACKS[usize::from(sq)]}
 }
 
 /// Returns the attacks BitBoard of a Bishop located on square sq, with Board occupancy occ.
 #[inline]
 pub(crate) fn bishop(sq: Square, occ: BitBoard) -> BitBoard {
-    // SAFE: 0 <= usize::from(sq) < 64
+    // SAFE: arrays are initialized at startup
     unsafe {
-        let info = BISHOP_BMI2.get_unchecked(usize::from(sq));
-        let mask = SLIDER_ATTACKS[info.offset + occ.pext(info.mask1).0 as usize]; // Keeping that bounds check for now.
+        let info = &BISHOP_BMI2[usize::from(sq)];
+        let mask = SLIDER_ATTACKS[info.offset + occ.pext(info.mask1).0 as usize];
         BitBoard(mask as u64).pdep(info.mask2)
     }
 }
@@ -269,8 +267,6 @@ pub(crate) fn queen(sq: Square, occ: BitBoard) -> BitBoard {
 /// Returns the attacks BitBoard of a King located on square sq.
 #[inline]
 pub(crate) fn king(sq: Square) -> BitBoard {
-    // SAFE: 0 <= usize::from(sq) < 64
-    unsafe {
-        *KING_ATTACKS.get_unchecked(usize::from(sq))
-    }
+    // SAFE: array is initialized at startup
+    unsafe {KING_ATTACKS[usize::from(sq)]}
 }

@@ -128,6 +128,7 @@ impl TranspositionTable {
 impl Drop for TranspositionTable {
     /// TranspositionTable needs to be manually dropped.
     fn drop(&mut self) {
+        // SAFE: the pointer is dropped only once
         unsafe {Box::from_raw(self.0)};
     }
 }

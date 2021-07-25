@@ -186,6 +186,7 @@ impl MovePickerState for Standard {
             Standard::DoubleCheck
         } else {
             // One checker: compute the check mask: the checker's square or any square between them and the king.
+            // SAFE: there is always a king on the board.
             let checker = unsafe {checkers.as_square_unchecked()};
             let mask = BitBoard::between(board.king_sq(), checker) | checkers;
 
@@ -316,6 +317,7 @@ impl MovePickerState for Quiescient {
             movegen::gen_king_captures(board, |mv| buffer.push(RatedMove::capture(Piece::King, mv)));
         } else {
             // One checker, must check that the move is inside the computed mask.
+            // SAFE: there is always a king on the board.
             let checker = unsafe {checkers.as_square_unchecked()};
             let mask = BitBoard::between(board.king_sq(), checker) | checkers;
 

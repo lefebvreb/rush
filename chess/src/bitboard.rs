@@ -182,30 +182,24 @@ impl BitBoard {
     /// from and to are aligned horizontally or vertically. Returns an empty bitboard if they are not.
     #[inline]
     pub fn between_straight(from: Square, to: Square) -> BitBoard {
-        // SAFE: 0 <= usize::from(from) < 64 and 0 <= usize::from(to) < 64
-        unsafe {
-            *SQUARES_BETWEEN_STRAIGHT.get_unchecked(usize::from(from)).get_unchecked(usize::from(to))
-        }
+        // SAFE: array is initialized at startup
+        unsafe {SQUARES_BETWEEN_STRAIGHT[usize::from(from)][usize::from(to)]}
     }
 
     /// Returns a bitboard of the squares between from and to (exclusive) if 
     /// from and to are aligned diagonally. Returns an empty bitboard if they are not.
     #[inline]
     pub fn between_diagonal(from: Square, to: Square) -> BitBoard {
-        // SAFE: 0 <= usize::from(from) < 64 and 0 <= usize::from(to) < 64
-        unsafe {
-            *SQUARES_BETWEEN_DIAGNOAL.get_unchecked(usize::from(from)).get_unchecked(usize::from(to))
-        }
+        // SAFE: array is initialized at startup
+        unsafe {SQUARES_BETWEEN_DIAGNOAL[usize::from(from)][usize::from(to)]}
     }
 
     /// Returns a bitboard of the squares between from and to (exclusive).
     /// if they are aligned. Returns an empty bitboard if they are not.
     #[inline]
     pub fn between(from: Square, to: Square) -> BitBoard {
-        // SAFE: 0 <= usize::from(from) < 64 and 0 <= usize::from(to) < 64
-        unsafe {
-            *SQUARES_BETWEEN.get_unchecked(usize::from(from)).get_unchecked(usize::from(to))
-        }
+        // SAFE: array is initialized at startup
+        unsafe {SQUARES_BETWEEN[usize::from(from)][usize::from(to)]}
     }
 
     /// Returns a bitboard of the squares on the ray from-to, with
@@ -213,10 +207,8 @@ impl BitBoard {
     /// Returns an empty bitboard if they are not.
     #[inline]
     pub fn ray_mask(from: Square, to: Square) -> BitBoard {
-        // SAFE: 0 <= usize::from(from) < 64 and 0 <= usize::from(to) < 64
-        unsafe {
-            *SQUARES_RAY_MASK.get_unchecked(usize::from(from)).get_unchecked(usize::from(to))
-        }
+        // SAFE: array is initialized at startup
+        unsafe {SQUARES_RAY_MASK[usize::from(from)][usize::from(to)]}
     }
 
     /// Pops the least significant bit. Returns 0 if self is empty.
@@ -251,7 +243,7 @@ impl BitBoard {
     #[cfg(all(target_arch = "x86_64", target_feature = "bmi2"))]
     #[inline]
     pub(crate) fn pext(self, mask: BitBoard) -> BitBoard {
-        // SAFE: arch and flags checked
+        // SAFE: arch and cpu flags checked
         BitBoard(unsafe {
             std::arch::x86_64::_pext_u64(self.0, mask.0)
         })
@@ -279,7 +271,7 @@ impl BitBoard {
     #[cfg(all(target_arch = "x86_64", target_feature = "bmi2"))]
     #[inline]
     pub(crate) fn pdep(self, mask: BitBoard) -> BitBoard {
-        // SAFE: arch and flags checked
+        // SAFE: arch and cpu flags checked
         BitBoard(unsafe {
             std::arch::x86_64::_pdep_u64(self.0, mask.0)
         })
@@ -334,10 +326,8 @@ impl From<Square> for BitBoard {
     /// Returns the bitboard containing only that square.
     #[inline]
     fn from(sq: Square) -> BitBoard {
-        // SAFE: 0 <= usize::from(sq) < 64
-        unsafe {
-            *SHIFTS.get_unchecked(usize::from(sq))
-        }
+        // SAFE: array is initialized at startup
+        unsafe {SHIFTS[usize::from(sq)]}
     }
 }
 

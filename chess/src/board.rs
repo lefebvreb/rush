@@ -82,10 +82,7 @@ impl Occupancy {
     /// The colored occupancy bitboards.
     #[inline]
     pub fn colored(&self, color: Color) -> BitBoard {
-        // SAFE: 0 <= usize::from(color) < 2
-        unsafe {
-            *self.colored.get_unchecked(usize::from(color))
-        }
+        self.colored[usize::from(color)]
     }
 
     /// The free squares of the board.
@@ -164,19 +161,13 @@ impl Board {
     /// Gets the bitboard corresponding to that color and piece type.
     #[inline]
     pub fn get_bitboard(&self, color: Color, piece: Piece) -> BitBoard {
-        // SAFE: 0 <= usize::from(color) < 2 and 0 <= usize::from(piece) < 6
-        unsafe {
-            *self.bitboards.get_unchecked(usize::from(color)).get_unchecked(usize::from(piece))
-        }
+        self.bitboards[usize::from(color)][usize::from(piece)]
     }
 
     /// Gets the (maybe) piece and it's color at that square.
     #[inline]
     pub fn get_piece(&self, sq: Square) -> Option<(Color, Piece)> {
-        // SAFE: 0 <= usize::from(sq) < 64
-        unsafe {
-            *self.mailbox.get_unchecked(usize::from(sq))
-        }
+        self.mailbox[usize::from(sq)]
     }
 
     /// Returns the occupancy object associated to that board.
@@ -211,6 +202,7 @@ impl Board {
     #[inline]
     pub fn king_sq(&self) -> Square {
         let king_bb = self.get_bitboard(self.get_side_to_move(), Piece::King);
+        // SAFE: there is always a king on the board
         unsafe {king_bb.as_square_unchecked()}
     }
 
@@ -362,6 +354,7 @@ impl Board {
                     verify!(!checkers.more_than_one());
 
                     // One checker, the piece moving must either block or capture the enemy piece.
+                    // SAFE: there is always a king on the board
                     let checker = unsafe {checkers.as_square_unchecked()};
                     let blocking_zone = BitBoard::between(self.king_sq(), checker);
                     verify!((blocking_zone | checkers).contains(to));

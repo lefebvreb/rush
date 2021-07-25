@@ -26,6 +26,7 @@ pub(crate) fn is_endgame(board: &Board) -> bool {
 /// Returns the color the king is of that color is standing on.
 #[inline]
 pub(crate) fn king_sq_color(board: &Board, color: Color) -> Square {
+    // SAFE: there is always a king on the board.
     unsafe {board.get_bitboard(color, Piece::King).as_square_unchecked()}
 }
 

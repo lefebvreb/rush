@@ -73,24 +73,7 @@ impl Piece {
     }
 }
 
-// ================================ pub(crate) impl
-
-impl Piece {
-    /// Returns the piece corresponding to that number, assumes 0 <= i < 6
-    pub(crate) unsafe fn from_unchecked(i: u8) -> Piece {
-        *Piece::PIECES.get_unchecked(i as usize)
-    }
-}
-
 // ================================ traits impl
-
-impl From<u8> for Piece {
-    /// Creates a piece from a number. See codes in number definition.
-    #[inline]
-    fn from(i: u8) -> Piece {
-        Piece::PIECES[i as usize]
-    }
-}
 
 impl From<Piece> for usize {
     /// Use the piece as an index.

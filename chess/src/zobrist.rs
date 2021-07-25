@@ -88,8 +88,9 @@ impl From<(Color, Piece, Square)> for Zobrist {
     /// Hashes a color, piece, square triplet.
     #[inline]
     fn from((color, piece, sq): (Color, Piece, Square)) -> Zobrist {
+        // SAFE: array initialization is done at startup
         unsafe {
-            *KEYS.get_unchecked(usize::from(sq)).get_unchecked(usize::from(piece)).get_unchecked(usize::from(color))
+            KEYS[usize::from(sq)][usize::from(piece)][usize::from(color)]
         }
     }
 }

@@ -31,6 +31,7 @@ pub fn init() {
 
     static INIT: Once = Once::new();
 
+    // SAFE: thread safe by the Once's lock.
     INIT.call_once(|| unsafe {
         bitboard::init();
         zobrist::init();
