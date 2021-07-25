@@ -125,7 +125,7 @@ impl Search {
     }
     
     /// The alpha-beta negamax algorithm, with a few more heuristics in it.
-    pub(crate) fn alpha_beta(&mut self, mut alpha: f32, beta: f32, do_null: bool, mut depth: u8, search_depth: u8) -> f32 {                      
+    pub(crate) fn alpha_beta(&mut self, mut alpha: f32, beta: f32, do_null: bool, mut depth: u8, search_depth: u8) -> f32 {                              
         if depth == 0 {
             return self.quiescence(alpha, beta);
         }
@@ -155,7 +155,7 @@ impl Search {
         
         if in_check {
             depth += 1;
-        } else if do_null && self.depth > 0 && depth >= 4 {
+        } else if do_null && self.depth > 0 && depth >= 4 && beta.is_finite() {
             if !utils::is_endgame(&self.board) {
                 self.depth += 1;
                 self.board.do_null();
