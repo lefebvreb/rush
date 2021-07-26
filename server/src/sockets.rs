@@ -102,8 +102,7 @@ impl Sockets {
                         break;
                     }
 
-                    // If the message was incorrect, send all the state
-                    // to the sender, so they can sync back with us.
+                    // If the message was incorrect, print the error to the terminal.
                     if let Err(e) = self.on_message(msg) {
                         eprintln!("Erroneous order: {}", e);
                     }
@@ -138,7 +137,7 @@ impl Sockets {
         }
     }
 
-    /// Upon receiving a message from a client, parses it and forwards to the game state.
+    /// Upon receiving a message from a client, parses it and forwards it to the game state.
     fn on_message(&self, msg: Message) -> Result<()> {
         let command = Command::from_msg(msg)?;
         self.game_tx.send(command)?;

@@ -33,7 +33,7 @@ async fn main() {
     let addr_str = args.value_of("address").unwrap();
     let addr = match SocketAddr::from_str(addr_str) {
         Ok(addr) => addr,
-        Err(_) => {
+        _ => {
             eprintln!("Failed to parse address: {}.", addr_str);
             return;
         },
