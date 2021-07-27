@@ -76,24 +76,6 @@ impl RatedMove {
 
 //#################################################################################################
 //
-//                                   trait MovePickerState
-//
-//#################################################################################################
-
-/// A trait to keep the code DRY. Allow the reuse of the MovePicker struct for both
-/// norml move generation and quiescient move generation.
-pub(crate) trait MovePickerState {
-    /// Creates a new state from a given board.
-    fn new(board: &Board) -> Self;
-
-    /// Must generate the next batch of moves and change self appropriately.
-    /// Returns None if no moves were generated (meaning there is nothing left to generate),
-    /// else returns Some(end) where end is the new length of the buffer.
-    fn gen_next_batch(&mut self, board: &Board, heuristics: &Heuristics, depth: u8, buffer: &mut Vec<RatedMove>) -> Option<u16>;
-}
-
-//#################################################################################################
-//
 //                                    struct MovePicker
 //
 //#################################################################################################
@@ -101,22 +83,22 @@ pub(crate) trait MovePickerState {
 /// A struct used to provide a layer of abstraction over move generation and picking.
 /// Uses u16s instead of usizes to save space, since we won't go as far as 65536 moves anyway.
 #[derive(Debug)]
-pub(crate) struct MovePicker<T: MovePickerState> {
-    state: T,
+pub(crate) struct MovePicker {
+    state: MovePickerState,
     start: u16,
     end: u16,
 }
 
 // ================================ pub(crate) impl
 
-impl<T: MovePickerState> MovePicker<T> {
+impl MovePicker {
     /// Constructs a new move picker.
     #[inline]
-    pub(crate) fn new(board: &Board, buffer: &Vec<RatedMove>) -> MovePicker<T> {
+    pub(crate) fn new(board: &Board, buffer: &Vec<RatedMove>) -> MovePicker {
         let len = buffer.len() as u16;
 
         MovePicker {
-            state: T::new(board),
+            state: MovePickerState::new(board),
             start: len,
             end: len,
         }
@@ -131,10 +113,9 @@ impl<T: MovePickerState> MovePicker<T> {
 
         // There are no more moves in the buffer.
         if self.start == self.end {
-            if let Some(end) = self.state.gen_next_batch(board, heuristics, depth, buffer) {
+            if self.gen_next_batch(board, heuristics, depth, buffer) {
                 // A new batch was generated, sort the new moves.
-                self.end = end;
-                buffer[(self.start as usize)..].sort_unstable_by(RatedMove::pseudo_cmp);
+                buffer[usize::from(self.start)..].sort_unstable_by(RatedMove::pseudo_cmp);
             } else {
                 // The new batch was empty, return None.
                 return None;
@@ -154,15 +135,99 @@ impl<T: MovePickerState> MovePicker<T> {
     }
 }
 
+impl MovePicker {
+    fn gen_next_batch(&mut self, board: &Board, heuristics: &Heuristics, depth: u8, buffer: &mut Vec<RatedMove>) -> bool {
+        loop {
+            self.state = match self.state {
+                // Only queen promotions and capture promotions.
+                MovePickerState::QueenPromotes => {
+                    movegen::gen_promote_captures(board, &[Piece::Queen], |mv| buffer.push(RatedMove::promote_capture(mv)));
+                    movegen::gen_promotes(board, &[Piece::Queen], |mv| buffer.push(RatedMove::promote(mv)));
+                    MovePickerState::Captures
+                },
+                // All captures, including en passant ones.
+                MovePickerState::Captures => {
+                    movegen::gen_pawn_captures(board, |mv| buffer.push(RatedMove::capture(Piece::Pawn, mv)));
+                    movegen::gen_en_passant(board, |mv| buffer.push(RatedMove::capture(Piece::Pawn, mv)));
+                    movegen::gen_captures(board, |piece, mv| buffer.push(RatedMove::capture(piece, mv)));
+                    movegen::gen_king_captures(board, |mv| buffer.push(RatedMove::capture(Piece::King, mv)));
+                    MovePickerState::Castles
+                },
+                // All castling.
+                MovePickerState::Castles => {
+                    movegen::gen_castles(board, |mv| buffer.push(RatedMove::castle(mv)));
+                    MovePickerState::UnderPromotes
+                },
+                // All under promotions.
+                MovePickerState::UnderPromotes => {
+                    movegen::gen_promote_captures(board, UNDER_PROMOTES, |mv| buffer.push(RatedMove::promote_capture(mv)));
+                    movegen::gen_promotes(board, UNDER_PROMOTES, |mv| buffer.push(RatedMove::promote(mv)));
+                    MovePickerState::Quiets
+                },
+                // All quiets, including pushes and king ones.
+                MovePickerState::Quiets => {
+                    movegen::gen_pushes(board, |mv| buffer.push(heuristics.rate(mv, depth)));
+                    movegen::gen_quiets(board, |_, mv| buffer.push(heuristics.rate(mv, depth)));
+                    movegen::gen_king_quiets(board, |mv| buffer.push(heuristics.rate(mv, depth)));
+                    MovePickerState::Stop
+                },
+
+                // All queen promotions under single check.
+                MovePickerState::CheckQueenPromotes {mask} => {
+                    movegen::gen_promote_captures(board, &[Piece::Queen], |mv| if mask.contains(mv.to()) {buffer.push(RatedMove::promote_capture(mv))});
+                    movegen::gen_promotes(board, &[Piece::Queen], |mv| if mask.contains(mv.to()) {buffer.push(RatedMove::promote(mv))});
+                    MovePickerState::CheckCaptures {mask}
+                },
+                // All captures under single check.
+                MovePickerState::CheckCaptures {mask} => {
+                    movegen::gen_pawn_captures(board, |mv| if mask.contains(mv.to()) {buffer.push(RatedMove::capture(Piece::Pawn, mv))});
+                    movegen::gen_en_passant(board, |mv| if mask.contains(mv.to()) {buffer.push(RatedMove::capture(Piece::Pawn, mv))});
+                    movegen::gen_captures(board, |piece, mv| if mask.contains(mv.to()) {buffer.push(RatedMove::capture(piece, mv))});
+                    movegen::gen_king_captures(board, |mv| buffer.push(RatedMove::capture(Piece::King, mv)));
+                    MovePickerState::CheckOthers {mask}
+                },
+                // All other moves under single check. 
+                MovePickerState::CheckOthers {mask} => {
+                    // Under promotions.
+                    movegen::gen_promote_captures(board, UNDER_PROMOTES, |mv| if mask.contains(mv.to()) {buffer.push(RatedMove::promote_capture(mv))});
+                    movegen::gen_promotes(board, UNDER_PROMOTES, |mv| if mask.contains(mv.to()) {buffer.push(RatedMove::promote(mv))});
+                    
+                    // Quiet moves.
+                    movegen::gen_pushes(board, |mv| if mask.contains(mv.to()) {buffer.push(heuristics.rate(mv, depth))});
+                    movegen::gen_quiets(board, |_, mv| if mask.contains(mv.to()) {buffer.push(heuristics.rate(mv, depth))});
+                    movegen::gen_king_quiets(board, |mv| buffer.push(heuristics.rate(mv, depth)));
+
+                    MovePickerState::Stop
+                },
+
+                // All moves under double check (only the king may move).
+                MovePickerState::DoubleCheck => {
+                    movegen::gen_king_captures(board, |mv| buffer.push(RatedMove::capture(Piece::King, mv)));
+                    movegen::gen_king_quiets(board, |mv| buffer.push(heuristics.rate(mv, depth)));
+                    MovePickerState::Stop
+                },
+
+                MovePickerState::Stop => return false,
+            };
+
+            let end = buffer.len() as u16;
+            if self.start != end {
+                self.end = end;
+                return true;
+            }
+        }
+    }
+}
+
 //#################################################################################################
 //
-//                                         enum Standard
+//                                         enum MovePickerState
 //
 //#################################################################################################
 
 /// The MovePickerState used for standard search, generates all pseudo-legals for a given position.
 #[derive(Debug)]
-pub(crate) enum Standard {
+pub(crate) enum MovePickerState {
     // No checkers.
     QueenPromotes,
     Captures,
@@ -182,134 +247,42 @@ pub(crate) enum Standard {
     Stop,
 }
 
-impl MovePickerState for Standard {
+impl MovePickerState {
     #[inline]
-    fn new(board: &Board) -> Standard {
+    fn new(board: &Board) -> MovePickerState {
         let checkers = board.get_checkers();
 
         if checkers.empty() {
             // No checkers, start by queen promotions.
-            Standard::QueenPromotes
+            MovePickerState::QueenPromotes
         } else if checkers.more_than_one() {
             // Two checkers, no choice.
-            Standard::DoubleCheck
+            MovePickerState::DoubleCheck
         } else {
             // One checker: compute the check mask: the checker's square or any square between them and the king.
             // SAFE: there is always a king on the board.
             let checker = unsafe {checkers.as_square_unchecked()};
             let mask = BitBoard::between(board.king_sq(), checker) | checkers;
 
-            Standard::CheckQueenPromotes {mask}
-        }
-    }
-
-    fn gen_next_batch(&mut self, board: &Board, heuristics: &Heuristics, depth: u8, buffer: &mut Vec<RatedMove>) -> Option<u16> {
-        let start = buffer.len() as u16;
-
-        loop {
-            *self = match self {
-                // Only queen promotions and capture promotions.
-                Standard::QueenPromotes => {
-                    movegen::gen_promote_captures(board, &[Piece::Queen], |mv| buffer.push(RatedMove::promote_capture(mv)));
-                    movegen::gen_promotes(board, &[Piece::Queen], |mv| buffer.push(RatedMove::promote(mv)));
-                    Standard::Captures
-                },
-                // All captures, including en passant ones.
-                Standard::Captures => {
-                    movegen::gen_pawn_captures(board, |mv| buffer.push(RatedMove::capture(Piece::Pawn, mv)));
-                    movegen::gen_en_passant(board, |mv| buffer.push(RatedMove::capture(Piece::Pawn, mv)));
-                    movegen::gen_captures(board, |piece, mv| buffer.push(RatedMove::capture(piece, mv)));
-                    movegen::gen_king_captures(board, |mv| buffer.push(RatedMove::capture(Piece::King, mv)));
-                    Standard::Castles
-                },
-                // All castling.
-                Standard::Castles => {
-                    movegen::gen_castles(board, |mv| buffer.push(RatedMove::castle(mv)));
-                    Standard::UnderPromotes
-                },
-                // All under promotions.
-                Standard::UnderPromotes => {
-                    movegen::gen_promote_captures(board, UNDER_PROMOTES, |mv| buffer.push(RatedMove::promote_capture(mv)));
-                    movegen::gen_promotes(board, UNDER_PROMOTES, |mv| buffer.push(RatedMove::promote(mv)));
-                    Standard::Quiets
-                },
-                // All quiets, including pushes and king ones.
-                Standard::Quiets => {
-                    movegen::gen_pushes(board, |mv| buffer.push(heuristics.rate(mv, depth)));
-                    movegen::gen_quiets(board, |_, mv| buffer.push(heuristics.rate(mv, depth)));
-                    movegen::gen_king_quiets(board, |mv| buffer.push(heuristics.rate(mv, depth)));
-                    Standard::Stop
-                },
-
-                // All queen promotions under single check.
-                Standard::CheckQueenPromotes {mask} => {
-                    movegen::gen_promote_captures(board, &[Piece::Queen], |mv| if mask.contains(mv.to()) {buffer.push(RatedMove::promote_capture(mv))});
-                    movegen::gen_promotes(board, &[Piece::Queen], |mv| if mask.contains(mv.to()) {buffer.push(RatedMove::promote(mv))});
-                    Standard::CheckCaptures {mask: *mask}
-                },
-                // All captures under single check.
-                Standard::CheckCaptures {mask} => {
-                    movegen::gen_pawn_captures(board, |mv| if mask.contains(mv.to()) {buffer.push(RatedMove::capture(Piece::Pawn, mv))});
-                    movegen::gen_en_passant(board, |mv| if mask.contains(mv.to()) {buffer.push(RatedMove::capture(Piece::Pawn, mv))});
-                    movegen::gen_captures(board, |piece, mv| if mask.contains(mv.to()) {buffer.push(RatedMove::capture(piece, mv))});
-                    movegen::gen_king_captures(board, |mv| buffer.push(RatedMove::capture(Piece::King, mv)));
-                    Standard::CheckOthers {mask: *mask}
-                },
-                // All other moves under single check. 
-                Standard::CheckOthers {mask} => {
-                    // Under promotions.
-                    movegen::gen_promote_captures(board, UNDER_PROMOTES, |mv| if mask.contains(mv.to()) {buffer.push(RatedMove::promote_capture(mv))});
-                    movegen::gen_promotes(board, UNDER_PROMOTES, |mv| if mask.contains(mv.to()) {buffer.push(RatedMove::promote(mv))});
-                    
-                    // Quiet moves.
-                    movegen::gen_pushes(board, |mv| if mask.contains(mv.to()) {buffer.push(heuristics.rate(mv, depth))});
-                    movegen::gen_quiets(board, |_, mv| if mask.contains(mv.to()) {buffer.push(heuristics.rate(mv, depth))});
-                    movegen::gen_king_quiets(board, |mv| buffer.push(heuristics.rate(mv, depth)));
-
-                    Standard::Stop
-                },
-
-                // All moves under double check (only the king may move).
-                Standard::DoubleCheck => {
-                    movegen::gen_king_captures(board, |mv| buffer.push(RatedMove::capture(Piece::King, mv)));
-                    movegen::gen_king_quiets(board, |mv| buffer.push(heuristics.rate(mv, depth)));
-                    Standard::Stop
-                },
-
-                Standard::Stop => return None,
-            };
-
-            let end = buffer.len() as u16;
-            if start != end {
-                return Some(end);
-            }
+            MovePickerState::CheckQueenPromotes {mask}
         }
     }
 }
 
 //#################################################################################################
 //
-//                                         enum Quiescient
+//                                         struct Captures
 //
 //#################################################################################################
 
-/// The MovePickerState used for quiescient search, generates all pseudo-legal captures for a given position.
-#[derive(Debug)]
-pub(crate) struct Quiescient(bool);
+pub(crate) struct Captures {
+    start: u16,
+    end: u16,
+}
 
-impl MovePickerState for Quiescient {
+impl Captures {
     #[inline]
-    fn new(_: &Board) -> Quiescient {
-        Quiescient(false)
-    }
-
-    #[inline]
-    fn gen_next_batch(&mut self, board: &Board, _: &Heuristics, _: u8, buffer: &mut Vec<RatedMove>) -> Option<u16> {
-        if self.0 {
-            return None;
-        }
-        self.0 = true;
-
+    pub(crate) fn new(board: &Board, buffer: &mut Vec<RatedMove>) -> Captures {
         let start = buffer.len() as u16;
 
         let checkers = board.get_checkers();
@@ -335,13 +308,30 @@ impl MovePickerState for Quiescient {
             movegen::gen_en_passant(board, |mv| if mask.contains(mv.to()) {buffer.push(RatedMove::capture(Piece::Pawn, mv))});
             movegen::gen_captures(board, |piece, mv| if mask.contains(mv.to()) {buffer.push(RatedMove::capture(piece, mv))});
             movegen::gen_king_captures(board, |mv| buffer.push(RatedMove::capture(Piece::King, mv)));
-        }        
-
-        let end = buffer.len() as u16;
-        if start != end {
-            Some(end)
-        } else {
-            None
         }
+
+        buffer[usize::from(start)..].sort_unstable_by(RatedMove::pseudo_cmp);
+
+        Captures {
+            start,
+            end: buffer.len() as u16,
+        }
+    }
+
+    #[inline]
+    pub(crate) fn next(&mut self, buffer: &mut Vec<RatedMove>) -> Option<Move> {
+        if self.start == self.end {
+            None
+        } else {
+            self.end -= 1;
+            buffer.pop().map(|rated| rated.mv)
+        }
+    }
+
+    /// Needs to be called after all moves have been consumed from the movepicker.
+    #[inline]
+    pub(crate) fn truncate(&self, buffer: &mut Vec<RatedMove>) {
+        // SAFE: we know the buffer had at least self.start elements already.
+        unsafe {buffer.set_len(self.start as usize)};
     }
 }

@@ -7,7 +7,7 @@ use chess::piece::Piece;
 use crate::engine::GlobalInfo;
 use crate::heuristics::Heuristics;
 use crate::{eval, utils};
-use crate::movepick::{MovePicker, Quiescient, RatedMove, Standard};
+use crate::movepick::{Captures, MovePicker, RatedMove};
 use crate::params;
 use crate::table::{TableEntry, TableEntryFlag};
 
@@ -171,7 +171,7 @@ impl Search {
     
         let mut best_score = f32::NEG_INFINITY;
         let mut best_move = None;
-        let mut picker = MovePicker::<Standard>::new(&self.board, &self.buffer);
+        let mut picker = MovePicker::new(&self.board, &self.buffer);
         let mut move_count = 0;
     
         while let Some(mv) = picker.next(&self.board, &self.heuristics, self.depth, &mut self.buffer) {
@@ -288,9 +288,9 @@ impl Search {
     
         alpha = alpha.max(stand_pat);
     
-        let mut picker = MovePicker::<Quiescient>::new(&self.board, &self.buffer);
+        let mut captures = Captures::new(&self.board, &mut self.buffer);
     
-        while let Some(mv) = picker.next(&self.board, &self.heuristics, self.depth, &mut self.buffer) {
+        while let Some(mv) = captures.next(&mut self.buffer) {
             if eval::value_of(mv.get_capture()) + params::DELTA < alpha || !self.board.is_legal(mv) {
                 continue;
             }
@@ -302,20 +302,20 @@ impl Search {
             self.depth -= 1;
     
             if !self.info.is_searching() {
-                picker.truncate(&mut self.buffer);
+                captures.truncate(&mut self.buffer);
                 return 0.0;
             }
     
             if score > alpha {
                 if score >= beta {
-                    picker.truncate(&mut self.buffer);
+                    captures.truncate(&mut self.buffer);
                     return beta;
                 }
                 alpha = score;
             }
         }
 
-        picker.truncate(&mut self.buffer);
+        captures.truncate(&mut self.buffer);
         
         alpha
     }
