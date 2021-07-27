@@ -215,8 +215,7 @@ const POLYGLOT_HASHING: [u64; 781] = [
     0xF8D626AAAF278509,
 ];
 
-/// Will semi-parse the fen string without doing any checks about it's validity,
-/// and might thus panic!. Returns the polyglot hash of the position.
+/// Compute the polyglot zobrist hash of the given position.
 fn polyglot_hash(board: &Board) -> u64 {
     let mut hash = 0;
 
@@ -327,7 +326,9 @@ pub struct Book {
 // ================================ pub impl
 
 impl Book {
-    /// Tries to open a new book from a given file path.
+    /// Tries to open a new book from a given file path,
+    /// then convert the format into a more easily readable one.
+    /// Preferably done at startup.
     pub fn open(path: &Path) -> Result<Book> {
         let bytes = fs::read(path)?;
 
@@ -357,23 +358,27 @@ impl Book {
         Ok(Book {entries})
     }
 
-    /// Probes the book and returns the list of matches.
-    pub fn probe(&self, board: &Board) -> Option<&[BookEntry]> {
+    /// Probes the book and returns the list of matches, or none if there is none.
+    pub fn probe(&self, board: &Board) -> &[BookEntry] {
         let hash = polyglot_hash(board);
 
-        self.entries.binary_search_by_key(&hash, |entry| entry.key).ok().map(|idx| {
-            let mut start = idx;
+        let mut start = 0;
+        let mut end = 0;
+
+        // Get all matches.
+        if let Some(idx) = self.entries.binary_search_by_key(&hash, |entry| entry.key).ok() {
+            start = idx;
             while start != 0 && self.entries[start - 1].key == hash {
                 start -= 1;
             }
     
-            let mut end = idx;
+            end = idx;
             while end != self.entries.len() && self.entries[end].key == hash {
                 end += 1;
             }
-    
-            &self.entries[start..end]
-        })
+        }
+
+        &self.entries[start..end]
     }
 }
 
