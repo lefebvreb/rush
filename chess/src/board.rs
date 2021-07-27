@@ -992,18 +992,8 @@ impl<'a> FromStr for Board {
             }
         }
 
-        // Check that the side to move only has at most two checkers.
+        // Compute the checkers of the board.
         board.state.checkers = board.checkers();
-        if board.get_checkers().count() > 2 {
-            return Err(Error::msg("Too many checkers for the side to move."));
-        }
-        // Check that the other side's king is not in check.
-        board.state.side_to_move = board.get_other_side();
-        if board.checkers().not_empty() {
-            return Err(Error::msg("Other side's king is under check, which is illegal."));
-        }
-        board.state.side_to_move = board.get_other_side();
-
         // Compute the pinned pieces of the board.
         board.state.pinned = board.pinned();
 

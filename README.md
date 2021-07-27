@@ -5,7 +5,7 @@
 ## Overview
 
 This project is:
-+ A fast chess game featuring bitboards, pext/pdep lookup and state of the art move generation.
++ A fast chess game featuring bitboards, pext/pdep lookup and performant move generation.
 + A parallel tree search AI using the lazy-SMP algorithm and a shared hashtable.
 + A rust web server backend.
 + A lightweight web front-end, with a wasm version of the chess library.

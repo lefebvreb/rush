@@ -216,6 +216,7 @@ const POLYGLOT_HASHING: [u64; 781] = [
 ];
 
 /// Compute the polyglot zobrist hash of the given position.
+#[inline]
 fn polyglot_hash(board: &Board) -> u64 {
     let mut hash = 0;
 
@@ -329,6 +330,7 @@ impl Book {
     /// Tries to open a new book from a given file path,
     /// then convert the format into a more easily readable one.
     /// Preferably done at startup.
+    #[cold]
     pub fn open(path: &Path) -> Result<Book> {
         let bytes = fs::read(path)?;
 

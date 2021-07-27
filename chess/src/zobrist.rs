@@ -21,12 +21,10 @@ static mut CASTLING_RIGHTS: [Zobrist; 16] = [Zobrist::ZERO; 16];
 /// good enough pseudo-random numbers for initializing zobrist keys.
 #[cold]
 fn xorshift(seed: &mut u64) -> Zobrist {
-    let mut x = *seed;
-    x ^= x.wrapping_shl(13);
-    x ^= x.wrapping_shr(7);
-    x ^= x.wrapping_shl(17);
-    *seed = x;
-    Zobrist(x.wrapping_mul(0x2545F4914F6CDD1D))
+    *seed ^= seed.wrapping_shl(13);
+    *seed ^= seed.wrapping_shr(7);
+    *seed ^= seed.wrapping_shl(17);
+    Zobrist(seed.wrapping_mul(0x2545F4914F6CDD1D))
 }
 
 /// Initializes the zobrist keys at the beginning of the program.
