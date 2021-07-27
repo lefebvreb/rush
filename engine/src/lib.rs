@@ -1,5 +1,3 @@
-extern crate chess;
-
 mod params;
 mod engine;
 mod eval;

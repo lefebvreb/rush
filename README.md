@@ -54,10 +54,7 @@ Where port is the port the server will bind to. The link to the server will be p
 
 ## TODO list
 
-### Chess
-+ Make a polyglot book reader.
-
 ### Engine:
-+ Opening book.
++ Opening book integration.
 + Better evaluation.
-+ Refactor movepick.
++ Refactor movepick for quiescient search.

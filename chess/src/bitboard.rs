@@ -93,7 +93,7 @@ pub(crate) unsafe fn init() {
 
 /// Represents a 64 bits BitBoard.
 #[repr(transparent)]
-#[derive(Copy, Clone, PartialEq, Eq, Default)]
+#[derive(Copy, Clone, PartialEq, Eq, Default, Debug)]
 pub struct BitBoard(pub u64);
 
 // ================================ pub impl
@@ -297,13 +297,6 @@ impl BitBoard {
 }
 
 // ================================ traits impl
-
-impl fmt::Debug for BitBoard {
-    /// Prints the bitboard in hex form for quick debugging.
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "BitBoard(0x{:X})", self.0)
-    }
-}
 
 impl fmt::Display for BitBoard {
     /// Pretty-prints the bitboard for human eyes.

@@ -16,6 +16,9 @@ mod cuckoo;
 pub mod board;
 pub mod movegen;
 
+// Utils.
+pub mod books;
+
 pub mod prelude {
     pub use crate::board::{Board, Status}; 
     pub use crate::color::Color;

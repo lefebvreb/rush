@@ -631,70 +631,76 @@ impl Board {
         false
     }
 
-    /// Parses the move, checking the legality of the move.
-    pub fn parse_move(&self, s: &str) -> Result<Move> {
-        let mv = match s.len() {
-            4 => {
-                let from = Square::from_str(&s[0..2])?;
-                let to = Square::from_str(&s[2..4])?;
-
-                match self.get_piece(from) {
-                    Some((_, Piece::Pawn)) => {
-                        if from.x() == to.x() {
-                            if (to.y() - from.y()).abs() == 2 {
-                                Move::double_push(from, to)
-                            } else {
-                                Move::quiet(from, to)
-                            }
-                        } else if let Some((_, capture)) = self.get_piece(to) {
-                            Move::capture(from, to, capture)
-                        } else {
-                            Move::en_passant(from, to)
-                        }
-                    },
-                    Some((_, Piece::King)) => {
-                        if (to.x() - from.x()).abs() == 2 {
-                            Move::castle(from, to)
-                        } else if let Some((_, capture)) = self.get_piece(to) {
-                            Move::capture(from, to, capture)
+    /// Tries to build a move from the given parameters. Returns an error if the move is illegal.
+    pub fn make_move(&self, from: Square, to: Square, maybe_promote: Option<Piece>) -> Result<Move> {
+        let mv = if let Some(promote) = maybe_promote {
+            if let Some((_, capture)) = self.get_piece(to) {
+                Move::promote_capture(from, to, capture, promote)
+            } else {
+                Move::promote(from, to, promote)
+            }
+        } else {
+            match self.get_piece(from) {
+                Some((_, Piece::Pawn)) => {
+                    if from.x() == to.x() {
+                        if (to.y() - from.y()).abs() == 2 {
+                            Move::double_push(from, to)
                         } else {
                             Move::quiet(from, to)
                         }
-                    },
-                    _ => {
-                        if let Some((_, capture)) = self.get_piece(to) {
-                            Move::capture(from, to, capture)
-                        } else {
-                            Move::quiet(from, to)
-                        }
-                    },
-                }
-            },
-            5 => {
-                let from = Square::from_str(&s[0..2])?;
-                let to = Square::from_str(&s[2..4])?;
-
-                let promote = match s.chars().nth(4).unwrap() {
-                    'r' => Piece::Rook,
-                    'n' => Piece::Knight,
-                    'b' => Piece::Bishop,
-                    'q' => Piece::Queen,
-                    _ => return Err(Error::msg("Unrecognized promotion.")),
-                };
-    
-                if let Some((_, capture)) = self.get_piece(to) {
-                    Move::promote_capture(from, to, capture, promote)
-                } else {
-                    Move::promote(from, to, promote)
-                }
-            },
-            _ => return Err(Error::msg("A move should be encoded in pure algebraic coordinate notation.")),
+                    } else if let Some((_, capture)) = self.get_piece(to) {
+                        Move::capture(from, to, capture)
+                    } else {
+                        Move::en_passant(from, to)
+                    }
+                },
+                Some((_, Piece::King)) => {
+                    if (to.x() - from.x()).abs() == 2 {
+                        Move::castle(from, to)
+                    } else if let Some((_, capture)) = self.get_piece(to) {
+                        Move::capture(from, to, capture)
+                    } else {
+                        Move::quiet(from, to)
+                    }
+                },
+                _ => {
+                    if let Some((_, capture)) = self.get_piece(to) {
+                        Move::capture(from, to, capture)
+                    } else {
+                        Move::quiet(from, to)
+                    }
+                },
+            }
         };
 
         if self.is_pseudo_legal(mv) && self.is_legal(mv) {
             Ok(mv)
         } else {
-            Err(Error::msg("Move is illegal in this context."))
+            Err(Error::msg("Move is invalid in this context."))
+        }
+    }
+
+    /// Parses the move, checking the legality of the move.
+    pub fn parse_move(&self, s: &str) -> Result<Move> {
+        if s.len() != 4 || s.len() != 5 {
+            return Err(Error::msg("Invalid length for move literal."))
+        }
+
+        let from = Square::from_str(&s[0..2])?;
+        let to = Square::from_str(&s[2..4])?;
+
+        if s.len() == 5 {
+            let promote = match s.chars().nth(4).unwrap() {
+                'r' => Piece::Rook,
+                'n' => Piece::Knight,
+                'b' => Piece::Bishop,
+                'q' => Piece::Queen,
+                _ => return Err(Error::msg("Unrecognized promotion.")),
+            };
+
+            self.make_move(from, to, Some(promote))
+        } else {
+            self.make_move(from, to, None)
         }
     }
 
