@@ -7,6 +7,9 @@ edition = "2018"
 name = "engine-cli"
 path = "src/cli.rs"
 
+[profile.release]
+lto = true
+
 [dependencies.chess]
 path = "../chess"
 

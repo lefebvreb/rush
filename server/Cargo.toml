@@ -3,6 +3,9 @@ name = "server"
 version = "1.0.0"
 edition = "2018"
 
+[profile.release]
+lto = true
+
 [dependencies.chess]
 path = "../chess"
 
