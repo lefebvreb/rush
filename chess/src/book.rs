@@ -270,7 +270,7 @@ fn polyglot_hash(board: &Board) -> u64 {
 
 /// A struct that represents an entry of a book.
 #[derive(Debug)]
-pub struct BookEntry {
+struct BookEntry {
     key: u64,
     weight: u16,
     from: Square,
@@ -278,19 +278,12 @@ pub struct BookEntry {
     maybe_promote: Option<Piece>,
 }
 
-// ================================ pub impl
+// ================================ impl
 
 impl BookEntry {
-    /// Returns the weight associated with that entry: 
-    /// a bigger one means the move should be preferred.
-    #[inline]
-    pub fn weight(&self) -> u16 {
-        self.weight
-    }
-
     /// Returns the move associated with that entry.
     #[inline]
-    pub fn mv(&self, board: &Board) -> Result<Move> {
+    fn mv(&self, board: &Board) -> Result<Move> {
         let mut to = self.to;
 
         if matches!(self.from, Square::E1 | Square::E8) {
@@ -361,7 +354,8 @@ impl Book {
     }
 
     /// Probes the book and returns the list of matches, or none if there is none.
-    pub fn probe(&self, board: &Board) -> &[BookEntry] {
+    /// Not the most efficient method, should not be used during search for example.
+    pub fn probe(&self, board: &Board) -> Box<[(Move, u16)]> {
         let hash = polyglot_hash(board);
 
         let mut start = 0;
@@ -380,7 +374,7 @@ impl Book {
             }
         }
 
-        &self.entries[start..end]
+        (&self.entries[start..end]).iter().filter_map(|entry| entry.mv(board).ok().map(|mv| (mv, entry.weight))).collect()
     }
 }
 
@@ -411,7 +405,7 @@ mod tests {
         crate::init();
 
         for &(fen, hash) in FEN_HASHES {
-            assert_eq!(super::polyglot_hash(&Board::new(fen).unwrap()), hash, "panic at {:?}", fen);
+            assert_eq!(super::polyglot_hash(&Board::new(fen).unwrap()), hash, "mismatch on fen: {:?}", fen);
         }
     }
 }

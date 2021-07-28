@@ -127,7 +127,7 @@ impl Game {
         tokio::spawn(async move {
             // The game state itself.
             let mut game = Self {
-                engine: Engine::new(Board::new(DEFAULT_FEN).unwrap()),
+                engine: Engine::new(Board::new(DEFAULT_FEN).unwrap(), None),
                 history: History::new(),
                 tx: self_tx,
             };
@@ -165,43 +165,48 @@ impl Game {
             // Request to start the engine for a given amount of seconds.
             Command::Think(seconds) => {
                 // Starts the engine.
-                if self.engine.is_thinking() {
+                if self.engine.poll().is_thinking() {
                     return Err(Error::msg("Engine is already thinking."));
                 }
-                self.engine.start();
 
-                // Starts a task that will stop the engine later.
-                let tx = self.tx.clone();
-                tokio::spawn(async move {
-                    tokio::time::sleep(Duration::from_secs_f64(seconds)).await;
-                    tx.send(Command::Stop).ok();
-                });
+                // Start the engine.
+                if self.engine.start() {
+                    // Starts a task that will stop the engine later.
+                    let tx = self.tx.clone();
+                    tokio::spawn(async move {
+                        tokio::time::sleep(Duration::from_secs_f64(seconds)).await;
+                        tx.send(Command::Stop).ok();
+                    });
+                }
             },
             Command::ThinkDo(seconds) => {
                 // Starts the engine.
-                if self.engine.is_thinking() {
+                if self.engine.poll().is_thinking() {
                     return Err(Error::msg("Engine is already thinking."));
                 }
-                self.engine.start();
 
-                // Starts a task that will play the engine's move later the engine later.
-                let tx = self.tx.clone();
-                tokio::spawn(async move {
-                    tokio::time::sleep(Duration::from_secs_f64(seconds)).await;
-                    tx.send(Command::Do).ok();
-                });
+                // Start the engine.
+                if self.engine.start() {
+                    // Starts a task that will play the engine's move later the engine later.
+                    let tx = self.tx.clone();
+                    tokio::spawn(async move {
+                        tokio::time::sleep(Duration::from_secs_f64(seconds)).await;
+                        tx.send(Command::Do).ok();
+                    });
+                }                
             },
             // Request to stop the engine.
             Command::Stop => {
-                if !self.engine.is_thinking() {
-                    return Err(Error::msg("Engine is already stopped."));
+                if !self.engine.poll().is_thinking() {
+                    return Err(Error::msg("Engine is not thinking."));
                 }
+
                 self.engine.stop();
             },
             // Request to perform the engine's preferred move.
             Command::Do => {
                 self.engine.stop();
-                let mv = self.engine.get_best_move().ok_or(Error::msg("Engine has no preferred move."))?;
+                let mv = self.engine.poll().get_move().ok_or(Error::msg("Engine has no preferred move."))?;
                 self.engine.write_board().do_move(mv);
                 self.history.push(mv);
             },
@@ -229,9 +234,9 @@ impl Game {
             "fen": self.engine.read_board().to_string(),
             "history": Value::from(&self.history),
             "end": !matches!(self.engine.read_board().status(), Status::Playing),
-            "thinking": self.engine.is_thinking(),
-            "engineMove": self.engine.get_best_move().map_or(Value::Null, |mv| Value::from(mv.to_string())),
-            "engineDepth": self.engine.get_current_depth(),
+            "thinking": self.engine.poll().is_thinking(),
+            "engineMove": self.engine.poll().get_move().map_or(Value::Null, |mv| mv.to_string().into()),
+            "engineStatus": self.engine.poll().to_string(),
         }).to_string())
     }
 }

@@ -40,7 +40,7 @@
     // Engine state.
     let thinking = false;
     let engineMove = null;
-    let engineDepth = 0;
+    let engineStatus = 0;
 
     // For reactivity.
     $: historyText = makeHistory(history);
@@ -118,7 +118,7 @@
         end = data.end;
         thinking = data.thinking;
         engineMove = data.engineMove;
-        engineDepth = data.engineDepth;
+        engineStatus = data.engineStatus;
 
         // Reset promotions values.
         choosingPromotion = false;
@@ -177,7 +177,7 @@
             {/if}
 
             {#if engineMove}
-                <h1 id=engine transition:fade>Engine's preferred move: {engineMove}.<br>Furthest depth searched: {engineDepth}.</h1>
+                <h1 id=engine transition:fade>{engineStatus}</h1>
                 <button id=do class=glow on:click={_ => send({kind: "do"})} transition:fade>Do Engine's Move</button>
             {:else}
                 <h1 id=engine class=text transition:fade>Engine has no preferred move yet.</h1>

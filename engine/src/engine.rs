@@ -1,12 +1,14 @@
+use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::{Arc, Barrier, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
 use chess::board::Board;
+use chess::book::Book;
 use chess::moves::{AtomicMove, Move};
 
-use crate::params;
+use crate::{params, utils};
 use crate::search::Search;
 use crate::table::TranspositionTable;
 
@@ -110,6 +112,69 @@ impl GlobalInfo {
     }
 }
 
+// ================================ impl
+
+impl GlobalInfo {
+    /// Loads the best move found as of now.
+    #[inline]
+    fn get_best_move(&self) -> Option<Move> {
+        self.best_move.load()
+    }
+}
+
+//#################################################################################################
+//
+//                                       enum EngineResult
+//
+//#################################################################################################
+
+/// Represents the result of an engine think() call.
+#[derive(Debug)]
+pub enum EngineStatus {
+    /// When no call to think() was done yet.
+    Idling,
+    /// When the engine is currently thinking.
+    Thinking,
+    /// When a move was probed in a book.
+    BookMove(Move),
+    /// When the engine actually thought for an amount of time.
+    Preferred {
+        mv: Move,
+        depth: u8,
+    }
+}
+
+// ================================ pub impl
+
+impl EngineStatus {
+    /// Returns the move the engine has found, or None if it is currently thinking or has not thought yet.
+    pub fn get_move(&self) -> Option<Move> {
+        match *self {
+            EngineStatus::BookMove(mv) | EngineStatus::Preferred {mv, ..} => Some(mv),
+            _ => None,
+        }
+    }
+
+    /// Returns true if the engine is thinking.
+    pub fn is_thinking(&self) -> bool {
+        matches!(self, EngineStatus::Thinking)
+    }
+}
+
+// ================================ traits impl
+
+impl fmt::Display for EngineStatus {
+    /// Displays the result associated with this engine.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            EngineStatus::Idling => write!(f, "Engine has has no time to think yet."),
+            EngineStatus::Thinking => write!(f, "Engine is currently thinking."),
+            EngineStatus::BookMove(mv) => write!(f, "Engine has found a book move {}.", mv),
+            EngineStatus::Preferred {mv, depth} => write!(f, "Engine's preferred move is: {}.\nFurthest depth reached: {}.", mv, depth),
+        }
+    }
+}
+
 //#################################################################################################
 //
 //                                        struct Engine
@@ -121,13 +186,16 @@ impl GlobalInfo {
 pub struct Engine {
     info: Arc<GlobalInfo>,
     handles: Vec<JoinHandle<()>>,
+    book: Option<Book>,
+    status: EngineStatus,
+    seed: u32,
 }
 
 // ================================ pub impl
 
 impl Engine {
     /// Initializes a new chess engine, working on a board.
-    pub fn new(board: Board) -> Engine {
+    pub fn new(board: Board, book: Option<Book>) -> Engine {
         // Construct the initial info object.
         let info = Arc::new(GlobalInfo {
             barrier: Barrier::new(params::NUM_SEARCH_THREAD + 1),
@@ -142,12 +210,16 @@ impl Engine {
             board: RwLock::new(board),
         });
 
+        // The seed used for all pseudo-random number generation.
+        let mut seed = utils::seed();
+
         // Initializes the thread pool.
         let handles = (0..params::NUM_SEARCH_THREAD).map(|_| {
+            let thread_seed = utils::xorshift32(&mut seed).wrapping_mul(0x98FF2E9E);
             let info = info.clone();
 
             thread::spawn(move || {
-                let mut search = Search::new(info);
+                let mut search = Search::new(thread_seed, info);
                 search.thread_main();
             })
         }).collect();
@@ -155,53 +227,15 @@ impl Engine {
         Engine {
             info,
             handles,
+            book,
+            status: EngineStatus::Idling,
+            seed,
         }
-    }
-
-    /// Returns true if the engine is currently thinking.
-    pub fn is_thinking(&self) -> bool {
-        self.info.is_searching()
-    }
-
-    /// Starts the engine and begins thinking for the next best move.
-    pub fn start(&self) {
-        // If already searching, return.
-        if self.info.is_searching() {
-            return;
-        }
-
-        // Set the searching flag and wait at the barrier with 
-        // the other threads that are already waiting.
-        self.info.searching.store(true, Ordering::Release);
-        self.info.wait();
-    }
-
-    /// Stops the engine if it is searching.
-    /// Search may be resumed by calling start() again.
-    pub fn stop(&self) {
-        if !self.info.is_searching() {
-            return;
-        }
-
-        // Get more time if the engine has found nothing.
-        while self.get_best_move().is_none() {
-            thread::sleep(Duration::from_millis(50));
-        }
-
-        // Unset the searching flag and wait at the barrier for
-        // the other threads to all stop working.
-        self.info.searching.store(false, Ordering::Release);
-        self.info.wait();
     }
 
     /// Returns the current best move.
-    pub fn get_best_move(&self) -> Option<Move> {
-        self.info.best_move.load()
-    }
-
-    /// Returns the current best depth searched.
-    pub fn get_current_depth(&self) -> u8 {
-        self.info.search_depth()
+    pub fn poll(&self) -> &EngineStatus {
+        &self.status
     }
 
     /// Returns a read lock to the board.
@@ -209,16 +243,114 @@ impl Engine {
         self.info.board.read().unwrap()
     }
 
+    /// Starts the engine and begins thinking for the next best move.
+    /// May return false, meaning the engine is already thinking, or
+    /// it has found a book move. In either case, the engine must be
+    /// polled to get it's status.
+    /// May return true, meaning the engine has started thinking and
+    /// will need to be stopped and polled whenever we want some results.
+    pub fn start(&mut self) -> bool {
+        // If already searching, return.
+        if self.info.is_searching() {
+            return false;
+        }
+
+        // If a match is found in a book, return it.
+        if let Some(mv) = self.lookup() {
+            self.status = EngineStatus::BookMove(mv);
+            return false;
+        }
+
+        // Set the engine as thinking.
+        self.status = EngineStatus::Thinking;
+
+        // Set the searching flag and wait at the barrier with 
+        // the other threads that are already waiting.
+        self.info.searching.store(true, Ordering::Release);
+        self.info.wait();
+
+        return true;
+    }
+
+    /// Stops the engine if it is searching.
+    /// Search may be resumed by calling start() again.
+    pub fn stop(&mut self) {
+        if !self.info.is_searching() {
+            return;
+        }
+
+        // Get more time if the engine has found nothing.
+        while self.info.get_best_move().is_none() {
+            thread::sleep(Duration::from_millis(50));
+        }
+
+        // Unset the searching flag and wait at the barrier for
+        // the other threads to all stop working.
+        self.info.searching.store(false, Ordering::Release);
+        self.info.wait();
+
+        self.status = EngineStatus::Preferred {
+            mv: self.info.get_best_move().unwrap(),
+            depth: self.info.search_depth(),
+        };
+    }
+
     /// Stops the search if it is on and resets the search informations.
     /// Then returns a write lock to the board.
-    pub fn write_board(&self) -> RwLockWriteGuard<'_, Board> {
-        self.stop();
+    pub fn write_board(&mut self) -> RwLockWriteGuard<'_, Board> {
+        // Stop if thinking.
+        if self.info.is_searching() {
+            self.info.searching.store(false, Ordering::Release);
+            self.info.wait();
+        }
+
+        // Sets the engine as idling.
+        self.status = EngineStatus::Idling;
 
         self.info.search_depth.store(0, Ordering::Release);
         self.info.search_id.store(0, Ordering::Release);
         self.info.best_move.reset();
 
         self.info.board.write().unwrap()
+    }
+}
+
+// ================================ impl
+
+impl Engine {
+    /// Stops the search if it is on.
+    /// Probes the book to see if any move may be applied in this situation.
+    fn lookup(&mut self) -> Option<Move> {
+        if let Some(book) = &self.book {
+            let results = book.probe(&self.info.board.read().unwrap());
+        
+            match results.len() {
+                0 => None,
+                1 => {
+                    let (mv, _) = results[0];
+                    Some(mv)
+                },
+                _ => {
+                    let total_weight: u32 = results.iter().map(|&(_, weight)| u32::from(weight)).sum();
+                    let rand = utils::xorshift32(&mut self.seed) % total_weight;
+
+                    let mut sum = 0;
+                    for &(mv, weight) in results.iter() {
+                        let next_sum = sum + u32::from(weight);
+
+                        if (sum..next_sum).contains(&rand) {
+                            return Some(mv);
+                        }
+
+                        sum = next_sum;
+                    }
+
+                    unreachable!()
+                },
+            }
+        } else {
+            None
+        }        
     }
 }
 

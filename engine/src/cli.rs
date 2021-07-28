@@ -1,9 +1,11 @@
+use std::path::Path;
 use std::time::Duration;
 use std::{io, thread};
 use std::io::Write;
 use std::str::FromStr;
 
 use anyhow::{Error, Result};
+use chess::book::Book;
 use clap::{App, Arg};
 
 use chess::prelude::*;
@@ -80,11 +82,7 @@ impl State {
     /// Print what the engine think is best.
     fn print_engine(&self) {
         if self.engine.read_board().status().is_playing() {
-            if let Some(mv) = self.engine.get_best_move() {
-                println!("Engine's preferred move: {}.\nFurthest depth searched: {}.", mv, self.engine.get_current_depth());
-            } else {
-                println!("Engine hasn't had time to think yet.")
-            }
+            println!("{}", self.engine.poll());
         }
     }
 
@@ -109,9 +107,10 @@ impl State {
 
     /// Makes the engine think for duration seconds.
     fn think_for(&mut self, duration: Duration) {
-        self.engine.start();
-        thread::sleep(duration);
-        self.engine.stop();
+        if self.engine.start() {
+            thread::sleep(duration);
+            self.engine.stop();
+        }
     }
 
     /// Plays the given move.
@@ -170,7 +169,7 @@ impl State {
 
     /// Performs the engine's preferred move.
     fn do_engine(&mut self) -> Result<()> {
-        let mv = self.engine.get_best_move().ok_or(Error::msg("Engine has no move to play yet. Let it \"think\"."))?;
+        let mv = self.engine.poll().get_move().ok_or(Error::msg("Engine has no move to play yet. Let it \"think\"."))?;
         self.play_move(mv);
 
         Ok(())
@@ -185,7 +184,7 @@ impl State {
         while !self.print_board() {
             // Get the engine's preferred move.
             self.think_for(duration);
-            let mv = self.engine.get_best_move().expect("Engine found nothing");
+            let mv = self.engine.poll().get_move().expect("Engine found nothing");
             
             // Play the move.
             self.play_move(mv);
@@ -224,17 +223,30 @@ fn main() -> Result<()> {
             .long("fen")
             .value_name("FEN")
             .default_value(DEFAULT_FEN)
-            .help("Sets the fen string to use as the starting position, the default position is used if no fen string is provided. Use double quotes.")
+            .help("Sets the fen string to use as the starting position, use double quotes to give everything in a single argument.")
+            .takes_value(true))
+        .arg(Arg::with_name("book")
+            .short("b")
+            .long("book")
+            .value_name("BOOK")
+            .help("Gives the path to a polyglot book (.bin), that the engine will use whenever it can.")
             .takes_value(true))
         .get_matches();
 
     // The fen string used for the position.
     let default_fen = args.value_of("fen").unwrap();
 
+    // The book that may be used to lookup moves.
+    let book = if let Some(book_path) = args.value_of("book") {
+        Some(Book::open(Path::new(book_path))?)
+    } else {
+        None
+    };
+
     // Construct the state.
     let mut state = State {
         // Parse fen and create board, then engine.
-        engine: Engine::new(Board::from_str(default_fen)?),
+        engine: Engine::new(Board::from_str(default_fen)?, book),
         buffer: String::new(),
         history: Vec::new(),
     };

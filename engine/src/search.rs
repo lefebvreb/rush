@@ -27,14 +27,14 @@ pub(crate) struct Search {
 
 impl Search {
     /// Creates a new search struct, ready to bes used for searching the game tree.
-    pub(crate) fn new(info: Arc<GlobalInfo>) -> Search {
+    pub(crate) fn new(seed: u32, info: Arc<GlobalInfo>) -> Search {
         Search {
             info,
             best_move: None,
             depth: 0,
             board: Board::default(),
             buffer: Vec::new(),
-            seed: 0,
+            seed,
             heuristics: Heuristics::new(),
         }
     }

@@ -17,7 +17,7 @@ pub mod board;
 pub mod movegen;
 
 // Utils.
-pub mod books;
+pub mod book;
 
 pub mod prelude {
     pub use crate::board::{Board, Status}; 

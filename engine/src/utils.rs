@@ -1,8 +1,16 @@
+use std::time::SystemTime;
+
 use chess::bitboard::BitBoard;
 use chess::board::Board;
 use chess::color::Color;
 use chess::piece::Piece;
 use chess::square::Square;
+
+/// Returns a random seed based on the current time.
+#[inline]
+pub(crate) fn seed() -> u32 {
+    (SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).expect("Cannot get system time.").as_nanos() & 0xFFFFFFFF) as u32
+}
 
 /// The xorshift32 algorithm, producing 32 bits non-crypographic numbers.
 #[inline]
