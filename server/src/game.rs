@@ -1,17 +1,15 @@
 use std::time::Duration;
 
 use anyhow::{Error, Result};
-use engine::Engine;
+use log;
 use serde_json::Value;
 use tokio::sync::mpsc::{self, UnboundedSender};
 use warp::ws::Message;
 
 use chess::prelude::*;
+use engine::Engine;
 
 use crate::messages::{Command, Response};
-
-/// The fen used for the default position.
-const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 //#################################################################################################
 //
@@ -118,7 +116,7 @@ impl Game {
     /// Returns a channel used to pass messages to the game state.
     /// Takes a channel in argument, used by the game state to respond
     /// to incoming messages.
-    pub fn new(tx: UnboundedSender<Result<Response>>) -> UnboundedSender<Command> {
+    pub fn new(engine: Engine, tx: UnboundedSender<Result<Response>>) -> UnboundedSender<Command> {
         // Creates the communication channels used to send messages to the game state.
         let (game_tx, mut game_rx) = mpsc::unbounded_channel();
         let self_tx = game_tx.clone();
@@ -127,7 +125,7 @@ impl Game {
         tokio::spawn(async move {
             // The game state itself.
             let mut game = Self {
-                engine: Engine::new(Board::new(DEFAULT_FEN).unwrap(), None),
+                engine,
                 history: History::new(),
                 tx: self_tx,
             };
@@ -136,7 +134,7 @@ impl Game {
             // through the given tx channel.
             while let Some(command) = game_rx.recv().await {
                 if let Err(e) = tx.send(game.react(command)) {
-                    eprintln!("{}", e);
+                    log::error!("Game could not respond to engine: {}", e);
                     break;
                 }
             }
@@ -193,7 +191,10 @@ impl Game {
                         tokio::time::sleep(Duration::from_secs_f64(seconds)).await;
                         tx.send(Command::Do).ok();
                     });
-                }                
+                } else {
+                    self.tx.send(Command::Do).ok();
+                    return Ok(Response::None)
+                }
             },
             // Request to stop the engine.
             Command::Stop => {

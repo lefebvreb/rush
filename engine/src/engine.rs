@@ -167,10 +167,10 @@ impl fmt::Display for EngineStatus {
     /// Displays the result associated with this engine.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            EngineStatus::Idling => write!(f, "Engine has has no time to think yet."),
-            EngineStatus::Thinking => write!(f, "Engine is currently thinking."),
-            EngineStatus::BookMove(mv) => write!(f, "Engine has found a book move {}.", mv),
-            EngineStatus::Preferred {mv, depth} => write!(f, "Engine's preferred move is: {}.\nFurthest depth reached: {}.", mv, depth),
+            EngineStatus::Idling => write!(f, "Engine has had no time to think yet."),
+            EngineStatus::Thinking => write!(f, "Engine is currently thinking..."),
+            EngineStatus::BookMove(mv) => write!(f, "Engine has found a book move, {}.", mv),
+            EngineStatus::Preferred {mv, depth} => write!(f, "Engine's preferred move is {}.\nFurthest depth reached: {}.", mv, depth),
         }
     }
 }

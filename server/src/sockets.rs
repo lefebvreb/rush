@@ -9,6 +9,8 @@ use tokio::sync::{RwLock, mpsc};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::Message;
 
+use engine::Engine;
+
 use crate::game::Game;
 use crate::messages::{Command, Response};
 
@@ -33,10 +35,10 @@ pub struct Sockets {
 
 impl Sockets {
     /// Creates a new Socket object, managing all connections.
-    pub fn new() -> Arc<Self> {
+    pub fn new(engine: Engine) -> Arc<Self> {
         // Create channels to communicate with the game state.
         let (tx, mut game_rx) = mpsc::unbounded_channel();
-        let game_tx = Game::new(tx);
+        let game_tx = Game::new(engine, tx);
 
         // Construct the state object.
         let state = Arc::new(Self {
@@ -57,7 +59,8 @@ impl Sockets {
                 match res {
                     Ok(Response::Broadcast(msg)) => state.broadcast(msg).await,
                     Ok(Response::Send{dest, msg}) => state.send(dest, msg).await,
-                    _ => (), // Invalid action in context, simply ignore.
+                    Ok(Response::None) => (),
+                    Err(e) => log::debug!("Wrong command in context: {}", e),
                 }
             }
         });
@@ -84,7 +87,7 @@ impl Sockets {
             let mpsc_rx = UnboundedReceiverStream::new(mpsc_rx);
             tokio::spawn(mpsc_rx.forward(tx).map(|res| {
                 if let Err(e) = res {
-                    eprintln!("WebSocket send error: {}", e);
+                    log::warn!("WebSocket send error: {}", e);
                 }
             }));
         }
@@ -104,12 +107,12 @@ impl Sockets {
 
                     // If the message was incorrect, print the error to the terminal.
                     if let Err(e) = self.on_message(msg) {
-                        eprintln!("Erroneous order: {}", e);
+                        log::warn!("Erroneous order: {}", e);
                     }
                 },
                 // On error, prints it and breaks out of the event loop.
                 Err(e) => {
-                    eprintln!("WebSocket receive error: {}", e);
+                    log::warn!("WebSocket receive error: {}", e);
                     break;
                 },
             }

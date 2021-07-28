@@ -68,6 +68,7 @@ impl Command {
 /// An enum representing the possible responses of the game state.
 #[derive(Debug)]
 pub enum Response {
+    None,
     Broadcast(Message),
     Send {
         dest: usize,

@@ -7,9 +7,6 @@ edition = "2018"
 name = "perft"
 path = "src/perft.rs"
 
-[profile.release]
-lto = true
-
 [dependencies]
 anyhow = "1.0.42"
 clap = "2.33.3"

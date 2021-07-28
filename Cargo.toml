@@ -11,5 +11,8 @@ default-members = [
 	"server",
 ]
 
+[profile.release]
+lto = true
+
 [profile.test]
 opt-level = 3
