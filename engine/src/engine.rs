@@ -170,7 +170,7 @@ impl fmt::Display for EngineStatus {
             EngineStatus::Idling => write!(f, "Engine has had no time to think yet."),
             EngineStatus::Thinking => write!(f, "Engine is currently thinking..."),
             EngineStatus::BookMove(mv) => write!(f, "Engine has found a book move, {}.", mv),
-            EngineStatus::Preferred {mv, depth} => write!(f, "Engine's preferred move is {}.\nFurthest depth reached: {}.", mv, depth),
+            EngineStatus::Preferred {mv, depth} => write!(f, "Engine's preferred move is {}, found after searching up to depth: {}.", mv, depth),
         }
     }
 }

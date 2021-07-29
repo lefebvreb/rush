@@ -5,6 +5,8 @@ use std::sync::Arc;
 
 use anyhow::{Error, Result};
 use clap::{Arg, App};
+use log::LevelFilter;
+use simple_logger::SimpleLogger;
 use warp::Filter;
 
 use chess::board::Board;
@@ -37,19 +39,36 @@ async fn main() -> Result<()> {
             .help("Sets the address to bind the http server to, uses localhost by default.")
             .takes_value(true))
         .arg(Arg::with_name("fen")
-            .short("f")
             .long("fen")
             .value_name("FEN")
             .default_value(DEFAULT_FEN)
             .help("Sets the fen string to use as the starting position, use double quotes to give everything in a single argument.")
             .takes_value(true))
         .arg(Arg::with_name("book")
-            .short("b")
             .long("book")
             .value_name("BOOK")
             .help("Gives the path to a polyglot book (.bin), that the engine will use whenever it can.")
             .takes_value(true))
+        .arg(Arg::with_name("log_level")
+            .long("log_level")
+            .value_name("LOG_LEVEL")
+            .help("Sets the logging level of the server.")
+            .possible_values(&["off", "error", "warn", "info", "debug"])
+            .default_value("error"))
         .get_matches();
+
+    { // Setups the logger.
+        let log_level = match args.value_of("log_level").unwrap() {
+            "off" => LevelFilter::Off,
+            "error" => LevelFilter::Error,
+            "warn" => LevelFilter::Warn,
+            "info" => LevelFilter::Info,
+            "debug" => LevelFilter::Debug,
+            _ => unreachable!()
+        };
+    
+        SimpleLogger::new().with_level(log_level).init().unwrap();
+    }
 
     // Parses the socket address.
     let addr_str = args.value_of("address").unwrap();
@@ -58,18 +77,18 @@ async fn main() -> Result<()> {
         Err(_) => return Err(Error::msg(format!("Failed to parse address: {}.", addr_str))),
     };
 
-    // The book that may be used to lookup moves.
-    let book = if let Some(book_path) = args.value_of("book") {
-        Some(Book::open(Path::new(book_path))?)
-    } else {
-        None
-    };
-
-    // Initializes the chess library.
-    chess::init();
-
     // Creates our state object and converts it into a warp filter.
     let sockets = {
+        // The book that may be used to lookup moves.
+        let book = if let Some(book_path) = args.value_of("book") {
+            Some(Book::open(Path::new(book_path))?)
+        } else {
+            None
+        };
+
+        // Initializes the chess library.
+        chess::init();
+
         let board = Board::new(args.value_of("fen").unwrap())?;
         let engine = Engine::new(board, book);
 
@@ -98,7 +117,7 @@ async fn main() -> Result<()> {
     };
 
     // Launches the server, printing the used port.
-    log::info!("Launching server @ http://{}", addr_str);
+    println!("Launching server @ http://{}", addr_str);
     warp::serve(routes)
         .run(addr)
         .await;

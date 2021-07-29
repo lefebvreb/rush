@@ -3,12 +3,9 @@ members = [
 	"chess",
 	"engine",
 	"server",
-	"www/src/chess-wasm",
 ]
-default-members = [
-	"chess",
-	"engine",
-	"server",
+exclude = [
+	"www/src/chess-wasm",
 ]
 
 [profile.release]

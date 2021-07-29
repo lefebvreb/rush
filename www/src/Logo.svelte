@@ -10,7 +10,7 @@
         width: 30vmin;
         animation: change-color 5s infinite linear, rotation 40s infinite linear, move-x 12.43s infinite linear alternate, move-y 7s infinite linear alternate;
     }
-
+ 
     @keyframes rotation {
         from {transform: rotate(0deg);}
         to {transform: rotate(359deg);}

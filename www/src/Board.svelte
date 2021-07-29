@@ -226,12 +226,12 @@
 
     #history {
         grid-column: 1 / 3;
-        grid-row: 3;
+        grid-row: 2;
     }
-
+ 
     #history-text {
         grid-column: 1 / 3;
-        grid-row: 4 / 8;
+        grid-row: 3 / 8;
     }
 
     #undo {

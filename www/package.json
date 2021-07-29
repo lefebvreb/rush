@@ -1,9 +1,8 @@
 {
-    "name": "blefebvre.xyz",
+    "name": "chess-engine-client",
     "version": "1.0.0",
     "private": true,
     "scripts": {
-        "dev": "rollup -c -w",
         "build": "npm run clean && rollup -c",
         "clean": "rm -rf public/build/*"
     },
