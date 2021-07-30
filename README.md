@@ -66,10 +66,6 @@ Yes, it takes forever to compile.
 
 ## TODO list
 
-### Chess
-+ Make book reading lazy (later).
-
 ### Engine
-+ Incremental evaluation.
-+ Better evaluation.
++ NNUE eval.
 + Profiling.

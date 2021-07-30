@@ -58,7 +58,7 @@ impl Sockets {
             while let Some(res) = game_rx.recv().await {
                 match res {
                     Ok(Response::Broadcast(msg)) => state.broadcast(msg).await,
-                    Ok(Response::Send{dest, msg}) => state.send(dest, msg).await,
+                    Ok(Response::Send {dest, msg}) => state.send(dest, msg).await,
                     Ok(Response::None) => (),
                     Err(e) => log::debug!("Wrong command in context: {}", e),
                 }

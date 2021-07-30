@@ -15,11 +15,13 @@ use crate::table::{TableEntry, TableEntryFlag};
 #[derive(Debug)]
 pub(crate) struct Search {
     board: Board,
-    depth: u8,
     heuristics: Heuristics,
-    info: Arc<GlobalInfo>,
-    best_move: Option<Move>,
+
     buffer: Vec<RatedMove>,
+    best_move: Option<Move>,
+    
+    info: Arc<GlobalInfo>,
+    depth: u8,
     seed: u32,
 }
 
@@ -29,13 +31,15 @@ impl Search {
     /// Creates a new search struct, ready to bes used for searching the game tree.
     pub(crate) fn new(seed: u32, info: Arc<GlobalInfo>) -> Search {
         Search {
-            info,
-            best_move: None,
-            depth: 0,
             board: Board::default(),
+            heuristics: Heuristics::default(),
+
             buffer: Vec::new(),
+            best_move: None,
+            
+            info,
+            depth: 0,
             seed,
-            heuristics: Heuristics::new(),
         }
     }
 
@@ -63,12 +67,6 @@ impl Search {
 // ================================ impl
 
 impl Search {
-    /// Resest internal state that must be between searches, when the root's ply changes.
-    #[inline]
-    fn reset(&mut self) {
-        self.best_move = None;
-        self.heuristics = Heuristics::new();
-    }
 
     /// Search the position until told to stop.
     fn search_position(&mut self) {
@@ -79,7 +77,9 @@ impl Search {
             let ply = self.board.get_ply();
             self.board = self.info.board();
             if self.board.get_ply() != ply {
-                self.reset();
+                // Reset the state
+                self.best_move = None;
+                self.heuristics = Heuristics::default();
             }
         }
         

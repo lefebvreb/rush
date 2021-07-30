@@ -875,7 +875,7 @@ impl Default for Board {
     /// Returns an empty board.
     fn default() -> Board {
         Board {
-            ply: 0,
+            ply: u16::MAX,
 
             bitboards: Default::default(),
             mailbox: [None; 64],

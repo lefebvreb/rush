@@ -15,14 +15,6 @@ pub(crate) struct Heuristics {
 // ================================ pub(crate) impl
 
 impl Heuristics {
-    /// Constructs a new Heuristics object.
-    pub(crate) fn new() -> Heuristics {
-        Heuristics {
-            killers: [[None; 2]; MAX_DEPTH],
-            history: [[0.0; 64]; 64],
-        }
-    }
-
     #[inline]
     /// Store a new killer move, replacing the oldest one.
     pub(crate) fn store_killer(&mut self, mv: Move, depth: u8) {
@@ -50,5 +42,17 @@ impl Heuristics {
         };
 
         RatedMove {mv, score}
+    }
+}
+
+// ================================ traits impl
+
+impl Default for Heuristics {
+    /// Constructs a new Heuristics object.
+    fn default() -> Heuristics {
+        Heuristics {
+            killers: [[None; 2]; MAX_DEPTH],
+            history: [[0.0; 64]; 64],
+        }
     }
 }

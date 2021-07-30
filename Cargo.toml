@@ -1,11 +1,11 @@
 [workspace]
 members = [
-	"chess",
-	"engine",
-	"server",
+    "chess",
+    "engine",
+    "server",
 ]
 exclude = [
-	"www/src/chess-wasm",
+    "www/src/chess-wasm",
 ]
 
 [profile.release]
