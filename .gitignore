@@ -2,6 +2,12 @@
 target
 Cargo.lock
 
+# NNUE files.
+nnue/data/*
+!nnue/data/.keep
+nnue/out/*
+!nnue/out/.keep
+
 # JS files.
 node_modules
 package-lock.json
