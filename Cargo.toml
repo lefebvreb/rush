@@ -2,8 +2,6 @@
 members = [
     "chess",
     "engine",
-    "nnue/nnue-eval",
-    "nnue/trainer",
     "server",
 ]
 exclude = [
