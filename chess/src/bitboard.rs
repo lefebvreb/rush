@@ -94,7 +94,7 @@ pub(crate) unsafe fn init() {
 /// Represents a 64 bits BitBoard.
 #[repr(transparent)]
 #[derive(Copy, Clone, PartialEq, Eq, Default, Debug)]
-pub struct BitBoard(pub u64);
+pub struct BitBoard(pub(crate) u64);
 
 // ================================ pub impl
 

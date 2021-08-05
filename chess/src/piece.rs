@@ -10,7 +10,7 @@ use crate::color::Color;
 
 /// Represents a piece.
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub enum Piece {
     Pawn = 0,
     Knight = 1,

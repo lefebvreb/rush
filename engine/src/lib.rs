@@ -1,4 +1,4 @@
-#![allow(dead_code, unused_variables)]
+#![allow(unused)]
 
 mod params;
 mod engine;

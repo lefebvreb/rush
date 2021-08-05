@@ -5,8 +5,8 @@ Cargo.lock
 # NNUE files.
 nnue/data/*
 !nnue/data/.keep
-nnue/out/*
-!nnue/out/.keep
+nnue/nets/*
+!nnue/nets/.keep
 
 # JS files.
 node_modules
@@ -18,3 +18,4 @@ www/public/build
 log.txt
 perf.data*
 docs
+nnue/trainer/pgn
