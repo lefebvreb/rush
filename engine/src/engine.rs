@@ -1,13 +1,17 @@
 use std::fmt;
+use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::{Arc, Barrier, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
+use anyhow::{Error, Result};
+
 use chess::board::Board;
 use chess::book::Book;
 use chess::moves::{AtomicMove, Move};
 
+use crate::eval::Net;
 use crate::{params, utils};
 use crate::search::Search;
 use crate::table::TranspositionTable;
@@ -195,7 +199,17 @@ pub struct Engine {
 
 impl Engine {
     /// Initializes a new chess engine, working on a board.
-    pub fn new(board: Board, book: Option<Book>) -> Engine {
+    pub fn new(board: Board, book_path: Option<&str>, net_path: &str) -> Result<Engine> {
+        // The book that may be used to lookup moves.
+        let book = if let Some(book_path) = book_path {
+            Some(Book::open(Path::new(book_path))?)
+        } else {
+            None
+        };
+
+        // The neural network used for evaluation.
+        let net = Arc::new(Net::load(Path::new(net_path))?);
+
         // Construct the initial info object.
         let info = Arc::new(GlobalInfo {
             barrier: Barrier::new(params::NUM_SEARCH_THREAD + 1),
@@ -217,20 +231,21 @@ impl Engine {
         let handles = (0..params::NUM_SEARCH_THREAD).map(|_| {
             let thread_seed = utils::xorshift32(&mut seed).wrapping_mul(0x98FF2E9E);
             let info = info.clone();
+            let net = net.clone();
 
             thread::spawn(move || {
-                let mut search = Search::new(thread_seed, info);
+                let mut search = Search::new(thread_seed, info, net);
                 search.thread_main();
             })
         }).collect();
 
-        Engine {
+        Ok(Engine {
             info,
             handles,
             book,
             status: EngineStatus::Idling,
             seed,
-        }
+        })
     }
 
     /// Returns the current best move.

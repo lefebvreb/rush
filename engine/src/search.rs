@@ -5,6 +5,7 @@ use chess::moves::Move;
 use chess::piece::Piece;
 
 use crate::engine::GlobalInfo;
+use crate::eval::{Eval, Net};
 use crate::heuristics::Heuristics;
 use crate::{eval, utils};
 use crate::movepick::{Captures, MovePicker, RatedMove};
@@ -16,6 +17,7 @@ use crate::table::{TableEntry, TableEntryFlag};
 pub(crate) struct Search {
     board: Board,
     heuristics: Heuristics,
+    eval: Eval,
 
     buffer: Vec<RatedMove>,
     best_move: Option<Move>,
@@ -29,10 +31,11 @@ pub(crate) struct Search {
 
 impl Search {
     /// Creates a new search struct, ready to bes used for searching the game tree.
-    pub(crate) fn new(seed: u32, info: Arc<GlobalInfo>) -> Search {
+    pub(crate) fn new(seed: u32, info: Arc<GlobalInfo>, net: Arc<Net>) -> Search {
         Search {
             board: Board::default(),
             heuristics: Heuristics::default(),
+            eval: Eval::new(net),
 
             buffer: Vec::new(),
             best_move: None,
@@ -61,12 +64,31 @@ impl Search {
             self.info.wait();
         }
     }
-
 }
 
 // ================================ impl
 
 impl Search {
+    /// Resets what needs to be after a new position is encountered.
+    fn reset(&mut self) {
+        self.best_move = None;
+        self.heuristics = Heuristics::default();
+        self.eval.reset(&self.board);
+    }
+
+    /// Does the legal move.
+    fn do_move(&mut self, mv: Move) {
+        self.depth += 1;
+        self.eval.do_move(&self.board, mv);
+        self.board.do_move(mv);
+    }
+
+    /// Undoes the legal move.
+    fn undo_move(&mut self, mv: Move) {
+        self.eval.undo_move(&self.board, mv);
+        self.board.undo_move(mv);
+        self.depth -= 1;
+    }
 
     /// Search the position until told to stop.
     fn search_position(&mut self) {
@@ -77,9 +99,7 @@ impl Search {
             let ply = self.board.get_ply();
             self.board = self.info.board();
             if self.board.get_ply() != ply {
-                // Reset the state
-                self.best_move = None;
-                self.heuristics = Heuristics::default();
+                self.reset();
             }
         }
         
@@ -138,7 +158,7 @@ impl Search {
         }
         
         if self.depth == params::MAX_DEPTH as u8 {
-            return eval::eval(&self.board);
+            return self.eval.get();
         }
         
         if let Some((mv, score)) = self.info.get_table().probe(self.board.get_zobrist(), alpha, beta, depth) {
@@ -179,11 +199,9 @@ impl Search {
                 continue;
             }
 
-            self.depth += 1;
-            self.board.do_move(mv);
+            self.do_move(mv);
             let score = -self.alpha_beta(-beta, -alpha, do_null, depth-1, search_depth);
-            self.board.undo_move(mv);
-            self.depth -= 1;
+            self.undo_move(mv);
 
             if self.info.search_depth() >= search_depth || !self.info.is_searching() {
                 picker.truncate(&mut self.buffer);
@@ -267,7 +285,7 @@ impl Search {
             }
         }
         
-        let stand_pat = eval::eval(&self.board);
+        let stand_pat = self.eval.get();
     
         if self.depth == params::MAX_DEPTH as u8 {
             return stand_pat;
@@ -295,11 +313,9 @@ impl Search {
                 continue;
             }
     
-            self.depth += 1;
-            self.board.do_move(mv);
+            self.do_move(mv);
             let score = -self.quiescence(-beta, -alpha);
-            self.board.undo_move(mv);
-            self.depth -= 1;
+            self.undo_move(mv);
     
             if !self.info.is_searching() {
                 captures.truncate(&mut self.buffer);

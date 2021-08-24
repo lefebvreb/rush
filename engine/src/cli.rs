@@ -1,11 +1,9 @@
-use std::path::Path;
 use std::time::Duration;
 use std::{io, thread};
 use std::io::Write;
 use std::str::FromStr;
 
 use anyhow::{Error, Result};
-use chess::book::Book;
 use clap::{App, Arg};
 
 use chess::prelude::*;
@@ -218,6 +216,11 @@ fn main() -> Result<()> {
         .version(engine::VERSION)
         .author("Benjamin Lefebvre")
         .about("A command line interface for playing the Rush chess engine in the terminal.")
+        .arg(Arg::with_name("net")
+            .index(1)
+            .value_name("NET")
+            .help("The path to the network file to use for evaluation.")
+            .required(true))
         .arg(Arg::with_name("fen")
             .short("f")
             .long("fen")
@@ -237,16 +240,15 @@ fn main() -> Result<()> {
     let default_fen = args.value_of("fen").unwrap();
 
     // The book that may be used to lookup moves.
-    let book = if let Some(book_path) = args.value_of("book") {
-        Some(Book::open(Path::new(book_path))?)
-    } else {
-        None
-    };
+    let book_path = args.value_of("book");
+
+    // The neural network used for evaluation.
+    let net_path = args.value_of("net").unwrap();
 
     // Construct the state.
     let mut state = State {
         // Parse fen and create board, then engine.
-        engine: Engine::new(Board::from_str(default_fen)?, book),
+        engine: Engine::new(Board::from_str(default_fen)?, book_path, net_path)?,
         buffer: String::new(),
         history: Vec::new(),
     };

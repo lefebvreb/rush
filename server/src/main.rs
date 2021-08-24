@@ -1,5 +1,4 @@
 use std::net::SocketAddr;
-use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -10,7 +9,6 @@ use simple_logger::SimpleLogger;
 use warp::Filter;
 
 use chess::board::Board;
-use chess::book::Book;
 use engine::Engine;
 
 mod game;
@@ -38,6 +36,11 @@ async fn main() -> Result<()> {
             .default_value(DEFAULT_ADDRESS)
             .help("Sets the address to bind the http server to, uses localhost by default.")
             .takes_value(true))
+        .arg(Arg::with_name("net")
+            .index(2)
+            .value_name("NET")
+            .help("The path to the network file used for evaluation.")
+            .required(true))
         .arg(Arg::with_name("fen")
             .long("fen")
             .value_name("FEN")
@@ -80,17 +83,16 @@ async fn main() -> Result<()> {
     // Creates our state object and converts it into a warp filter.
     let sockets = {
         // The book that may be used to lookup moves.
-        let book = if let Some(book_path) = args.value_of("book") {
-            Some(Book::open(Path::new(book_path))?)
-        } else {
-            None
-        };
+        let book_path = args.value_of("book");
+
+        // The neural network used for evaluation.
+        let net_path = args.value_of("net").unwrap();
 
         // Initializes the chess library.
         chess::init();
 
         let board = Board::new(args.value_of("fen").unwrap())?;
-        let engine = Engine::new(board, book);
+        let engine = Engine::new(board, book_path, net_path)?;
 
         let sockets = Sockets::new(engine);
         warp::any().map(move || sockets.clone())
