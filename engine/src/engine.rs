@@ -208,7 +208,7 @@ impl Engine {
         };
 
         // The neural network used for evaluation.
-        let net = Arc::new(Net::load(Path::new(net_path))?);
+        let net = Net::load(Path::new(net_path))?;
 
         // Construct the initial info object.
         let info = Arc::new(GlobalInfo {

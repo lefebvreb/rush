@@ -1,3 +1,4 @@
+use std::alloc::{self, Layout};
 use std::fs::File;
 use std::io::Read;
 use std::mem;
@@ -51,40 +52,45 @@ pub(crate) struct Net {
 
 impl Net {
     /// Loads a neural network from a file located at the given path.
-    pub(crate) fn load(path: &Path) -> Result<Net> {
+    pub(crate) fn load(path: &Path) -> Result<Arc<Net>> {
         let mut file = File::open(path).map_err(|_| Error::msg("Cannot open network file."))?;
 
-        fn read_f32(file: &mut File) -> Result<f32> {
+        fn read_f32(file: &mut File, x: &mut f32) -> Result<()> {
             let mut buf = [0; 4];
             file.read(&mut buf).map_err(|_| Error::msg("Not enough bytes in network file."))?;
-            Ok(f32::from_be_bytes(buf))
+            *x = f32::from_be_bytes(buf);
+            Ok(())
         }
 
-        fn read_vec<const N: usize>(file: &mut File) -> Result<[f32; N]> {
-            let mut res = [0.0; N];
+        fn read_vec<const N: usize>(file: &mut File, vec: &mut [f32; N]) -> Result<()> {
             for i in 0..N {
-                res[i] = read_f32(file)?;
+                read_f32(file, &mut vec[i])?;
             }
-            Ok(res)
+            Ok(())
         }
 
-        fn read_mat<const N: usize, const M: usize>(file: &mut File) -> Result<[[f32; M]; N]> {
-            let mut res = [[0.0; M]; N];
+        fn read_mat<const N: usize, const M: usize>(file: &mut File, mat: &mut [[f32; M]; N]) -> Result<()> {
             for i in 0..N {
-                res[i] = read_vec(file)?;
+                read_vec(file, &mut mat[i])?;
             }
-            Ok(res)
+            Ok(())
         }
 
-        Ok(Net {
-            w0: read_mat(&mut file)?,
-            b0: read_vec(&mut file)?,
-            w1: read_mat(&mut file)?,
-            b1: read_vec(&mut file)?,
-            w2: read_mat(&mut file)?,
-            b2: read_vec(&mut file)?,
-            w3: read_vec(&mut file)?,
-            b3: read_f32(&mut file)?,
+        // Done with manual allocation so as not to overflow the stack with the Net struct.
+        // SAFE: Arc is specified to accept pointers allocated with std::alloc::alloc()
+        Ok(unsafe {
+            let ptr = alloc::alloc(Layout::new::<Net>()) as *mut Net;
+
+            read_mat(&mut file, &mut (*ptr).w0)?;
+            read_vec(&mut file, &mut (*ptr).b0)?;
+            read_mat(&mut file, &mut (*ptr).w1)?;
+            read_vec(&mut file, &mut (*ptr).b1)?;
+            read_mat(&mut file, &mut (*ptr).w2)?;
+            read_vec(&mut file, &mut (*ptr).b2)?;
+            read_vec(&mut file, &mut (*ptr).w3)?;
+            read_f32(&mut file, &mut (*ptr).b3)?;
+
+            Arc::from_raw(ptr)
         })
     }
 }
@@ -140,6 +146,34 @@ impl Accumulator {
 
         res
     }
+
+    #[inline]
+    fn add_w(&mut self, feature: usize, net: &Net) {
+        for i in 0..Net::SIZE {
+            self.white[i] += net.w0[feature][i];
+        }
+    }
+
+    #[inline]
+    fn add_b(&mut self, feature: usize, net: &Net) {
+        for i in 0..Net::SIZE {
+            self.black[i] += net.w0[feature][i];
+        }
+    }
+
+    #[inline]
+    fn sub_w(&mut self, feature: usize, net: &Net) {
+        for i in 0..Net::SIZE {
+            self.white[i] -= net.w0[feature][i];
+        }
+    }
+
+    #[inline]
+    fn sub_b(&mut self, feature: usize, net: &Net) {
+        for i in 0..Net::SIZE {
+            self.black[i] -= net.w0[feature][i];
+        }
+    }
 }
 
 //#################################################################################################
@@ -185,7 +219,9 @@ impl Eval {
 
         for sq in board.get_occupancy().all().iter_squares() {
             let (color, piece) = board.get_piece(sq).unwrap();
-            self.add_piece(color, piece, sq);
+            if piece != Piece::King {
+                self.add_piece(color, piece, sq);
+            }
         }
     }
 
@@ -199,22 +235,43 @@ impl Eval {
         // If it's a king move, update the half that needs to be.
         if piece == Piece::King {
             self.prev_acc.push(self.acc.clone());
-            self.acc = Accumulator::new(&self.net);
 
             board.do_move(mv);
-
             self.update_side(color, board);
+
+            // If it's a king capture, remove the capturee from the other side's accumulator.
             if mv.is_capture() {
                 if color == Color::White {
-                    let b = self.feature_b(Color::Black, mv.get_capture(), to);
-                    for i in 0..Net::SIZE {
-                        self.acc.black[i] -= self.net.w0[b][i];
-                    }
+                    let feature = self.feature_b(Color::Black, mv.get_capture(), to);
+                    self.acc.sub_b(feature, &self.net);
                 } else {
-                    let w = self.feature_w(Color::White, mv.get_capture(), to);
-                    for i in 0..Net::SIZE {
-                        self.acc.white[i] -= self.net.w0[w][i];
-                    }
+                    let feature = self.feature_w(Color::White, mv.get_capture(), to);
+                    self.acc.sub_w(feature, &self.net);
+                }
+            }
+
+            // If it's a castle, update the position of the rook on the other side's accumulator.
+            if mv.is_castle() {
+                let (from, to) = match mv.to() {
+                    Square::G1 => (Square::H1, Square::F1),
+                    Square::C1 => (Square::A1, Square::D1),
+                    Square::G8 => (Square::H8, Square::F8),
+                    Square::C8 => (Square::A8, Square::D8),
+                    _ => unreachable!(),
+                };
+
+                if color == Color::White {
+                    let feature_1 = self.feature_b(color, piece, from);
+                    let feature_2 = self.feature_b(color, piece, from);
+
+                    self.acc.sub_b(feature_1, &self.net);
+                    self.acc.add_b(feature_2, &self.net);
+                } else {
+                    let feature_1 = self.feature_w(color, piece, from);
+                    let feature_2 = self.feature_w(color, piece, from);
+
+                    self.acc.sub_w(feature_1, &self.net);
+                    self.acc.add_w(feature_2, &self.net);
                 }
             }
 
@@ -312,7 +369,7 @@ impl Eval {
             res += self.net.w3[i] * buf2[i];
         }
         
-        // For negamax, the evaluation needs to be inverted for black
+        // For negamax frameworks, the evaluation needs to be inverted for black
         if color == Color::Black {
             res = -res;
         }
@@ -324,11 +381,13 @@ impl Eval {
 // ================================ impl
 
 impl Eval {
+    /// Computes the feature associated with a color, piece, square triplet for white.
     #[inline]
     fn feature_w(&self, color: Color, piece: Piece, sq: Square) -> usize {
         self.king_w + (((usize::from(piece) << 1) + usize::from(color)) << 6) + usize::from(sq)
     }
 
+    /// Computes the feature associated with a color, piece, square triplet for black.
     #[inline]
     fn feature_b(&self, color: Color, piece: Piece, sq: Square) -> usize {
         self.king_b + (((usize::from(piece) << 1) + 1 - usize::from(color)) << 6) + (usize::from(sq) ^ 56)
@@ -337,27 +396,24 @@ impl Eval {
     /// Takes the given piece triplet into account.
     #[inline]
     fn add_piece(&mut self, color: Color, piece: Piece, sq: Square) {
-        let w = self.feature_w(color, piece, sq);
-        let b = self.feature_b(color, piece, sq);
+        let feature_w = self.feature_w(color, piece, sq);
+        let feature_b = self.feature_b(color, piece, sq);
 
-        for i in 0..Net::SIZE {
-            self.acc.white[i] += self.net.w0[w][i];
-            self.acc.black[i] += self.net.w0[b][i];
-        }
+        self.acc.add_w(feature_w, &self.net);
+        self.acc.add_b(feature_b, &self.net);
     }
 
     /// Removes the given piece triplet from the accumulator.
     #[inline]
     fn remove_piece(&mut self, color: Color, piece: Piece, sq: Square) {
-        let w = self.feature_w(color, piece, sq);
-        let b = self.feature_b(color, piece, sq);
+        let feature_w = self.feature_w(color, piece, sq);
+        let feature_b = self.feature_b(color, piece, sq);
 
-        for i in 0..Net::SIZE {
-            self.acc.white[i] -= self.net.w0[w][i];
-            self.acc.black[i] -= self.net.w0[b][i];
-        }
+        self.acc.sub_w(feature_w, &self.net);
+        self.acc.sub_b(feature_b, &self.net);
     }
 
+    /// Updates the king square value of the specified color.
     #[inline]
     fn update_king(&mut self, color: Color, board: &Board) {
         if color == Color::White {
@@ -369,28 +425,28 @@ impl Eval {
 
     #[inline]
     fn update_side(&mut self, color: Color, board: &Board) {
+        self.update_king(color, board);
+
         if color == Color::White {
-            self.update_king(Color::White, board);
             self.acc.white = self.net.b0;
 
             for sq in board.get_occupancy().all().iter_squares() {
-                let piece = board.get_piece_unchecked(sq);
-                let w = self.feature_w(color, piece, sq);
+                let (color, piece) = board.get_piece(sq).unwrap();
 
-                for i in 0..Net::SIZE {
-                    self.acc.white[i] += self.net.w0[w][i];
+                if piece != Piece::King {
+                    let feature = self.feature_w(color, piece, sq);
+                    self.acc.add_w(feature, &self.net);
                 }
             }
         } else {
-            self.update_king(Color::Black, board);
             self.acc.black = self.net.b0;
 
             for sq in board.get_occupancy().all().iter_squares() {
-                let piece = board.get_piece_unchecked(sq);
-                let b = self.feature_b(color, piece, sq);
-                
-                for i in 0..Net::SIZE {
-                    self.acc.black[i] += self.net.w0[b][i];
+                let (color, piece) = board.get_piece(sq).unwrap();
+
+                if piece != Piece::King {
+                    let feature = self.feature_b(color, piece, sq);
+                    self.acc.add_b(feature, &self.net);
                 }
             }
         }
