@@ -15,9 +15,9 @@ use crate::table::{TableEntry, TableEntryFlag};
 /// A struct holding all the necessary information for a search thread.
 #[derive(Debug)]
 pub(crate) struct Search {
+    eval: Eval,
     board: Board,
     heuristics: Heuristics,
-    eval: Eval,
 
     buffer: Vec<RatedMove>,
     best_move: Option<Move>,
@@ -74,20 +74,6 @@ impl Search {
         self.best_move = None;
         self.heuristics = Heuristics::default();
         self.eval.reset(&self.board);
-    }
-
-    /// Does the legal move.
-    fn do_move(&mut self, mv: Move) {
-        self.depth += 1;
-        self.eval.do_move(&self.board, mv);
-        self.board.do_move(mv);
-    }
-
-    /// Undoes the legal move.
-    fn undo_move(&mut self, mv: Move) {
-        self.eval.undo_move(&self.board, mv);
-        self.board.undo_move(mv);
-        self.depth -= 1;
     }
 
     /// Search the position until told to stop.
@@ -158,7 +144,7 @@ impl Search {
         }
         
         if self.depth == params::MAX_DEPTH as u8 {
-            return self.eval.get();
+            return self.eval.get(self.board.get_side_to_move());
         }
         
         if let Some((mv, score)) = self.info.get_table().probe(self.board.get_zobrist(), alpha, beta, depth) {
@@ -199,9 +185,11 @@ impl Search {
                 continue;
             }
 
-            self.do_move(mv);
+            self.depth += 1;
+            self.eval.do_move(&mut self.board, mv);
             let score = -self.alpha_beta(-beta, -alpha, do_null, depth-1, search_depth);
-            self.undo_move(mv);
+            self.eval.undo_move(&mut self.board, mv);
+            self.depth -= 1;
 
             if self.info.search_depth() >= search_depth || !self.info.is_searching() {
                 picker.truncate(&mut self.buffer);
@@ -285,7 +273,7 @@ impl Search {
             }
         }
         
-        let stand_pat = self.eval.get();
+        let stand_pat = self.eval.get(self.board.get_side_to_move());
     
         if self.depth == params::MAX_DEPTH as u8 {
             return stand_pat;
@@ -313,9 +301,11 @@ impl Search {
                 continue;
             }
     
-            self.do_move(mv);
+            self.depth += 1;
+            self.eval.do_move(&mut self.board, mv);
             let score = -self.quiescence(-beta, -alpha);
-            self.undo_move(mv);
+            self.eval.undo_move(&mut self.board, mv);
+            self.depth -= 1;
     
             if !self.info.is_searching() {
                 captures.truncate(&mut self.buffer);

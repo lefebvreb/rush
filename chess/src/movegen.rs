@@ -107,7 +107,7 @@ pub fn gen_pushes(board: &Board, mut gen: impl FnMut(Move)) {
 pub fn gen_king_captures(board: &Board, mut gen: impl FnMut(Move)) {
     let them_occ = board.get_occupancy().colored(board.get_other_side());
 
-    let from = board.king_sq();
+    let from = board.king_sq(board.get_side_to_move());
     for to in (attacks::king(from) & them_occ).iter_squares() {
         gen(Move::capture(from, to, board.get_piece_unchecked(to)));
     }
@@ -119,7 +119,7 @@ pub fn gen_king_captures(board: &Board, mut gen: impl FnMut(Move)) {
 pub fn gen_king_quiets(board: &Board, mut gen: impl FnMut(Move)) {
     let free = board.get_occupancy().free();
 
-    let from = board.king_sq();
+    let from = board.king_sq(board.get_side_to_move());
     for to in (attacks::king(from) & free).iter_squares() {
         gen(Move::quiet(from, to));
     }
@@ -269,7 +269,7 @@ pub fn legals(board: &Board, buffer: &mut Vec<Move>) {
         // Check that the move is either capturing the checker or blocking it.
         // SAFE: there is always a king on the board.
         let checker = unsafe {checkers.as_square_unchecked()};
-        let mask = BitBoard::between(board.king_sq(), checker) | checkers;
+        let mask = BitBoard::between(board.king_sq(board.get_side_to_move()), checker) | checkers;
         let gen = |mv: Move| if mask.contains(mv.to()) && board.is_legal(mv) {buffer.push(mv)};
 
         // Generate.

@@ -14,23 +14,23 @@ use crate::square::Square;
 /// Keeps track off the en passant target square.
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum EnPassantSquare {
+pub enum EnPassantSquare {
     Some(Square),
     None,
 }
 
-// ================================ pub(crate) impl
+// ================================ pub impl
 
 impl EnPassantSquare {
     /// Returns true if the square is some.
     #[inline]
-    pub(crate) fn is_some(self) -> bool {
+    pub fn is_some(self) -> bool {
         matches!(self, EnPassantSquare::Some(_))
     }
 
     /// Unwraps the en passant square, panics if there is none.
     #[inline]
-    pub(crate) fn unwrap(self) -> Square {
+    pub fn unwrap(self) -> Square {
         match self {
             EnPassantSquare::Some(sq) => sq,
             _ => unreachable!(),

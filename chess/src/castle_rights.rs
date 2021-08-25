@@ -14,7 +14,7 @@ use crate::square::Square;
 /// Represents the masks used to manipulate castle rights.
 #[repr(u8)]
 #[derive(Debug)]
-pub(crate) enum CastleMask {
+pub enum CastleMask {
     WhiteOO  = 0b0001,
     WhiteOOO = 0b0010,
     BlackOO  = 0b0100,
@@ -29,20 +29,20 @@ pub(crate) enum CastleMask {
 
 /// Used to represent castle availability for both players.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct CastleRights(u8);
+pub struct CastleRights(u8);
 
-// ================================ pub(crate) impl
+// ================================ pub impl
 
 impl CastleRights {
     /// Returns true if those rights contain that mask.
     #[inline]
-    pub(crate) fn has(self, mask: CastleMask) -> bool {
+    pub fn has(self, mask: CastleMask) -> bool {
         (self.0 & mask as u8) != 0
     }
 
     /// Updates the rights with the given from and to squares of the move.
     #[inline]
-    pub(crate) fn update(&mut self, from: Square, to: Square) {
+    pub fn update(&mut self, from: Square, to: Square) {
         match from {
             Square::A1 => self.remove(CastleMask::WhiteOOO),
             Square::E1 => {

@@ -262,7 +262,7 @@ impl MovePickerState {
             // One checker: compute the check mask: the checker's square or any square between them and the king.
             // SAFE: there is always a king on the board.
             let checker = unsafe {checkers.as_square_unchecked()};
-            let mask = BitBoard::between(board.king_sq(), checker) | checkers;
+            let mask = BitBoard::between(board.king_sq(board.get_side_to_move()), checker) | checkers;
 
             MovePickerState::CheckQueenPromotes {mask}
         }
@@ -301,7 +301,7 @@ impl Captures {
             // One checker, must check that the move is inside the computed mask.
             // SAFE: there is always a king on the board.
             let checker = unsafe {checkers.as_square_unchecked()};
-            let mask = BitBoard::between(board.king_sq(), checker) | checkers;
+            let mask = BitBoard::between(board.king_sq(board.get_side_to_move()), checker) | checkers;
 
             movegen::gen_promote_captures(board, &Piece::PROMOTES, |mv| if mask.contains(mv.to()) {buffer.push(RatedMove::promote_capture(mv))});
             movegen::gen_pawn_captures(board, |mv| if mask.contains(mv.to()) {buffer.push(RatedMove::capture(Piece::Pawn, mv))});

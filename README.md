@@ -67,5 +67,4 @@ Yes, it takes forever to compile.
 ## TODO list
 
 ### Engine
-+ NNUE eval.
-+ Profiling.
++ Test NNUE inference

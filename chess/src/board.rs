@@ -158,6 +158,18 @@ impl Board {
         self.ply
     }
 
+    /// Returns the castling rights in the current position.
+    #[inline]
+    pub fn get_castle_rights(&self) -> CastleRights {
+        self.state.castle_rights
+    }
+
+    /// Returns the en passant square of the current position.
+    #[inline]
+    pub fn get_ep_square(&self) -> EnPassantSquare {
+        self.state.ep_square
+    }
+
     /// Gets the bitboard corresponding to that color and piece type.
     #[inline]
     pub fn get_bitboard(&self, color: Color, piece: Piece) -> BitBoard {
@@ -200,8 +212,8 @@ impl Board {
 
     // Returns the square the king of the side to move is occupying. 
     #[inline]
-    pub fn king_sq(&self) -> Square {
-        let king_bb = self.get_bitboard(self.get_side_to_move(), Piece::King);
+    pub fn king_sq(&self, color: Color) -> Square {
+        let king_bb = self.get_bitboard(color, Piece::King);
         // SAFE: there is always a king on the board
         unsafe {king_bb.as_square_unchecked()}
     }
@@ -295,7 +307,7 @@ impl Board {
             // If the move is en passant, we must check that there is no double pin.
             let ep_square = self.get_ep_square().unwrap();
             let rank = ep_square.rank();
-            let king_sq = self.king_sq();
+            let king_sq = self.king_sq(self.get_side_to_move());
 
             // If the king is on the same rank as the ep square (very rare).
             if rank.contains(king_sq) {
@@ -315,7 +327,7 @@ impl Board {
                     }
                 }
             }
-        } else if from == self.king_sq() {
+        } else if from == self.king_sq(self.get_side_to_move()) {
             let new_occ = (self.get_occupancy().all() | BitBoard::from(to)) ^ BitBoard::from(from);
             // If the move is done by the king, check the square it is moving to is safe.
             return self.attackers_to(to, new_occ).empty();
@@ -323,7 +335,7 @@ impl Board {
 
         // Any move is valid if the piece is not pinned or if it is moving in the squares 
         // projected from the king and onward.
-        !self.get_pinned().contains(from) || BitBoard::ray_mask(self.king_sq(), from).contains(to)
+        !self.get_pinned().contains(from) || BitBoard::ray_mask(self.king_sq(self.get_side_to_move()), from).contains(to)
     }
 
     /// Returns true if that random move is pseudo-legal. Only assumes that the
@@ -389,7 +401,7 @@ impl Board {
                     // One checker, the piece moving must either block or capture the enemy piece.
                     // SAFE: there is always a king on the board
                     let checker = unsafe {checkers.as_square_unchecked()};
-                    let blocking_zone = BitBoard::between(self.king_sq(), checker);
+                    let blocking_zone = BitBoard::between(self.king_sq(self.get_side_to_move()), checker);
                     verify!((blocking_zone | checkers).contains(to));
                 }
             }
@@ -444,6 +456,7 @@ impl Board {
     }
 
     /// Do the move without checking anything about it's legality.
+    #[inline]
     pub fn do_move(&mut self, mv: Move) {
         // Clone the previous state to store it later.
         let old_state = self.state.clone();
@@ -522,6 +535,7 @@ impl Board {
     }
 
     /// Undoes the move, reverting the board to it's previous state.
+    #[inline]
     pub fn undo_move(&mut self, mv: Move) {
         // Them color.
         let them = self.get_side_to_move();
@@ -750,18 +764,6 @@ impl Board {
 // ================================ pub(crate) impl
 
 impl Board {
-    /// Returns the castling rights in the current position.
-    #[inline]
-    pub(crate) fn get_castle_rights(&self) -> CastleRights {
-        self.state.castle_rights
-    }
-
-    /// Returns the en passant square of the current position.
-    #[inline]
-    pub(crate) fn get_ep_square(&self) -> EnPassantSquare {
-        self.state.ep_square
-    }
-
     /// Returns true from and to are not aligned, or if the squares
     /// between them are empty.
     #[inline]
@@ -837,7 +839,7 @@ impl Board {
     #[inline]
     fn checkers(&self) -> BitBoard {
         let occ = self.get_occupancy().all();
-        self.attackers_to(self.king_sq(), occ)
+        self.attackers_to(self.king_sq(self.get_side_to_move()), occ)
     }
 
     /// The bitboard of the currently pinned pieces.
@@ -847,7 +849,7 @@ impl Board {
         let occ_us = self.occ.colored(us);
         let them = self.get_other_side();
         let queens = self.get_bitboard(them, Piece::Queen);
-        let king_sq = self.king_sq();
+        let king_sq = self.king_sq(us);
 
         let mut pinned = BitBoard::EMPTY;
 
@@ -872,7 +874,7 @@ impl Board {
 // ================================ traits impl
 
 impl Default for Board {
-    /// Returns an empty board.
+    /// Returns an empty board, which is illegal.
     fn default() -> Board {
         Board {
             ply: u16::MAX,

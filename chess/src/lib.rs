@@ -8,8 +8,8 @@ pub mod zobrist;
 
 // Logic modules.
 mod attacks;
-mod castle_rights;
-mod en_passant;
+pub mod castle_rights;
+pub mod en_passant;
 mod cuckoo;
 
 // Board type.
