@@ -2,11 +2,11 @@
 target
 Cargo.lock
 
-# NNUE files.
-nnue/data/*
-!nnue/data/.keep
-nnue/nets/*
-!nnue/nets/.keep
+# Dynamic files
+engine/books/*
+!engine/books/.keep
+engine/nets/*
+!engine/nets/.keep
 
 # JS files.
 node_modules
