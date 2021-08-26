@@ -27,8 +27,9 @@ impl Command {
     /// Tries to parse a command from a warp message.
     pub fn from_msg(msg: Message) -> Result<Self> {
         let data = msg.to_str().map_err(|_| Error::msg("Incoming message is not text."))?;
-        let json: Value = serde_json::from_str(data)?;
+        log::info!("Received message: {}", data);
 
+        let json: Value = serde_json::from_str(data)?;
         let obj = json.as_object().ok_or(Error::msg("Json value is not an object."))?;
 
         let kind = obj.get("kind").ok_or(Error::msg("No attribute kind in json value."))?

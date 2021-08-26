@@ -696,7 +696,7 @@ impl Board {
 
     /// Parses the move, checking the legality of the move.
     pub fn parse_move(&self, s: &str) -> Result<Move> {
-        if s.len() != 4 || s.len() != 5 {
+        if s.len() != 4 && s.len() != 5 {
             return Err(Error::msg("Invalid length for move literal."))
         }
 
