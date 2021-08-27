@@ -1,8 +1,8 @@
 /// The size of the transposition table in bytes. Not exact.
-pub(crate) const TABLE_SIZE: usize = 16777216;
+pub(crate) const TABLE_SIZE: usize = 33554432;
 
 /// The number of search threads used.
-pub(crate) const NUM_SEARCH_THREAD: usize = 3;
+pub(crate) const NUM_SEARCH_THREAD: usize = 8;
 
 /// The aspiration window used by the engine.
 pub(crate) const ASPIRATION_WINDOW: &[f32] = &[0.01, 0.05, 2.5, f32::INFINITY];

@@ -368,11 +368,6 @@ impl Eval {
         for i in 0..32 {
             res += self.net.w3[i] * buf2[i];
         }
-        
-        // For negamax frameworks, the evaluation needs to be inverted for black
-        if color == Color::Black {
-            res = -res;
-        }
 
         res
     }

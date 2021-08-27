@@ -2,7 +2,7 @@
 target
 Cargo.lock
 
-# Dynamic files
+# Dynamic files.
 engine/books/*
 !engine/books/.keep
 engine/nets/*
