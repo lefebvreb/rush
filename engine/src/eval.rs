@@ -262,13 +262,13 @@ impl Eval {
 
                 if color == Color::White {
                     let feature_1 = self.feature_b(color, piece, from);
-                    let feature_2 = self.feature_b(color, piece, from);
+                    let feature_2 = self.feature_b(color, piece, to);
 
                     self.acc.sub_b(feature_1, &self.net);
                     self.acc.add_b(feature_2, &self.net);
                 } else {
                     let feature_1 = self.feature_w(color, piece, from);
-                    let feature_2 = self.feature_w(color, piece, from);
+                    let feature_2 = self.feature_w(color, piece, to);
 
                     self.acc.sub_w(feature_1, &self.net);
                     self.acc.add_w(feature_2, &self.net);
