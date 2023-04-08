@@ -17,7 +17,7 @@
 
 <Logo></Logo>
 
-<h1>Rush Chess Engine ~ Copyleft🄯 2021 Benjamin Lefebvre ~ GPLv3 Licensed ~ <a href="https://github.com/L-Benjamin/rush">Repository</a></h1>
+<h1>Rush Chess Engine ~ Copyleft🄯 2021 Benjamin Lefebvre ~ GPLv3 Licensed ~ <a href="https://github.com/lefebvreb/rush">Repository</a></h1>
 
 {#if joined}
     <Board wasm={wasm}></Board>
