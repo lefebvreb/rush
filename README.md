@@ -63,8 +63,3 @@ cargo build --bin server --release
 Where port is the port the server will bind to. The link to the server will be printed to stdin.
 
 Yes, it takes forever to compile.
-
-## TODO list
-
-### Engine
-+ Test NNUE inference
